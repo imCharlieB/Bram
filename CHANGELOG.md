@@ -5,5 +5,6 @@
 - Hard rules, design, and user documentation.
 - Ollama model connection and `bram-bench`.
 - M1: encrypted one-time pairing, read-only Home Assistant integration, `bram-server`, and Docker Compose.
+- Prebuilt server image, Portainer instructions, clean shutdown, and immediate container logs.
 - House state with explicit unknowns, append-only audit log, and a log-only watcher.
 - Test fakes, rule coverage check, and documentation check.

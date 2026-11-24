@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import signal
 import sys
 from pathlib import Path
 
@@ -122,9 +123,15 @@ async def _serve(host: str, port: int, data: Path) -> None:
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, host, port, ssl_context=context).start()
+    stop = asyncio.Event()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            asyncio.get_running_loop().add_signal_handler(sig, stop.set)
+        except NotImplementedError:  # Windows
+            pass
     print(f"BRAM Server listening on port {port} (log only)")
     try:
-        await asyncio.Event().wait()
+        await stop.wait()
     finally:
         await runner.cleanup()
 

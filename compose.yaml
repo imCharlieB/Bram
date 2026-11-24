@@ -1,6 +1,6 @@
 services:
   bram:
-    build: ./server
+    image: ghcr.io/imcharlieb/bram-server:edge
     restart: unless-stopped
     ports:
       - "8765:8765"

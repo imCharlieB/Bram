@@ -34,8 +34,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker compose build
-      - run: docker compose run --rm bram pair --name CI
+      - run: docker compose -f compose.yaml -f compose.build.yaml build
+      - run: docker compose -f compose.yaml -f compose.build.yaml run --rm bram pair --name CI
+      - name: Stops cleanly
+        run: |
+          docker run -d --name bram bram-server:local
+          sleep 5
+          docker logs bram | grep listening
+          docker stop -t 10 bram
+          test "$(docker inspect -f '{{.State.ExitCode}}' bram)" = 0
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, home-assistant, image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          docker build -t ghcr.io/imcharlieb/bram-server:edge -t "ghcr.io/imcharlieb/bram-server:sha-$GITHUB_SHA" --label org.opencontainers.image.source=https://github.com/imCharlieB/Bram server
+          docker push --all-tags ghcr.io/imcharlieb/bram-server
   release-rules:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [test, home-assistant, image]

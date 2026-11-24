@@ -21,10 +21,17 @@ In this version the server watches and logs. It sends no messages and controls n
 
 ## Docker
 
-From a copy of this repository:
+The image is built by GitHub for 64-bit Intel/AMD machines. `edge` is the latest development version.
 
-    docker compose up -d --build
+    docker compose up -d
     docker compose exec bram bram-server --data /data pair --name Home
+
+To build it yourself, use `docker compose -f compose.yaml -f compose.build.yaml up -d --build`.
+
+### Portainer
+
+1. **Stacks > Add stack > Repository**. URL `https://github.com/imCharlieB/Bram`, reference `refs/heads/main`, compose path `compose.yaml`. Deploy.
+2. **Containers > bram > Console**, connect with `/bin/sh`, and run `bram-server --data /data pair --name Home`.
 
 ## Pairing
 
