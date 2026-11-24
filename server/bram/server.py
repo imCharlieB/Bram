@@ -1,0 +1,169 @@
+"""BRAM Server. M1: listens, remembers live state, and logs. Sends no actions."""
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import sys
+from pathlib import Path
+
+from aiohttp import WSCloseCode, WSMsgType, web
+
+from .audit import Audit
+from .pairing import CODE_LIFETIME, Pairing, ensure_certificate
+from .watch import Watcher
+from .world import Event, World
+
+PAIRING = web.AppKey("pairing", Pairing)
+AUDIT = web.AppKey("audit", Audit)
+HOUSES = web.AppKey("houses", dict)
+SOCKETS = web.AppKey("sockets", dict)
+
+
+def _event(house_id: str, raw: object) -> Event:
+    if not isinstance(raw, dict):
+        raise ValueError("state must be an object")
+    values = [raw.get(k) for k in ("entity_id", "kind", "state")]
+    if not all(isinstance(v, str) and len(v) <= 255 for v in values):
+        raise ValueError("bad state")
+    # The house comes from the token, never from the message (E4).
+    return Event(house_id, *values)
+
+
+async def _pair(request: web.Request) -> web.Response:
+    try:
+        secret = (await request.json())["secret"]
+    except (ValueError, KeyError, TypeError):
+        raise web.HTTPBadRequest from None
+    result = request.app[PAIRING].redeem(secret) if isinstance(secret, str) else None
+    if result is None:
+        raise web.HTTPForbidden
+    house_id, token = result
+    request.app[AUDIT].record(house_id, "pairing", "paired", "valid one-time code", "ok")
+    return web.json_response({"house_id": house_id, "token": token})
+
+
+async def _feed(request: web.Request) -> web.WebSocketResponse:
+    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
+    house_id = request.app[PAIRING].house_for(token) if scheme == "Bearer" and token else None
+    if house_id is None:
+        raise web.HTTPUnauthorized
+    audit, sockets = request.app[AUDIT], request.app[SOCKETS]
+    ws = web.WebSocketResponse(max_msg_size=1_000_000, heartbeat=30)
+    await ws.prepare(request)
+    # Only the newest connection counts for a house.
+    old = sockets.get(house_id)
+    sockets[house_id] = ws
+    if old is not None:
+        await old.close(code=WSCloseCode.POLICY_VIOLATION, message=b"replaced")
+    world, watcher = request.app[HOUSES].setdefault(house_id, _new_house(house_id, audit))
+    world.disconnected()
+    audit.record(house_id, "feed", "connected", "valid token", "ok")
+    ready = False
+    try:
+        async for message in ws:
+            if sockets.get(house_id) is not ws:
+                break
+            if message.type is not WSMsgType.TEXT:
+                break
+            try:
+                data = json.loads(message.data)
+                kind = data.get("type") if isinstance(data, dict) else None
+                if kind == "snapshot":
+                    world.disconnected()
+                    world.heartbeat()
+                    for event in [_event(house_id, s) for s in data["states"]]:
+                        watcher.handle(event)
+                    ready = True
+                elif kind == "state" and ready:
+                    watcher.handle(_event(house_id, data.get("state")))
+                elif kind == "heartbeat" and ready:
+                    world.heartbeat()
+                else:
+                    raise ValueError("unexpected message")
+            except (ValueError, KeyError, TypeError):
+                await ws.close(code=WSCloseCode.UNSUPPORTED_DATA)
+                break
+    finally:
+        if sockets.get(house_id) is ws:
+            del sockets[house_id]
+            world.disconnected()
+            audit.record(house_id, "feed", "disconnected", "connection closed", "state unknown")
+    return ws
+
+
+def _new_house(house_id: str, audit: Audit) -> tuple[World, Watcher]:
+    world = World(house_id)
+    return world, Watcher(world, audit)
+
+
+async def _health(request: web.Request) -> web.Response:
+    return web.json_response({"ok": True})
+
+
+async def _shutdown(app: web.Application) -> None:
+    for ws in list(app[SOCKETS].values()):
+        await ws.close(code=WSCloseCode.GOING_AWAY)
+
+
+def make_app(pairing: Pairing, audit: Audit) -> web.Application:
+    app = web.Application(client_max_size=4096)
+    app[PAIRING], app[AUDIT], app[HOUSES], app[SOCKETS] = pairing, audit, {}, {}
+    app.router.add_post("/pair", _pair)
+    app.router.add_get("/feed", _feed)
+    app.router.add_get("/health", _health)
+    app.on_shutdown.append(_shutdown)
+    return app
+
+
+async def _serve(host: str, port: int, data: Path) -> None:
+    context, _ = ensure_certificate(data)
+    app = make_app(Pairing(data / "bram.db"), Audit(data / "bram.db"))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, host, port, ssl_context=context).start()
+    print(f"BRAM Server listening on port {port} (log only)")
+    try:
+        await asyncio.Event().wait()
+    finally:
+        await runner.cleanup()
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(prog="bram-server")
+    p.add_argument("--data", default="data", type=Path)
+    sub = p.add_subparsers(dest="command", required=True)
+    run = sub.add_parser("run")
+    run.add_argument("--host", default="0.0.0.0")  # noqa: S104 - TLS and a token are required
+    run.add_argument("--port", type=int, default=8765)
+    sub.add_parser("pair").add_argument("--name", required=True)
+    sub.add_parser("houses")
+    sub.add_parser("unpair").add_argument("house_id")
+    log = sub.add_parser("log")
+    log.add_argument("house_id")
+    args = p.parse_args()
+    _, fingerprint = ensure_certificate(args.data)
+    database = args.data / "bram.db"
+    if args.command == "run":
+        try:
+            asyncio.run(_serve(args.host, args.port, args.data))
+        except KeyboardInterrupt:
+            return
+    elif args.command == "pair":
+        print(Pairing(database).new_code(args.name, fingerprint))
+        print(f"Enter this code in Home Assistant within {CODE_LIFETIME // 60} minutes. "
+              "It works once.")
+    elif args.command == "houses":
+        for house_id, name in Pairing(database).houses():
+            print(house_id, name)
+    elif args.command == "unpair":
+        if not Pairing(database).remove(args.house_id):
+            sys.exit("No such house")
+        print("Removed. Restart the server to end any open connection.")
+    elif args.command == "log":
+        for row in Audit(database).entries(args.house_id):
+            print(json.dumps(row))
+
+
+if __name__ == "__main__":
+    main()

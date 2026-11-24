@@ -2,7 +2,7 @@
 
 Butler, Reconnaissance & Automation Manager: a self-hosted agent for Home Assistant that reaches out to people instead of only replying. It works with the model you choose.
 
-> **Not usable yet.** BRAM cannot be installed and cannot control anything. It is not a substitute for certified smoke, CO, or security alarms.
+> **Early development.** This version only watches and logs; it sends no alerts and cannot control anything. It is not a substitute for certified smoke, CO, or security alarms.
 
 | Milestone | Status |
 |---|---|
@@ -19,6 +19,7 @@ Butler, Reconnaissance & Automation Manager: a self-hosted agent for Home Assist
 ## Documentation
 
 - [Installing](docs/installation.md)
+- [BRAM Server](docs/server.md)
 - [Testing your model](docs/benchmark.md)
 - [Safety rules](HARD_RULES.md)
 - [Design](SPEC.md)

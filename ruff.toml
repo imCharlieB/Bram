@@ -9,3 +9,4 @@ known-first-party = ["bram", "fakes"]
 
 [lint.per-file-ignores]
 "server/tests/*" = ["S101"]
+"ha_tests/*" = ["S101"]

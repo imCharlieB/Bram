@@ -1,0 +1,15 @@
+services:
+  bram:
+    build: ./server
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - bram-data:/data
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  bram-data:

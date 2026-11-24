@@ -1,6 +1,6 @@
 # Installing
 
-BRAM cannot be installed yet. This is the plan.
+BRAM is not ready for general use. The current version only watches and logs; see [BRAM Server](server.md). The HA App is not built yet. This is the plan.
 
 1. **BRAM integration**, through HACS. Needs Home Assistant 2026.8 or later.
 2. **BRAM Server**, one of:

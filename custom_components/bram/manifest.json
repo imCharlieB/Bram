@@ -1,0 +1,13 @@
+{
+  "domain": "bram",
+  "name": "BRAM",
+  "codeowners": ["@imCharlieB"],
+  "config_flow": true,
+  "documentation": "https://github.com/imCharlieB/Bram",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/imCharlieB/Bram/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.0.1"
+}

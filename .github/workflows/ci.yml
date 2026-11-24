@@ -20,9 +20,25 @@ jobs:
       - run: pytest server/tests
       - run: python scripts/rule_coverage.py
       - run: python scripts/docs_check.py
+  home-assistant:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install pytest-homeassistant-custom-component==0.13.375
+      - run: pip install -e server
+      - run: python -m pytest ha_tests -o asyncio_mode=auto
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build
+      - run: docker compose run --rm bram pair --name CI
   release-rules:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: test
+    needs: [test, home-assistant, image]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

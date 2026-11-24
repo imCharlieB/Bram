@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pair with your BRAM Server",
+        "description": "Run `bram-server pair --name Home` on the server and paste the code it prints.",
+        "data": {"host": "Server address", "port": "Port", "code": "Pairing code"}
+      }
+    },
+    "error": {
+      "invalid_code": "That code is wrong, expired, or already used.",
+      "cannot_connect": "Could not reach that server, or it is not the one that made this code."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "What BRAM may see",
+        "description": "BRAM only receives these entities. It cannot control anything in this version.",
+        "data": {"entities": "Entities"}
+      }
+    }
+  }
+}
