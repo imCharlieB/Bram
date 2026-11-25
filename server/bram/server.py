@@ -24,7 +24,6 @@ PAIRING = web.AppKey("pairing", Pairing)
 AUDIT = web.AppKey("audit", Audit)
 HOUSES = web.AppKey("houses", dict)
 SOCKETS = web.AppKey("sockets", dict)
-PAGE = web.AppKey("page", ConfigPage)
 
 
 def _event(house_id: str, raw: object) -> Event:
@@ -150,7 +149,6 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
 
         page = ConfigPage(settings, pairing, audit, fingerprint, lambda: set(app[SOCKETS]),
                           disconnect, clock)
-        app[PAGE] = page
         app.add_routes(page.routes())
     app.on_shutdown.append(_shutdown)
     return app
@@ -169,9 +167,6 @@ async def _serve(host: str, port: int, data: Path) -> None:
             asyncio.get_running_loop().add_signal_handler(sig, stop.set)
         except NotImplementedError:  # Windows
             pass
-    if app[PAGE].needs_setup:
-        code = app[PAGE].setup_code
-        print(f"Setup code: {code[:4]}-{code[4:]}  (open the config page within 15 minutes)")
     print(f"BRAM Server listening on port {port} (log only)")
     try:
         await stop.wait()

@@ -38,7 +38,7 @@ To build it yourself, use `docker compose -f compose.yaml -f compose.build.yaml 
 ## Config page
 
 1. Open `https://SERVER:8765`. Your browser warns because the server made its own certificate; continue only on your own network.
-2. Enter the **setup code** from the server's log (in Portainer: **Containers > bram > Logs**; in the HA App: **Log**) and create the owner login. Setup closes after 15 minutes or 5 wrong codes; restart the container for a new code.
+2. Create the owner login. Setup is open for 15 minutes after the server starts, until a login exists. If it has closed, restart the container. Do this promptly: whoever reaches the page first in that time can create the login. If someone else did, use `reset-login` below.
 3. Follow **Getting started** on the page.
 
 It shows status and the log, pairs and removes homes, and sets the model and personality. **Try it** sends your model one invented sentence and nothing about your home. It cannot control anything, change what BRAM may do, or approve actions.

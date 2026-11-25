@@ -46,6 +46,7 @@ class Feed:
         self._entities: list[str] = entry.options.get(CONF_ENTITIES, [])
         self._kinds: dict[str, str] = {}
         self._listeners: list[Callable[[], None]] = []
+        self.version: str | None = None
         self.connected = False
         self.beliefs: dict[str, str] = {}
 

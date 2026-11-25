@@ -7,6 +7,7 @@ import ipaddress
 import secrets
 import time
 from collections.abc import Awaitable, Callable
+from importlib.metadata import version
 from pathlib import Path
 
 from aiohttp import web
@@ -22,7 +23,7 @@ STATIC = Path(__file__).parent / "static"
 COOKIE = "__Host-bram"
 SESSION_LIFE, IDLE_LIFE = 12 * 3600, 1800
 MAX_FAILURES, MAX_FAILURES_ALL, LOCKOUT = 5, 20, 900
-# Creating the first login needs the code from the server's log, and this long to use it.
+# The first visitor may create the login, but only this long after the server starts.
 SETUP_WINDOW = 900
 # Invented, so a sample never contains anything about the house.
 SAMPLE = "The garage door has been open for 40 minutes."
@@ -34,7 +35,6 @@ HEADERS = {
     "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer",
     "Cache-Control": "no-store",
 }
-CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 FILES = {"": "index.html", "app.js": "app.js", "style.css": "style.css", "icon.png": "icon.png"}
 
 
@@ -47,9 +47,6 @@ class ConfigPage:
         self._fingerprint, self._connected = fingerprint, connected
         self._disconnect, self._clock = disconnect, clock
         self._started = clock()
-        self._setup_failures = 0
-        # 40 bits, at most 5 guesses.
-        self.setup_code = "".join(secrets.choice(CODE_LETTERS) for _ in range(8))
         self._sessions: dict[str, tuple[float, float, str]] = {}
         self._failures: dict[str, tuple[int, float]] = {}
         self._login_lock = asyncio.Lock()
@@ -159,33 +156,21 @@ class ConfigPage:
                            approver="owner")
         return self._start_session(self._settings.login_record() or "")
 
-    @property
-    def needs_setup(self) -> bool:
-        return self._settings.login_record() is None
-
     def _setup_open(self, request: web.Request) -> bool:
         try:
             local = ipaddress.ip_address(request.remote or "").is_private
         except ValueError:
             local = False
         return (local and self._settings.login_record() is None
-                and self._setup_failures < MAX_FAILURES
                 and self._clock() - self._started <= SETUP_WINDOW)
 
     async def _setup(self, request: web.Request) -> web.Response:
         body = await _body(request)
-        # Checked after the body arrives: nothing below waits before a wrong code is counted,
-        # so guesses sent together cannot slip past the limit.
         if not _same_origin(request) or not self._setup_open(request):
             return _json({"error": "Setup is closed. Restart the BRAM Server and reload."}, 403)
         user, password = body.get("user"), body.get("password")
         if not isinstance(user, str) or not isinstance(password, str):
             return _json({"error": "Enter a username and password"}, 400)
-        code = str(body.get("code", "")).strip().upper().replace("-", "")
-        if not secrets.compare_digest(code.encode(), self.setup_code.encode()):
-            self._setup_failures += 1
-            self._audit.record("server", "config page", "setup refused", "wrong code", "refused")
-            return _json({"error": "That is not the setup code in the server's log"}, 403)
         async with self._login_lock:
             try:
                 created = self._settings.create_login(user, password)
@@ -230,8 +215,9 @@ class ConfigPage:
 
     async def _status(self, request: web.Request) -> web.Response:
         online = self._connected()
-        return _json({"houses": [{"id": house_id, "name": name, "connected": house_id in online}
-                                 for house_id, name in self._pairing.houses()]})
+        houses = [{"id": house_id, "name": name, "connected": house_id in online}
+                  for house_id, name in self._pairing.houses()]
+        return _json({"version": version("bram-core"), "houses": houses})
 
     async def _pair(self, body: dict) -> web.Response:
         name = body.get("name")

@@ -20,8 +20,6 @@
     <h2>Welcome. Let's set up BRAM.</h2>
     <p class="note">Create the owner login. You will use it to change BRAM's settings.</p>
     <form id="setup-form">
-      <label for="setup-code">Setup code, from the BRAM Server's log</label>
-      <input id="setup-code" autocomplete="one-time-code" maxlength="12" placeholder="XXXX-XXXX" required>
       <label for="new-user">Username</label>
       <input id="new-user" autocomplete="username" maxlength="64" required>
       <label for="new-password">Password, at least 12 characters</label>
@@ -37,7 +35,7 @@
 <main id="closed" class="narrow" hidden>
   <section class="card">
     <h2>Setup has timed out</h2>
-    <p>For safety, setup closes 15 minutes after the BRAM Server starts, or after 5 wrong codes. Restart the BRAM container, then reload this page.</p>
+    <p>For safety, setup closes 15 minutes after the BRAM Server starts. Restart the BRAM container, then reload this page.</p>
   </section>
 </main>
 
@@ -132,6 +130,7 @@
     </table></div>
   </section>
 </main>
+<footer id="version"></footer>
 <dialog id="confirm" aria-labelledby="confirm-title">
   <form id="confirm-form">
     <h2 id="confirm-title">Enter your password</h2>

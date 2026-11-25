@@ -97,7 +97,8 @@ function loadSteps() {
 }
 
 async function loadStatus() {
-  const { houses } = await api("status");
+  const { houses, version } = await api("status");
+  $("version").textContent = `BRAM Server ${version}`;
   paired = houses.length > 0;
   loadSteps();
   $("houses").replaceChildren(...(houses.length ? houses.map((house) => {
@@ -160,7 +161,7 @@ $("setup-form").addEventListener("submit", (event) => {
   busy($("create"), "setup-message", async () => {
     const password = $("new-password").value;
     if (password !== $("new-again").value) throw new Error("The passwords do not match");
-    await api("setup", { code: $("setup-code").value, user: $("new-user").value, password });
+    await api("setup", { user: $("new-user").value, password });
     $("setup-form").reset();
     await start();
   });

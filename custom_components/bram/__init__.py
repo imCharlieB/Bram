@@ -5,8 +5,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.loader import async_get_integration
 
-from .const import CONF_ENTITIES
+from .const import CONF_ENTITIES, DOMAIN
 from .feed import Feed
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
@@ -14,6 +15,7 @@ PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.runtime_data = feed = Feed(hass, entry)
+    feed.version = str((await async_get_integration(hass, DOMAIN)).version)
     wanted = {f"{entry.entry_id}_{e}" for e in entry.options.get(CONF_ENTITIES, [])}
     wanted.add(f"{entry.entry_id}_connected")
     registry = er.async_get(hass)

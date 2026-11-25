@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.2.0
+
+First versioned release. Early development: watches and logs only.
+
 - Hard rules, design, and user documentation.
 - Ollama model connection and `bram-bench`.
 - M1: encrypted one-time pairing, read-only Home Assistant integration, `bram-server`, and Docker Compose.

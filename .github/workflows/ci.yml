@@ -12,6 +12,8 @@ jobs:
         python: ["3.13", "3.14"]
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -20,6 +22,7 @@ jobs:
       - run: pytest server/tests
       - run: python scripts/rule_coverage.py
       - run: python scripts/docs_check.py
+      - run: python scripts/version_check.py
   home-assistant:
     runs-on: ubuntu-latest
     steps:
@@ -60,10 +63,20 @@ jobs:
           docker build --provenance=false -t "$image:edge" -t "$image:sha-$GITHUB_SHA" --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" server
           docker push "$image:sha-$GITHUB_SHA"
           docker push "$image:edge"
-  release-rules:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [test, home-assistant, image]
+  release:
+    # Publishes the version in manifest.json once, so HACS can offer it.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: publish
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v5
-      - run: python3 scripts/rule_coverage.py --release
+      - run: |
+          version=$(python3 -c "import json; print(json.load(open('custom_components/bram/manifest.json'))['version'])")
+          if gh release view "v$version" >/dev/null 2>&1; then exit 0; fi
+          # 1.0.0 and later need a test for every hard rule (F9).
+          case "$version" in 0.*) ;; *) python3 scripts/rule_coverage.py --release ;; esac
+          gh release create "v$version" --target "$GITHUB_SHA" --title "BRAM $version" --notes "Early development. See CHANGELOG.md."

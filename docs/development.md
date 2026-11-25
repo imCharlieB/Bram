@@ -13,6 +13,7 @@ Checks, all run by CI:
     pytest server/tests
     python scripts/rule_coverage.py
     python scripts/docs_check.py
+    python scripts/version_check.py
 
 The integration tests need Python 3.14 and Linux (or CI):
 

@@ -11,7 +11,7 @@ from bram.local_model import _is_remote, _keep_alive, check_local
 from bram.models.base import ModelError, Reply
 from bram.pairing import Pairing, ensure_certificate
 from bram.personality import MODES, messages
-from bram.server import PAGE, make_app
+from bram.server import make_app
 from bram.settings import Settings
 from bram.web import COOKIE, HEADERS, SAMPLE
 from fakes import FakeModel
@@ -69,10 +69,6 @@ async def test_everything_needs_sign_in(page, method, path):
 SETUP = {"user": "Owner", "password": PASSWORD}
 
 
-def with_code(page, body=SETUP):
-    return {**body, "code": page.app[PAGE].setup_code}
-
-
 async def state(page):
     return await (await page.get("/api/state")).json()
 
@@ -82,10 +78,10 @@ async def test_first_run_setup_signs_in_and_works_once(page):
     assert (await page.login()).status == 403
     for bad in ({}, {"user": "", "password": PASSWORD}, {"user": "x", "password": "short"},
                 {"user": 1, "password": PASSWORD}, {"user": "x", "password": "y" * 201}):
-        assert (await page.post("setup", with_code(page, bad))).status == 400
-    assert (await page.post("setup", with_code(page))).status == 200
+        assert (await page.post("setup", bad)).status == 400
+    assert (await page.post("setup", SETUP)).status == 200
     assert await state(page) == {"login_exists": True, "setup_open": False, "signed_in": True}
-    again = await page.post("setup", with_code(page, {"user": "x", "password": PASSWORD}))
+    again = await page.post("setup", {"user": "x", "password": PASSWORD})
     assert again.status == 403
     assert page.settings.create_login("thief", "thief password!!") is False
     assert (await page.post("login", {"user": "thief", "password": PASSWORD})).status == 403
@@ -93,39 +89,18 @@ async def test_first_run_setup_signs_in_and_works_once(page):
 
 
 async def test_setup_race_has_one_winner(page):
-    tries = [with_code(page, {"user": f"u{i}", "password": PASSWORD}) for i in range(5)]
+    tries = [{"user": f"u{i}", "password": PASSWORD} for i in range(5)]
     results = await asyncio.gather(*(page.post("setup", t) for t in tries))
     assert sorted(r.status for r in results) == [200, 403, 403, 403, 403]
 
 
 async def test_setup_closes_after_window_and_to_other_sites(page):
     for origin in (None, "https://evil.example"):
-        assert (await page.post("setup", with_code(page), origin=origin)).status == 403
+        assert (await page.post("setup", SETUP, origin=origin)).status == 403
     page.now = 901
     assert (await state(page))["setup_open"] is False
-    assert (await page.post("setup", with_code(page))).status == 403
+    assert (await page.post("setup", SETUP)).status == 403
     assert page.settings.login_record() is None
-
-
-async def test_setup_needs_the_code_and_closes_after_wrong_ones(page):
-    for code in ("", "AAAAAAAA", None, [], "\u00e9"):
-        assert (await page.post("setup", {**SETUP, "code": code})).status == 403
-    assert (await page.post("setup", with_code(page))).status == 403
-    assert page.settings.login_record() is None
-    assert page.app[PAGE].setup_code not in json.dumps(page.audit.recent(20))
-
-
-async def test_setup_guesses_sent_together_are_limited(page):
-    await asyncio.gather(*(page.post("setup", {**SETUP, "code": f"GUESS{i:03}"})
-                           for i in range(30)))
-    refused = [r for r in page.audit.recent(100) if r["decision"] == "setup refused"]
-    assert len(refused) == 5
-
-
-async def test_setup_code_may_be_typed_loosely(page):
-    code = page.app[PAGE].setup_code
-    typed = f" {code[:4]}-{code[4:]} ".lower()
-    assert (await page.post("setup", {**SETUP, "code": typed})).status == 200
 
 
 async def test_signed_in_is_not_enough_for_sensitive_changes(page):
@@ -180,7 +155,7 @@ async def test_idle_session_ends(page):
 
 
 async def test_pair_and_unpair_from_the_page(page):
-    await page.post("setup", with_code(page))
+    await page.post("setup", SETUP)
     assert (await page.post("pair", {"name": " ", "confirm": PASSWORD})).status == 400
     code = (await (await page.post("pair", {"name": "Home", "confirm": PASSWORD})).json())["code"]
     paired = await (await page.http.post(
