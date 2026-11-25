@@ -192,8 +192,8 @@ Each milestone ends with its rule tests passing and the owner's approval.
 |---|---|---|---|
 | HA phone app (main) | Push, buttons, critical alerts | Buttons, Assist chat and voice | M2/M3 |
 | Speakers, kiosk, voice satellites | Speech, display | Voice where there is a microphone | M2/M3 |
-| ntfy | HA-down alerts | None | M2 |
-| Telegram (optional) | Messages, photos | Chat, buttons | M3 |
+| ntfy (optional) | HA-down alerts | Acknowledge and snooze buttons only, never commands | M2 |
+| Telegram (optional) | Messages and buttons in M2, photos in M5 | Buttons in M2, chat in M3 | M2/M3 |
 | SMS / call (optional) | Last-resort escalation | None | Later |
 
 Voice is optional, and no particular hardware is assumed. BRAM is a conversation agent in the owner's own Assist pipelines, so replies go wherever each pipeline already sends them. For outreach, each room can be set to: none (default), its voice satellite, or any media player, for homes where the microphone and speaker are different devices. After speaking through a media player BRAM restores what was playing where the player supports it, and rule E4 applies. Two-way outreach needs a satellite that can start a conversation; otherwise the follow-up goes to the phone.

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from aiohttp import web
 
-from .audit import Audit
+from .audit import KINDS, Audit
 from .local_model import check_local, local_models, open_model
 from .models.base import ModelError
 from .pairing import CODE_LIFETIME, Pairing
@@ -57,6 +57,9 @@ class ConfigPage:
             web.get("/", self._home), web.get("/ui/{file:[a-z.]*}", self._file),
             web.get("/api/state", self._state), web.post("/api/login", self._login),
             web.post("/api/setup", self._setup),
+            web.get("/api/profile", self._private(self._profile)),
+            web.post("/api/username", self._private(self._change_username)),
+            web.post("/api/logout-others", self._private(self._logout_others)),
             web.post("/api/password", self._private(self._change_password)),
             web.post("/api/pair", self._confirmed(self._pair)),
             web.post("/api/unpair", self._confirmed(self._unpair)),
@@ -238,11 +241,50 @@ class ConfigPage:
         return _json({"ok": True})
 
     async def _log(self, request: web.Request) -> web.Response:
+        try:
+            limit = int(request.query.get("limit", "50"))
+            before = int(request.query["before"]) if "before" in request.query else None
+        except ValueError:
+            return _json({"error": "Invalid number"}, 400)
+        kind = request.query.get("kind", "")
+        if not 1 <= limit <= 200 or not 0 <= (before or 0) < 2**62 or kind not in ("", *KINDS):
+            return _json({"error": "Invalid filter"}, 400)
         names = dict(self._pairing.houses())
         return _json({"entries": [{
-            "at": r["at"], "house": names.get(r["house_id"], r["house_id"]),
+            "id": r["id"], "at": r["at"], "house": names.get(r["house_id"], r["house_id"]),
             "decision": r["decision"], "trigger": r["trigger"], "reason": r["reason"],
-            "result": r["result"]} for r in self._audit.recent(200)]})
+            "result": r["result"]} for r in self._audit.recent(limit, before, kind)]})
+
+    async def _profile(self, request: web.Request) -> web.Response:
+        now, record = self._clock(), self._settings.login_record() or '[""]'
+        count = sum(1 for v in self._sessions.values() if min(v[:2]) > now and v[2] == record)
+        return _json({"user": owner_name(record), "sessions": count})
+
+    async def _logout_others(self, request: web.Request) -> web.Response:
+        key = _key(request.cookies.get(COOKIE, ""))
+        self._sessions = {k: v for k, v in self._sessions.items() if k == key}
+        self._audit.record("server", "config page", "signed out others", "by owner", "ok",
+                           approver="owner")
+        return _json({"ok": True})
+
+    async def _change_username(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        record, new, confirm = self._settings.login_record(), body.get("new"), body.get("confirm")
+        if record is None:
+            return _json({"error": "Sign in first"}, 401)
+        refused = await self._check(request, owner_name(record), confirm)
+        if refused is not None:
+            return refused
+        try:
+            if not isinstance(new, str) or not isinstance(confirm, str):
+                raise ValueError("Enter a new username")
+            self._settings.change_login(new, confirm)
+        except ValueError as err:
+            return _json({"error": str(err)}, 400)
+        self._sessions.clear()
+        self._audit.record("server", "config page", "username changed", "by owner", "ok",
+                           approver="owner")
+        return self._start_session(self._settings.login_record() or "")
 
     async def _get_settings(self, request: web.Request) -> web.Response:
         modes = [{"id": k, "name": v[0], "about": v[1]} for k, v in MODES.items()]

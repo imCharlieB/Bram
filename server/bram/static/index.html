@@ -9,15 +9,11 @@
 <script src="app.js" defer></script>
 </head>
 <body>
-<header>
-  <img src="icon.png" alt="" width="52" height="52">
-  <div><h1>BRAM</h1><p>Butler, Reconnaissance &amp; Automation Manager</p></div>
-  <button id="logout" class="quiet" hidden>Sign out</button>
-</header>
 
-<main id="setup" class="narrow" hidden>
+<main id="setup" class="door" hidden>
   <section class="card">
-    <h2>Welcome. Let's set up BRAM.</h2>
+    <img src="icon.png" alt="" width="96" height="96">
+    <h1>Welcome to BRAM</h1>
     <p class="note">Create the owner login. You will use it to change BRAM's settings.</p>
     <form id="setup-form">
       <label for="new-user">Username</label>
@@ -32,16 +28,18 @@
   </section>
 </main>
 
-<main id="closed" class="narrow" hidden>
+<main id="closed" class="door" hidden>
   <section class="card">
-    <h2>Setup has timed out</h2>
+    <img src="icon.png" alt="" width="96" height="96">
+    <h1>Setup has timed out</h1>
     <p>For safety, setup closes 15 minutes after the BRAM Server starts. Restart the BRAM container, then reload this page.</p>
   </section>
 </main>
 
-<main id="login" class="narrow" hidden>
+<main id="login" class="door" hidden>
   <section class="card">
-    <h2>Sign in</h2>
+    <img src="icon.png" alt="" width="96" height="96">
+    <h1>BRAM</h1>
     <form id="login-form">
       <label for="user">Username</label>
       <input id="user" autocomplete="username" required>
@@ -53,84 +51,158 @@
   </section>
 </main>
 
-<main id="app" hidden>
-  <section class="card wide" id="start" hidden>
-    <h2>Getting started</h2>
-    <ul id="steps"></ul>
-  </section>
+<div id="app" hidden>
+  <nav aria-label="Main">
+    <a class="brand" href="#overview"><img src="icon.png" alt="" width="40" height="40"><b>BRAM</b></a>
+    <a href="#overview">Overview</a>
+    <a href="#homes">Homes</a>
+    <a href="#model">Model</a>
+    <a href="#personality">Personality</a>
+    <a href="#log">Log</a>
+    <a href="#profile" id="nav-profile"><span class="avatar" id="avatar"></span><span id="nav-user">Profile</span></a>
+  </nav>
 
-  <section class="card">
-    <h2>Homes</h2>
-    <ul id="houses"></ul>
-    <form id="pair-form">
-      <label for="home">Connect a Home Assistant</label>
-      <div class="row">
-        <input id="home" placeholder="Home" maxlength="64" required>
-        <button id="pair" class="quiet">Get code</button>
+  <main id="pages">
+    <section data-page="overview" hidden>
+      <h1>Overview</h1>
+      <div class="card" id="start" hidden>
+        <h2>Getting started</h2>
+        <ul id="steps"></ul>
       </div>
-    </form>
-    <div id="code-box" hidden>
-      <pre id="code"></pre>
-      <button id="copy" class="quiet">Copy</button>
-      <p class="note">In Home Assistant: Settings, Devices &amp; services, Add integration, BRAM. Server address <b id="address"></b>, port <b id="port"></b>. The code works once, for <b id="minutes"></b> minutes.</p>
-    </div>
-    <p class="message" id="pair-message" role="status"></p>
-    <p class="note">Log only: BRAM sends no alerts and cannot control anything yet.</p>
-  </section>
+      <div class="tiles">
+        <a class="card tile" href="#homes"><span>Homes connected</span><b id="tile-homes"></b></a>
+        <a class="card tile" href="#model"><span>Model</span><b id="tile-model"></b></a>
+        <a class="card tile" href="#personality"><span>Personality</span><b id="tile-personality"></b></a>
+      </div>
+      <div class="card">
+        <div class="head"><h2>Latest</h2><a href="#log">See all</a></div>
+        <ul id="latest"></ul>
+      </div>
+      <p class="note">Log only: BRAM sends no alerts and cannot control anything yet. <span id="version"></span></p>
+      <p class="message" id="overview-message" role="status"></p>
+    </section>
 
-  <section class="card">
-    <h2>Model</h2>
-    <label for="url">Ollama address</label>
-    <div class="row">
-      <input id="url" type="url" placeholder="http://HOST:11434">
-      <button id="find" class="quiet">Find models</button>
-    </div>
-    <label for="model">Model</label>
-    <select id="model"></select>
-    <label for="context">Context size, if the model is not already loaded</label>
-    <input id="context" type="number" min="2048" max="262144" step="1024">
-    <button id="save-model">Save model</button>
-    <p class="message" id="model-message" role="status"></p>
-  </section>
+    <section data-page="homes" hidden>
+      <h1>Homes</h1>
+      <div class="card">
+        <h2>Connected homes</h2>
+        <ul id="houses"></ul>
+      </div>
+      <div class="card">
+        <h2>Connect a Home Assistant</h2>
+        <form id="pair-form">
+          <label for="home">Name for this home</label>
+          <div class="row">
+            <input id="home" placeholder="Home" maxlength="64" required>
+            <button id="pair">Get code</button>
+          </div>
+        </form>
+        <div id="code-box" hidden>
+          <pre id="code"></pre>
+          <button id="copy" class="quiet">Copy</button>
+          <p class="note">In Home Assistant: Settings, Devices &amp; services, Add integration, BRAM. Server address <b id="address"></b>, port <b id="port"></b>. The code works once, for <b id="minutes"></b> minutes.</p>
+        </div>
+        <p class="message" id="pair-message" role="status"></p>
+      </div>
+    </section>
 
-  <section class="card wide">
-    <h2>Personality</h2>
-    <p class="note">Changes wording only. Safety alerts and approvals always use plain text.</p>
-    <div id="modes" role="radiogroup" aria-label="Personality"></div>
-    <div id="custom-box" hidden>
-      <label for="custom">Describe the style</label>
-      <textarea id="custom" rows="3"></textarea>
-    </div>
-    <div class="row">
-      <button id="save-personality">Save personality</button>
-      <button id="try" class="quiet">Try it</button>
-    </div>
-    <p class="message" id="personality-message" role="status"></p>
-    <blockquote id="sample" hidden></blockquote>
-  </section>
+    <section data-page="model" hidden>
+      <h1>Model</h1>
+      <div class="card">
+        <label for="url">Ollama address</label>
+        <div class="row">
+          <input id="url" type="url" placeholder="http://HOST:11434">
+          <button id="find" class="quiet">Find models</button>
+        </div>
+        <label for="model">Model</label>
+        <select id="model"></select>
+        <label for="context">Context size, if the model is not already loaded</label>
+        <input id="context" type="number" min="2048" max="262144" step="1024">
+        <button id="save-model">Save model</button>
+        <p class="message" id="model-message" role="status"></p>
+      </div>
+    </section>
 
-  <section class="card wide">
-    <h2>Change password</h2>
-    <form id="change-form">
-      <label for="change-new">New password, at least 12 characters</label>
-      <input id="change-new" type="password" autocomplete="new-password" minlength="12" maxlength="200" required>
-      <label for="change-again">New password again</label>
-      <input id="change-again" type="password" autocomplete="new-password" maxlength="200" required>
-      <button id="change" class="quiet">Change password</button>
-    </form>
-    <p class="message" id="change-message" role="status"></p>
-  </section>
+    <section data-page="personality" hidden>
+      <h1>Personality</h1>
+      <div class="card">
+        <p class="note">Changes wording only. Safety alerts and approvals always use plain text.</p>
+        <div id="modes" role="radiogroup" aria-label="Personality"></div>
+        <div id="custom-box" hidden>
+          <label for="custom">Describe the style</label>
+          <textarea id="custom" rows="3"></textarea>
+        </div>
+        <div class="row">
+          <button id="save-personality">Save personality</button>
+          <button id="try" class="quiet">Try it</button>
+        </div>
+        <p class="message" id="personality-message" role="status"></p>
+        <blockquote id="sample" hidden></blockquote>
+      </div>
+    </section>
 
-  <section class="card wide">
-    <h2>Log</h2>
-    <button id="refresh" class="quiet">Refresh</button>
-    <div class="scroll"><table>
-      <thead><tr><th>Time</th><th>House</th><th>What</th><th>Why</th></tr></thead>
-      <tbody id="log"></tbody>
-    </table></div>
-  </section>
-</main>
-<footer id="version"></footer>
+    <section data-page="log" hidden>
+      <h1>Log</h1>
+      <div class="card">
+        <div class="row">
+          <select id="log-kind" aria-label="Show">
+            <option value="">Everything</option>
+            <option value="say">What BRAM would say</option>
+            <option value="connection">Connections</option>
+            <option value="security">Sign-ins and changes</option>
+          </select>
+          <button id="refresh" class="quiet">Refresh</button>
+        </div>
+        <div class="scroll"><table>
+          <thead><tr><th>Time</th><th>Home</th><th>What</th><th>Why</th></tr></thead>
+          <tbody id="log"></tbody>
+        </table></div>
+        <button id="older" class="quiet" hidden>Older</button>
+        <p class="message" id="log-message" role="status"></p>
+      </div>
+    </section>
+
+    <section data-page="profile" hidden>
+      <h1>Profile</h1>
+      <div class="card person">
+        <span class="avatar big" id="avatar-big"></span>
+        <div><h2 id="profile-user"></h2><p class="note">Owner. Signed in on <b id="sessions"></b>.</p></div>
+      </div>
+      <div class="card">
+        <h2>Username</h2>
+        <form id="name-form">
+          <label for="name-new">New username</label>
+          <div class="row">
+            <input id="name-new" autocomplete="username" maxlength="64" required>
+            <button id="rename" class="quiet">Change</button>
+          </div>
+        </form>
+        <p class="message" id="name-message" role="status"></p>
+      </div>
+      <div class="card">
+        <h2>Password</h2>
+        <form id="change-form">
+          <label for="change-new">New password, at least 12 characters</label>
+          <input id="change-new" type="password" autocomplete="new-password" minlength="12" maxlength="200" required>
+          <label for="change-again">New password again</label>
+          <input id="change-again" type="password" autocomplete="new-password" maxlength="200" required>
+          <button id="change" class="quiet">Change password</button>
+        </form>
+        <p class="message" id="change-message" role="status"></p>
+      </div>
+      <div class="card">
+        <h2>Signed-in devices</h2>
+        <p class="note">Changing your username or password also signs out every other device.</p>
+        <div class="row">
+          <button id="logout" class="quiet">Sign out</button>
+          <button id="logout-others" class="quiet">Sign out other devices</button>
+        </div>
+        <p class="message" id="session-message" role="status"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
 <dialog id="confirm" aria-labelledby="confirm-title">
   <form id="confirm-form">
     <h2 id="confirm-title">Enter your password</h2>

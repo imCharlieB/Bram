@@ -16,6 +16,12 @@ CREATE TRIGGER IF NOT EXISTS audit_no_delete BEFORE DELETE ON audit
     BEGIN SELECT RAISE(ABORT, 'audit log is append-only'); END;
 """
 
+KINDS = {
+    "say": "decision = 'would_say'",
+    "connection": "trigger IN ('feed', 'pairing')",
+    "security": "trigger = 'config page'",
+}
+
 
 class Audit:
     def __init__(self, path: Path | str) -> None:
@@ -35,8 +41,18 @@ class Audit:
         rows = self._db.execute("SELECT * FROM audit WHERE house_id = ? ORDER BY id", (house_id,))
         return [dict(r) for r in rows]
 
-    def recent(self, limit: int) -> list[dict]:
-        rows = self._db.execute("SELECT * FROM audit ORDER BY id DESC LIMIT ?", (limit,))
+    def recent(self, limit: int, before: int | None = None, kind: str = "") -> list[dict]:
+        """Newest first. kind is a key of KINDS, or empty for everything."""
+        where, values = [], []
+        if before is not None:
+            where.append("id < ?")
+            values.append(before)
+        if kind:
+            where.append(KINDS[kind])
+        clause = f" WHERE {' AND '.join(where)}" if where else ""
+        # Only fixed text from this file is put into the query.
+        rows = self._db.execute(f"SELECT * FROM audit{clause} ORDER BY id DESC LIMIT ?",  # noqa: S608
+                                (*values, limit))
         return [dict(r) for r in rows]
 
     def close(self) -> None:

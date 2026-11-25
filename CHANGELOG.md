@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.3.0
+
+- The config page has a menu, an overview, its own log page with filters, and a profile for your username, password, and signed-in devices.
+
 ## 0.2.0
 
 First versioned release. Early development: watches and logs only.

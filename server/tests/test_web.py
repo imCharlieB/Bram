@@ -55,6 +55,7 @@ async def page(tmp_path):
 
 PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "settings"),
            ("POST", "models"), ("POST", "sample"), ("POST", "logout"),
+           ("GET", "profile"), ("POST", "username"), ("POST", "logout-others"),
            ("POST", "pair"), ("POST", "password"),
            ("POST", "unpair")]
 
@@ -141,6 +142,55 @@ async def test_change_password_ends_other_sessions(page):
         assert (await other.get(page.url + "/api/status", ssl=page.pin)).status == 401
     assert (await page.login()).status == 403
     assert (await page.login(new)).status == 200
+
+
+async def test_profile_username_and_other_devices(page):
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    async with aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar(unsafe=True)) as other:
+        async def other_signed_in():
+            await other.post(page.url + "/api/login", ssl=page.pin, headers={"Origin": page.url},
+                             json={"user": "owner", "password": PASSWORD})
+
+        async def other_status():
+            return (await other.get(page.url + "/api/status", ssl=page.pin)).status
+
+        await other_signed_in()
+        profile = await (await page.get("/api/profile")).json()
+        assert profile == {"user": "Owner", "sessions": 2}
+        assert (await page.post("logout-others", {})).status == 200
+        assert await other_status() == 401 and (await page.get("/api/status")).status == 200
+        await other_signed_in()
+        for bad in ("", " ", "x" * 65, None):
+            response = await page.post("username", {"new": bad, "confirm": PASSWORD})
+            assert response.status == 400
+        assert (await page.post("username", {"new": "Boss", "confirm": "wrong"})).status == 403
+        assert (await page.post("username", {"new": "Boss", "confirm": PASSWORD})).status == 200
+        assert await other_status() == 401
+    assert (await (await page.get("/api/profile")).json())["user"] == "Boss"
+    assert (await page.login()).status == 403
+    assert (await page.post("login", {"user": "boss", "password": PASSWORD})).status == 200
+
+
+async def test_log_pages_and_filters(page):
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    for i in range(5):
+        page.audit.record("h", "feed", "connected", str(i), "ok")
+    page.audit.record("h", "sensor", "would_say", "leak", "log_only")
+
+    async def log(query):
+        return (await (await page.get("/api/log?" + query)).json())["entries"]
+
+    first = await log("limit=2&kind=connection")
+    assert [e["reason"] for e in first] == ["4", "3"]
+    rest = await log(f"limit=50&kind=connection&before={first[-1]['id']}")
+    assert [e["reason"] for e in rest] == ["2", "1", "0"]
+    assert [e["reason"] for e in await log("kind=say")] == ["leak"]
+    assert {e["trigger"] for e in await log("kind=security")} == {"config page"}
+    for bad in ("limit=0", "limit=201", "limit=x", "before=x", "before=-1", "kind=x",
+                f"before={10**30}", "kind=say%27%20OR%201=1"):
+        assert (await page.get("/api/log?" + bad)).status == 400
 
 
 async def test_idle_session_ends(page):

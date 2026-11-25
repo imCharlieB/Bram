@@ -41,11 +41,20 @@ To build it yourself, use `docker compose -f compose.yaml -f compose.build.yaml 
 2. Create the owner login. Setup is open for 15 minutes after the server starts, until a login exists. If it has closed, restart the container. Do this promptly: whoever reaches the page first in that time can create the login. If someone else did, use `reset-login` below.
 3. Follow **Getting started** on the page.
 
-It shows status and the log, pairs and removes homes, and sets the model and personality. **Try it** sends your model one invented sentence and nothing about your home. It cannot control anything, change what BRAM may do, or approve actions.
+| Page | For |
+|---|---|
+| Overview | Status and the latest log entries |
+| Homes | Connect or remove a Home Assistant |
+| Model | Choose the model |
+| Personality | Choose and try a personality |
+| Log | Everything BRAM recorded, with filters |
+| Profile | Username, password, and signed-in devices |
+
+ **Try it** sends your model one invented sentence and nothing about your home. It cannot control anything, change what BRAM may do, or approve actions.
 
 - Only models on your own network are accepted, and models that Ollama runs in the cloud are refused.
 - If the model is already loaded, BRAM keeps its context size and unload time so other users are not affected.
-- Pairing, removing a home, changing the model, and changing the password ask for the password again.
+- Pairing, removing a home, changing the model, and changing the username or password ask for the password again.
 - Sessions end after 30 minutes idle or 12 hours.
 - Five wrong passwords from one address, or 20 in all, lock sign-in for 15 minutes. Resetting the login signs everyone out.
 - BRAM does not send messages yet, so the saved personality only affects **Try it** for now.
