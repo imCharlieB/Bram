@@ -10,6 +10,10 @@ problems = []
 for page in pages:
     for link in re.findall(r"\]\(([^)]+)\)", page.read_text(encoding="utf-8")):
         target = link.split("#")[0]
+        for site in ("https://github.com/imCharlieB/Bram/blob/main/",
+                     "https://raw.githubusercontent.com/imCharlieB/Bram/main/"):
+            if target.startswith(site) and not (ROOT / target[len(site):]).exists():
+                problems.append(f"{page.relative_to(ROOT)}: broken link {link}")
         if target and "://" not in target and not (page.parent / target).exists():
             problems.append(f"{page.relative_to(ROOT)}: broken link {link}")
 

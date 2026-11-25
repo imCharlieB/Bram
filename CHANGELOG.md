@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.25.1
+
+- The HACS page explains what BRAM does, how to install and use it, what to ask, and what to try when something is wrong, with pictures.
+
 ## 0.25.0
 
 - Clean up history: see what each device uses, then shorten, delete, or stop keeping it. Nothing goes until you confirm the exact list.
