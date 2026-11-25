@@ -52,11 +52,18 @@ async def start(hass, server):
     return result["result"]
 
 
+async def reconnected(hass, entry):
+    """Saving options reloads BRAM. Cutting off its handshake is an error on Linux."""
+    await hass.async_block_till_done()
+    await until(lambda: entry.runtime_data.connected)
+
+
 async def choose(hass, entry, entities):
     flow = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
         flow["flow_id"], {"entities": entities, "phones": [], "escalate": False})
     assert result["type"] is FlowResultType.CREATE_ENTRY
+    await reconnected(hass, entry)
 
 
 LEAK, LOCK = "binary_sensor.leak", "lock.a"
@@ -158,7 +165,7 @@ async def test_test_button(hass, server):
     await hass.config_entries.options.async_configure(flow["flow_id"], {
         "entities": [], "phones": ["mobile_app_phone"], "escalate": False,
         "quiet_from": "22:00:00", "quiet_to": "07:00:00"})
-    await hass.async_block_till_done()
+    await reconnected(hass, entry)
     button = hass.states.async_entity_ids("button")[0]
     await hass.services.async_call("button", "press", {"entity_id": button}, blocking=True)
     assert calls[0].data["message"] == "This is a test message."
