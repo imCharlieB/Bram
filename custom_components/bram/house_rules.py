@@ -99,7 +99,9 @@ class HouseRules:
     def _kind(self, entity_id: str, state: State | None) -> str | None:
         if state is not None:
             kind = kind_of(entity_id, state.attributes.get("device_class"))
-            if kind and self._kinds.get(entity_id) != kind:
+            known = self._kinds.get(entity_id)
+            # A sensor that briefly loses its type must stay what it was known to be.
+            if kind and kind != known and not (kind == "other" and known):
                 self._kinds[entity_id] = kind
                 self._save()
         return self._kinds.get(entity_id)

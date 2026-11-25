@@ -174,6 +174,14 @@ async def test_restart_does_not_repeat(env):
     assert len(env.calls) == 1
 
 
+async def test_door_that_loses_its_type_is_still_watched(env):
+    await env.start(**ALL)
+    await env.rules.run()
+    env.hass.states.async_set(DOOR, "on", {})
+    await env.wait(15)
+    assert len(env.calls) == 1
+
+
 async def test_daily_limit(env):
     await env.start(**ALL)
     for _ in range(DAILY + 5):

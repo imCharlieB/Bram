@@ -9,7 +9,7 @@
 | Recommended setup | Phones, suggested devices, night, left open, offline, history, 8 AM summary | All on, if you submit it |
 | BRAM's suggestions | What it would add | |
 | Add devices quickly | Types and areas to search | |
-| What BRAM can see | People, locks and doors, leak and smoke, motion, lights, switches and fans, media, voice assistants, climate | None |
+| What BRAM can see | People, locks and doors, safety, motion, lights, switches and fans, media, voice assistants, climate, anything else | None |
 | Phone alerts and quiet hours | Phones that get alerts | None |
 | | Quiet from, quiet until | Off |
 | | Daily summary at | Off |
@@ -40,7 +40,8 @@ Quiet hours here affect only Home Assistant's messages.
 | Settings > Model | Ollama address, model, context size | None, 8192 |
 | Settings > Personality | Mode, custom style | Professional |
 | Settings > Voice | Hearing, speaking, voice name | Off |
-| Profile | Username, password, signed-in devices | |
+| Profile | Look: Command or Classic, in this browser | Command |
+| | Username, password, signed-in devices | |
 
 These ask for your password again: homes, model, Telegram, ntfy, voice, username, and password.
 

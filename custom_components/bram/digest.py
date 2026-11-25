@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DIGEST, CONF_ENTITIES, CONF_PHONES
+from .const import CONF_DIGEST, CONF_ENTITIES, CONF_PHONES, SAFETY
 from .feed import Feed, kind_of
 from .notifier import notify
 from .queries import _low
@@ -42,10 +42,12 @@ class Digest:
             state = self._hass.states.get(entity_id)
             name = state.name if state is not None else entity_id
             value = state.state if state is not None else "unavailable"
-            kind = kind_of(entity_id, state.attributes.get("device_class") if state else None)
+            # The feed remembers the type if the sensor has lost it for now.
+            kind = self._feed.kind(entity_id) or kind_of(
+                entity_id, state.attributes.get("device_class") if state else None)
             if value in UNKNOWN:
                 unseen.append(name)
-            elif kind in ("leak", "smoke") and value == "on":
+            elif kind in SAFETY and value == "on":
                 trouble.append(name)
             elif kind == "opening" and value in ("on", "open"):
                 opened.append(name)
@@ -57,7 +59,7 @@ class Digest:
             if _low(state):
                 batteries.append(f"{state.name} {state.state}%")
         lines = [f"{label}: {_names(names)}" for label, names in (
-            ("LEAK OR SMOKE", trouble), ("Open", opened), ("Not locked", unlocked),
+            ("SAFETY ALERT", trouble), ("Open", opened), ("Not locked", unlocked),
             ("Can't see", unseen), ("Home", home), ("Away", away),
             ("Low batteries", sorted(batteries))) if names]
         if not (trouble or opened or unlocked or unseen):

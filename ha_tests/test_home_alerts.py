@@ -89,6 +89,26 @@ async def test_repeats_to_limit_then_stops(env):
     assert len(env.calls) == len(REPEAT) + 1
 
 
+@pytest.mark.parametrize(("device_class", "words"), [
+    ("smoke", "Smoke"), ("carbon_monoxide", "CARBON MONOXIDE"), ("gas", "GAS"),
+    ("heat", "heat"), ("safety", "Safety problem"), ("tamper", "Safety problem")])
+async def test_every_safety_sensor_alerts(env, device_class, words):
+    await env.start(entities=["binary_sensor.s"])
+    await env.set("on", "binary_sensor.s", {"device_class": device_class})
+    assert len(env.safety()) == 1 and words in env.texts()[0]
+    await env.wait(150)
+    assert len(env.safety()) == 2
+
+
+@pytest.mark.parametrize("device_class", ["problem", "battery", "power", None])
+async def test_other_sensors_do_not(env, device_class):
+    await env.start(entities=["binary_sensor.s"])
+    await env.set("on", "binary_sensor.s", {"device_class": device_class})
+    await env.set("unavailable", "binary_sensor.s", {"device_class": device_class})
+    await env.wait(900)
+    assert env.calls == []
+
+
 async def test_acknowledge_stops_and_a_new_leak_starts_again(env):
     await env.start()
     await env.set("on")
@@ -114,6 +134,12 @@ async def test_drying_out_does_not_stop_an_unacknowledged_alert(env):
     await env.press(action(env.calls[1]))
     await env.wait(86400, 600)
     assert len(env.calls) == 2
+
+
+async def test_sensor_that_loses_its_type_still_alerts(env):
+    await env.start()
+    await env.set("on", attrs={})
+    assert len(env.safety()) == 1
 
 
 @pytest.mark.rule("B2")

@@ -17,6 +17,10 @@ MEANING = {
     "lock": ("unlocked", "locked"),
     "leak": ("leak", "dry"),
     "smoke": ("smoke", "clear"),
+    "co": ("carbon monoxide", "clear"),
+    "gas": ("gas", "clear"),
+    "heat": ("too hot", "normal"),
+    "hazard": ("problem", "clear"),
     "opening": ("open", "closed"),
     "motion": ("detected", "clear"),
     "light": ("on", "off"),
@@ -26,13 +30,15 @@ MEANING = {
     "satellite": ("in use", "idle"),
 }
 # Kinds that say something other than yes or no.
-READINGS = ("climate", "temperature", "humidity")
+READINGS = ("climate", "temperature", "humidity", "other")
+# These alert until someone answers.
+SAFETY = ("leak", "smoke", "co", "gas", "heat", "hazard")
 # How BRAM's options group what it may see.
 GROUPS = {
-    "people": ("person",), "doors": ("lock", "opening"), "safety": ("leak", "smoke"),
+    "people": ("person",), "doors": ("lock", "opening"), "safety": SAFETY,
     "motion": ("motion",), "lights": ("light",), "switches": ("switch", "fan"),
     "media": ("media",), "voice": ("satellite",),
-    "climate": ("climate", "temperature", "humidity"),
+    "climate": ("climate", "temperature", "humidity"), "other": ("other",),
 }
 MOODS = {
     "professional": "Professional", "friendly": "Friendly", "dry": "Dry", "minimal": "Minimal",
@@ -40,7 +46,9 @@ MOODS = {
 }
 ICON = {
     "person": "mdi:account-eye", "lock": "mdi:lock", "leak": "mdi:water-alert",
-    "smoke": "mdi:smoke-detector", "opening": "mdi:door", "motion": "mdi:motion-sensor",
+    "smoke": "mdi:smoke-detector", "co": "mdi:molecule-co", "gas": "mdi:gas-cylinder",
+    "heat": "mdi:fire", "hazard": "mdi:alert", "other": "mdi:eye-outline",
+    "opening": "mdi:door", "motion": "mdi:motion-sensor",
     "light": "mdi:lightbulb", "switch": "mdi:toggle-switch", "fan": "mdi:fan",
     "media": "mdi:speaker", "satellite": "mdi:account-voice", "climate": "mdi:thermostat",
     "temperature": "mdi:thermometer", "humidity": "mdi:water-percent",

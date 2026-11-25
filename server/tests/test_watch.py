@@ -99,6 +99,11 @@ def test_watcher_logs_once_per_change(world, audit):
     assert len(rows) == 3 and {r["decision"] for r in rows} == {"noticed"}
 
 
+@pytest.mark.parametrize("kind", ["leak", "smoke", "co", "gas", "heat", "hazard"])
+def test_every_safety_kind_is_noticed(world, audit, kind):
+    assert Watcher(world, audit).handle(ev("s", kind, "on"))
+
+
 @pytest.mark.parametrize("kind", ["motion", "light", "person"])
 def test_everyday_activity_is_not_stored(world, audit, kind):
     watcher = Watcher(world, audit)

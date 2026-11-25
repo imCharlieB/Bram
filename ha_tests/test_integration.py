@@ -86,7 +86,7 @@ async def choose(hass, entry, entities):
     for entity in entities:
         state = hass.states.get(entity)
         kind = kind_of(entity, state and state.attributes.get("device_class"))
-        groups[next((g for g, kinds in GROUPS.items() if kind in kinds), "safety")].append(entity)
+        groups[next((g for g, kinds in GROUPS.items() if kind in kinds), "other")].append(entity)
     await options(hass, entry, "see", groups)
 
 
@@ -173,12 +173,12 @@ async def test_option_pages_keep_each_other(hass, server):
     flow = await hass.config_entries.options.async_configure(
         flow["flow_id"], {"next_step_id": "see"})
     shown = {str(k): k.description["suggested_value"] for k in flow["data_schema"].schema}
-    assert shown["safety"] == [LEAK] and shown["doors"] == [LOCK]
+    assert shown["other"] == [LEAK] and shown["doors"] == [LOCK]  # kept, type not known
     hass.config_entries.options.async_abort(flow["flow_id"])
     await options(hass, entry, "see", shown)
     assert set(entry.options["entities"]) == {LOCK, LEAK}
     # An emptied group arrives as a missing one, and must stop being shared.
-    await options(hass, entry, "see", {"safety": [LEAK]})
+    await options(hass, entry, "see", {"other": [LEAK]})
     assert entry.options["entities"] == [LEAK]
     assert entry.options["phones"] == ["mobile_app_phone"] and entry.options["escalate"]
     await options(hass, entry, "alerts", alerts)
@@ -389,6 +389,13 @@ async def test_mood(hass, server):
     await until(lambda: not app[SOCKETS])
 
 
+def test_a_known_sensor_is_never_downgraded(hass):
+    feed = Feed(hass, MockConfigEntry(domain="bram", options={"entities": [LEAK]}))
+    for attrs, value in (({"device_class": "moisture"}, "off"), ({}, "unavailable"), ({}, "on")):
+        assert feed._state(LEAK, State(LEAK, value, attrs))["kind"] == "leak"
+    assert feed._state(LEAK, None)["kind"] == "leak"
+
+
 async def test_watch_page(hass, server):
     entry = await start(hass, server)
     watch = {"night": True, "away": False, "left_open": True, "offline": False,
@@ -532,11 +539,11 @@ def test_rest_of_integration_has_no_way_to_call_a_service():
 @pytest.mark.parametrize(("entity", "device_class", "kind"), [
     ("person.a", None, "person"), ("lock.a", None, "lock"),
     ("binary_sensor.a", "moisture", "leak"), ("binary_sensor.a", "motion", "motion"),
-    ("binary_sensor.a", "occupancy", "motion"), ("binary_sensor.a", "battery", None),
+    ("binary_sensor.a", "occupancy", "motion"), ("binary_sensor.a", "battery", "other"),
     ("cover.a", "garage", "opening"), ("cover.a", "blind", None),
     ("light.a", None, "light"), ("switch.a", None, "switch"), ("media_player.a", None, "media"),
     ("assist_satellite.a", None, "satellite"), ("sensor.a", "temperature", "temperature"),
-    ("sensor.a", "battery", None), ("climate.a", None, "climate"), ("camera.a", None, None)])
+    ("sensor.a", "battery", "other"), ("climate.a", None, "climate"), ("camera.a", None, None)])
 def test_kinds(entity, device_class, kind):
     assert kind_of(entity, device_class) == kind
 

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.14.0
+
+- Command look for BRAM's home page, with alerts and every shared device live. Choose Classic in Profile for the old look.
+- Safety sensors now include carbon monoxide, gas, heat, safety, and tamper.
+- Any other sensor can be shared for chat.
+
 ## 0.13.0
 
 - BRAM can also see media players, voice assistants, thermostats, temperature, humidity, switches, and fans.

@@ -321,7 +321,7 @@ async function saveNtfy(extra = {}) {
 
 // --- home ---
 
-const world = { houses: [], monitors: [] };
+const world = { houses: [], monitors: [], urgent: 0 };
 
 function dots(id, items) {
   $(id).replaceChildren(...(items.length ? items.map(([name, good, text]) => {
@@ -336,8 +336,13 @@ function headline(problem) {
   const hour = new Date().getHours(), user = $("nav-user").textContent;
   $("hello").textContent = `Good ${hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}, ${user}`;
   const down = [...world.houses.filter((house) => !house.connected), ...world.monitors.filter((item) => item.up === false)];
-  $("hero").classList.toggle("worried", Boolean(problem) || down.length > 0);
-  if (problem) {
+  $("hero").classList.toggle("worried", Boolean(problem) || down.length > 0 || world.urgent > 0);
+  $("pulse").textContent = problem ? "NO SIGNAL" : world.urgent ? "ALERT" : down.length ? "ATTENTION" : "WATCHING";
+  $("pulse").className = problem || world.urgent ? "bad" : down.length ? "amber" : "good";
+  if (world.urgent && !problem) {
+    $("headline").textContent = world.urgent === 1 ? "A safety sensor needs you" : `${world.urgent} safety sensors need you`;
+    $("detail").textContent = "See Alerts. Home Assistant has messaged your phones if you set that up.";
+  } else if (problem) {
     $("headline").textContent = "I can't see clearly";
     $("detail").textContent = problem;
   } else if (!world.houses.length) {
@@ -543,10 +548,66 @@ async function loadChat() {
   for (const message of messages) bubble(message.role, message.text);
 }
 
+const TITLES = {
+  leak: "Safety", smoke: "Safety", co: "Safety", gas: "Safety", heat: "Safety", hazard: "Safety",
+  lock: "Locks and doors", opening: "Locks and doors", person: "People", motion: "Motion", light: "Lights",
+  switch: "Switches and fans", fan: "Switches and fans", media: "Media", satellite: "Voice",
+  climate: "Climate", temperature: "Climate", humidity: "Climate", other: "Other",
+};
+const ORDER = ["Safety", "Locks and doors", "People", "Motion", "Climate", "Lights", "Switches and fans", "Media", "Voice", "Other"];
+
+async function loadHouse() {
+  const { homes, alerts } = await api("house");
+  const groups = new Map(), urgent = [];
+  let total = 0, unseen = 0;
+  for (const home of homes) {
+    for (const device of home.devices) {
+      total += 1;
+      if (device.state === "unknown") unseen += 1;
+      if (device.state === "alert") urgent.push(`${device.name}: ${device.says}`);
+      const title = TITLES[device.kind] || "Other";
+      if (!groups.has(title)) groups.set(title, []);
+      groups.get(title).push({ ...device, home: homes.length > 1 ? home.name : "" });
+    }
+  }
+  $("wall").replaceChildren(...ORDER.filter((title) => groups.has(title)).map((title) => {
+    const block = element("div", undefined, "block"), tiles = element("div", undefined, "cells");
+    tiles.append(...groups.get(title).map((device) => {
+      const cell = element("div", undefined, `cell ${device.state}`);
+      cell.append(element("b", device.name), element("span", device.state === "unknown" ? "unknown" : device.says));
+      if (device.home) cell.title = device.home;
+      return cell;
+    }));
+    block.append(element("h3", title), tiles);
+    return block;
+  }));
+  if (!total) $("wall").replaceChildren(element("p", "Nothing is shared yet. In Home Assistant: BRAM, Configure, Recommended setup.", "note"));
+  $("wall-count").textContent = total ? `${total} devices${unseen ? `, ${unseen} unknown` : ""}` : "";
+  const rows = [...urgent.map((text) => [text, "now", true]),
+    ...alerts.map((alert) => [alert.text, ago(alert.created), Boolean(alert.safety)])];
+  $("alert-count").textContent = rows.length ? String(rows.length) : "";
+  $("alerts-panel").classList.toggle("red", rows.some(([, , bad]) => bad));
+  $("open-alerts").replaceChildren(...(rows.length ? rows.map(([text, when, bad]) => {
+    const row = element("li", undefined, bad ? "bad" : "");
+    row.append(element("span", text), element("span", when, "note"));
+    return row;
+  }) : [element("li", "Nothing needs you", "note")]));
+  world.urgent = urgent.length;
+}
+
+function setLook(look) {
+  document.body.classList.toggle("command", look !== "classic");
+  for (const chip of document.querySelectorAll("#looks button")) chip.classList.toggle("on", chip.dataset.look === (look === "classic" ? "classic" : "command"));
+}
+
+function tick() {
+  $("clock").textContent = new Date().toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" });
+}
+
 async function loadHome() {
   let problem = "";
   try {
-    await Promise.all([loadStatus(), loadMonitors(), loadSettings(), loadLatest()]);
+    await Promise.all([loadStatus(), loadMonitors(), loadSettings(), loadLatest(), loadHouse()]);
   } catch (error) {
     problem = error.message;
   }
@@ -554,8 +615,10 @@ async function loadHome() {
 }
 
 setInterval(() => {
-  if (signedIn && !document.hidden && !$("overview-message").closest("section").hidden) loadHome();
-}, 60000);
+  const home = signedIn && !document.hidden && !$("deck").hidden;
+  if (home) loadHome();
+}, 15000);
+setInterval(tick, 1000);
 
 // --- pages ---
 
@@ -704,6 +767,14 @@ onClick("voice-test", "voice-message", async () => {
   await speak("Good evening. This is BRAM.");
   return "You should hear BRAM now";
 });
+for (const chip of document.querySelectorAll("#looks button")) {
+  chip.addEventListener("click", () => {
+    setLook(chip.dataset.look);
+    try { localStorage.setItem("look", chip.dataset.look); } catch { /* not remembered */ }
+  });
+}
+try { setLook(localStorage.getItem("look") || "command"); } catch { setLook("command"); }
+tick();
 onClick("chat-clear", "chat-message", async () => {
   await api("chat-clear", {});
   await loadChat();

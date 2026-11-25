@@ -10,15 +10,17 @@ from .world import Answer, Event, World
 NOTABLE = {
     "leak": "Water leak detected.",
     "smoke": "Smoke detected. Check now.",
+    "co": "Carbon monoxide detected. Get out and call for help.",
+    "gas": "Gas detected. Get out and call for help.",
+    "heat": "Dangerous heat detected.",
+    "hazard": "Safety problem detected.",
 }
-UNCHECKED = {
-    "leak": "A leak sensor stopped reporting, so I cannot check it.",
-    "smoke": "A smoke sensor stopped reporting, so I cannot check it.",
-}
-RECOVERED = {
-    "leak": "A leak sensor is reporting again, and it is dry.",
-    "smoke": "A smoke sensor is reporting again, and it is clear.",
-}
+_WHAT = {"leak": "leak", "smoke": "smoke", "co": "carbon monoxide", "gas": "gas",
+         "heat": "heat", "hazard": "safety"}
+UNCHECKED = {k: f"A {w} sensor stopped reporting, so I cannot check it." for k, w in _WHAT.items()}
+RECOVERED = {k: f"A {w} sensor is reporting again, and it is {'dry' if k == 'leak' else 'clear'}."
+             for k, w in _WHAT.items()}
+
 
 def named(text: str, event: Event) -> str:
     """Names are data: printable characters only, and short."""

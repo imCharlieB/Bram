@@ -11,6 +11,7 @@ from homeassistant.config_entries import (
     OptionsFlowWithReload,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -127,7 +128,8 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 "groups", default=["people", "doors", "safety", "motion"],
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=list(GROUPS), multiple=True, translation_key="groups",
+                    options=[g for g in GROUPS if g != "other"], multiple=True,
+                    translation_key="groups",
                     mode=selector.SelectSelectorMode.LIST)),
             vol.Optional("areas"): selector.AreaSelector(
                 selector.AreaSelectorConfig(multiple=True)),
@@ -168,7 +170,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
         fields = {}
         for group, wanted in GROUPS.items():
             # A chosen device that is missing right now must not be dropped by saving.
-            mine = [e for e in chosen if (kinds.get(e) or kind_of(e, None) or "leak") in wanted]
+            mine = [e for e in chosen if self._kind(e, kinds) in wanted]
             listed = sorted({e for e, k in kinds.items() if k in wanted} | set(mine))
             # A default would come back after the owner empties the group.
             fields[vol.Optional(group, description={"suggested_value": mine})] = (
@@ -200,6 +202,12 @@ class BramOptionsFlow(OptionsFlowWithReload):
             vol.Required("open_minutes", default=options.get(
                 "open_minutes", DEFAULT_OPEN_MINUTES)): vol.All(int, vol.Range(1, 1440)),
         }))
+
+    def _kind(self, entity_id: str, kinds: dict[str, str | None]) -> str:
+        """What a chosen device is, even if it is missing right now."""
+        entry = er.async_get(self.hass).async_get(entity_id)
+        known = entry and (entry.device_class or entry.original_device_class)
+        return kinds.get(entity_id) or kind_of(entity_id, known or None) or "other"
 
     async def async_step_alerts(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)

@@ -25,7 +25,7 @@
   "selector": {
     "groups": {
       "options": {
-        "people": "People", "doors": "Locks and doors", "safety": "Leak and smoke sensors",
+        "people": "People", "doors": "Locks and doors", "safety": "Safety sensors",
         "motion": "Motion and presence", "lights": "Lights",
           "switches": "Switches and fans", "media": "Media players and speakers",
           "voice": "Voice assistants", "climate": "Thermostats, temperature, and humidity"
@@ -67,10 +67,10 @@
         "title": "What BRAM can see",
         "description": "Only what you choose here is shared with BRAM. It cannot control any of it.",
         "data": {
-          "people": "People", "doors": "Locks and doors", "safety": "Leak and smoke sensors",
+          "people": "People", "doors": "Locks and doors", "safety": "Safety sensors",
           "motion": "Motion and presence", "lights": "Lights",
           "switches": "Switches and fans", "media": "Media players and speakers",
-          "voice": "Voice assistants", "climate": "Thermostats, temperature, and humidity"
+          "voice": "Voice assistants", "climate": "Thermostats, temperature, and humidity", "other": "Anything else"
         }
       },
       "chat": {
@@ -95,13 +95,13 @@
       },
       "alerts": {
         "title": "Phone alerts and quiet hours",
-        "description": "Leak and smoke alerts come from Home Assistant itself and ignore quiet hours. They do not replace certified alarms.",
+        "description": "Safety alerts come from Home Assistant itself and ignore quiet hours. They do not replace certified alarms.",
         "data": {
           "phones": "Phones that get alerts",
           "quiet_from": "Quiet from",
           "quiet_to": "Quiet until",
           "digest": "Daily summary at (empty means none)",
-          "escalate": "Also use Telegram and ntfy if nobody answers a leak or smoke alert in 5 minutes"
+          "escalate": "Also use Telegram and ntfy if nobody answers a safety alert in 5 minutes"
         }
       }
     }

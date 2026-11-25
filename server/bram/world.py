@@ -12,6 +12,10 @@ MEANING = {
     "person": {"home": True, "not_home": False},
     "leak": {"on": True, "off": False},
     "smoke": {"on": True, "off": False},
+    "co": {"on": True, "off": False},
+    "gas": {"on": True, "off": False},
+    "heat": {"on": True, "off": False},
+    "hazard": {"on": True, "off": False},
     "opening": {"on": True, "off": False, "open": True, "closed": False},
     "motion": {"on": True, "off": False},
     "light": {"on": True, "off": False},
@@ -25,7 +29,8 @@ MEANING = {
 
 
 # Kinds that say something other than yes or no.
-READINGS = ("climate", "temperature", "humidity")
+READINGS = ("climate", "temperature", "humidity", "other")
+SAFETY = ("leak", "smoke", "co", "gas", "heat", "hazard")
 
 
 class Answer(StrEnum):

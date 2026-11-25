@@ -4,7 +4,7 @@ BRAM sees only the devices you choose. Choosing one does not let BRAM control it
 
 ## BRAM's suggestions
 
-**Configure > BRAM's suggestions** lists what matters most and BRAM cannot see yet: people, locks and doors, leak and smoke sensors, and a motion sensor for each area without one. Remove what you do not want, and **Submit**. Nothing is shared until you do. These come from simple rules, not a model.
+**Configure > BRAM's suggestions** lists what matters most and BRAM cannot see yet: people, locks and doors, safety sensors, and a motion sensor for each area without one. Remove what you do not want, and **Submit**. Nothing is shared until you do. These come from simple rules, not a model.
 
 ## Add devices quickly
 
@@ -27,13 +27,14 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 | People | `person` | home, away |
 | Locks | `lock` | locked, unlocked |
 | Doors and windows | Door, window, opening, and garage door sensors; door, garage, gate, and window covers | open, closed |
-| Leak and smoke | Moisture and smoke sensors | leak or dry, smoke or clear |
+| Safety sensors | Moisture, smoke, carbon monoxide, gas, heat, safety, and tamper sensors | leak or dry; detected or clear |
 | Motion | Motion, occupancy, presence, and moving sensors | detected, clear |
 | Lights | `light` | on, off |
 | Switches and fans | `switch`, `fan` | on, off |
 | Media players and speakers | `media_player` | on, off or idle |
 | Voice assistants | `assist_satellite` | in use, idle |
 | Thermostats, temperature, humidity | `climate`, temperature and humidity sensors | The mode and readings |
+| Anything else | Other sensors, weather, vacuums, water heaters, alarm panels, updates, and more; choose one by one | Its state as Home Assistant shows it; no alerts |
 
 BRAM sees whether a media player is on, not what is playing. History covers everything here except thermostats and readings. Anything else, or a state it does not recognize, is *unknown*.
 
@@ -41,7 +42,7 @@ BRAM sees whether a media player is on, not what is playing. History covers ever
 
 1. **Everyone who lives there.** Otherwise "away" is wrong.
 2. **Outside doors and locks**, for [watching](watching.md).
-3. **Leak and smoke sensors**, for alerts.
+3. **Safety sensors**, for alerts.
 4. **Motion sensors and lights**, so chat answers well and future learning has something to learn from.
 
 ## The device page

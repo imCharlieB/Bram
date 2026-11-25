@@ -61,7 +61,7 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("GET", "speech"), ("POST", "speech"), ("POST", "speech-find"),
            ("POST", "speech-voices"), ("POST", "speech-preview"),
            ("POST", "hear"), ("POST", "speak"),
-           ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
+           ("GET", "house"), ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
            ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),
            ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
            ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),

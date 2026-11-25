@@ -20,7 +20,10 @@ A device changes, or a timer runs
 |---|---|---|---|---|
 | Leak | Leak sensor on | 0 | Water leak detected | On for shared sensors |
 | Smoke | Smoke sensor on | 0 | Smoke detected. Check now | On for shared sensors |
-| Silent safety sensor | Leak or smoke sensor unreachable | 5 min | Stopped reporting | On for shared sensors |
+| Carbon monoxide, gas | Sensor on | 0 | Detected. Get out and call for help | On for shared sensors |
+| Heat | Sensor on | 0 | Dangerous heat detected | On for shared sensors |
+| Safety, tamper | Sensor on | 0 | Safety problem detected | On for shared sensors |
+| Silent safety sensor | Any of those unreachable | 5 min | Stopped reporting | On for shared sensors |
 | Unlocked at night | Lock unlocked or open in night hours | 2 min | Unlocked, and it's night | Off |
 | Open or unlocked while away | Lock or door, and everyone shared known away | 2 min | Open, and everyone I track is away | Off |
 | Left open | Door, window, or garage open | Your minutes | Open for that long | Off |
@@ -29,7 +32,7 @@ A device changes, or a timer runs
 
 ## Two kinds of message
 
-| | Safety (leak, smoke) | Everything else |
+| | Safety | Everything else |
 |---|---|---|
 | Repeats | Up to 11 times, until acknowledged | Once each time it happens |
 | Quiet hours | Ignored | Respected, except night and away rules |

@@ -28,7 +28,7 @@ from .monitors import Monitors
 from .pairing import Pairing
 from .personality import style
 from .settings import Settings
-from .world import READINGS, Answer, Event, World
+from .world import READINGS, SAFETY, Answer, Event, World
 
 MAX_TEXT = 2000
 MAX_HISTORY = 12
@@ -39,7 +39,9 @@ MAX_CONVERSATIONS = 20
 
 WORDS = {
     "person": ("home", "away"), "lock": ("unlocked", "locked"), "leak": ("leaking", "dry"),
-    "smoke": ("smoke detected", "clear"), "opening": ("open", "closed"),
+    "smoke": ("smoke detected", "clear"), "co": ("carbon monoxide detected", "clear"),
+    "gas": ("gas detected", "clear"), "heat": ("dangerous heat", "normal"),
+    "hazard": ("safety problem", "clear"), "opening": ("open", "closed"),
     "motion": ("motion detected", "no motion"), "light": ("on", "off"),
     "switch": ("on", "off"), "fan": ("on", "off"), "media": ("on", "off or idle"),
     "satellite": ("in use", "idle"),
@@ -156,6 +158,19 @@ class Chat:
 
     # --- what BRAM knows ---
 
+    def house(self) -> list[dict]:
+        """Everything BRAM can see, for the page."""
+        homes = []
+        for house_id, name in self._pairing.houses():
+            world = self._worlds().get(house_id)
+            devices = [{"name": clean(e.name or e.entity_id, 60), "kind": e.kind,
+                        "says": _say(world, e), "state": _look(world, e)}
+                       for e in (world.all() if world else [])
+                       if e.kind in WORDS or e.kind in READINGS]
+            homes.append({"name": name, "live": world is not None and world.live,
+                          "devices": sorted(devices, key=lambda d: (d["kind"], d["name"]))})
+        return homes
+
     async def _extra(self, text: str, house: str | None) -> tuple[list[str], list[str]]:
         """History or problems, only when the question is about them."""
         lines: list[str] = []
@@ -255,6 +270,20 @@ def _say(world: World, event: Event) -> str:
     if answer is Answer.UNKNOWN:
         return UNKNOWN
     return WORDS[event.kind][0 if answer is Answer.YES else 1]
+
+
+def _look(world: World, event: Event) -> str:
+    """How it should stand out: alert, warn, on, off, or unknown."""
+    if event.kind in READINGS:
+        return "off" if world.reading(event.entity_id) is not None else "unknown"
+    answer = world.check(event.entity_id)
+    if answer is Answer.UNKNOWN:
+        return "unknown"
+    if answer is Answer.NO:
+        return "off"
+    if event.kind in SAFETY:
+        return "alert"
+    return "warn" if event.kind in ("lock", "opening") else "on"
 
 
 def _words(text: str) -> set[str]:

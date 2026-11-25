@@ -28,9 +28,13 @@ _VERSION = re.compile(r"\d{1,4}\.\d{1,4}\.\d{1,4}")
 RETRY_MAX = 300
 QUEUE_SIZE = 1000
 
-_BINARY = {"moisture": "leak", "smoke": "smoke", "door": "opening", "window": "opening",
+_BINARY = {"moisture": "leak", "smoke": "smoke", "carbon_monoxide": "co", "gas": "gas",
+           "heat": "heat", "safety": "hazard", "tamper": "hazard",
+           "door": "opening", "window": "opening",
            "opening": "opening", "garage_door": "opening",
            "motion": "motion", "occupancy": "motion", "presence": "motion", "moving": "motion"}
+_OTHER = ("sensor", "weather", "vacuum", "lawn_mower", "water_heater", "humidifier", "valve",
+          "alarm_control_panel", "siren", "input_boolean", "input_select", "update", "sun")
 _COVER = {"door", "garage", "gate", "window"}
 
 
@@ -45,8 +49,10 @@ def kind_of(entity_id: str, device_class: str | None) -> str | None:
         return "satellite"
     if domain == "sensor" and device_class in ("temperature", "humidity"):
         return device_class
+    if domain in _OTHER:
+        return "other"
     if domain == "binary_sensor":
-        return _BINARY.get(device_class or "")
+        return _BINARY.get(device_class or "", "other")
     if domain == "cover" and device_class in _COVER:
         return "opening"
     return None
@@ -66,9 +72,9 @@ def say(state: State) -> str:
             if isinstance(value := state.attributes.get(key), (int, float)):
                 parts.append(f"{word} {value:g}")
         return ", ".join(parts)
-    if state.entity_id.startswith("sensor."):
+    if state.entity_id.startswith(("sensor.", "weather.")):
         return f"{state.state} {state.attributes.get('unit_of_measurement') or ''}".strip()[:60]
-    return state.state
+    return state.state[:60]
 
 
 class Feed:
@@ -213,7 +219,8 @@ class Feed:
     def _state(self, entity_id: str, state: State | None) -> dict[str, str]:
         if state is not None:
             kind = kind_of(entity_id, state.attributes.get("device_class"))
-            if kind:
+            # A sensor that briefly loses its type must stay what it was known to be.
+            if kind and not (kind == "other" and entity_id in self._kinds):
                 self._kinds[entity_id] = kind
         # A missing entity is reported as unavailable, never left out (B2).
         return {"entity_id": entity_id, "kind": self._kinds.get(entity_id, "unsupported"),

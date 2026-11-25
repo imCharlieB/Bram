@@ -168,6 +168,11 @@ class Alerts:
         self._audit.record(row["house_id"], row["key"], verb, row["text"], "ok", approver=by)
         return f"{done}."
 
+    def open(self) -> list[dict]:
+        return [dict(r) for r in self._db.execute(
+            "SELECT text, safety, created FROM alert WHERE acked IS NULL AND cleared IS NULL"
+            " ORDER BY safety DESC, created DESC LIMIT 20")]
+
     def muted(self) -> list[dict]:
         return [dict(r) for r in self._db.execute("SELECT * FROM mute ORDER BY key")]
 

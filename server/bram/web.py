@@ -91,6 +91,7 @@ class ConfigPage:
             web.post("/api/speech-preview", self._private(self._preview)),
             web.post("/api/hear", self._private(self._hear)),
             web.post("/api/speak", self._private(self._speak)),
+            web.get("/api/house", self._private(self._house)),
             web.get("/api/chat", self._private(self._chat_history)),
             web.post("/api/chat", self._private(self._chat_ask)),
             web.post("/api/chat-clear", self._private(self._chat_clear)),
@@ -521,6 +522,10 @@ class ConfigPage:
         except SpeechError as err:
             return _json({"error": str(err)}, 400)
         return web.Response(body=wav, content_type="audio/wav", headers=HEADERS)
+
+    async def _house(self, request: web.Request) -> web.Response:
+        return _json({"homes": self.chat.house(),
+                      "alerts": self._alerts.open() if self._alerts else []})
 
     @staticmethod
     def _chat_key(request: web.Request) -> str:

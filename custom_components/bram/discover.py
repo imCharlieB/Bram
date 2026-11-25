@@ -21,7 +21,7 @@ def find(hass: HomeAssistant, groups: list[str], areas: list[str]) -> list[str]:
     for state in sorted(hass.states.async_all(), key=lambda s: s.entity_id):
         device_class = state.attributes.get("device_class")
         kind = kind_of(state.entity_id, device_class)
-        if kind not in wanted:
+        if kind not in wanted or kind == "other":  # far too many to offer
             continue
         entry = entities.async_get(state.entity_id)
         device = devices.async_get(entry.device_id) if entry and entry.device_id else None

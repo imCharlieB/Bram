@@ -1,4 +1,4 @@
-"""Leak, smoke, and silent-sensor alerts. Fixed text, no model, no server (C1, C2)."""
+"""Safety and silent-sensor alerts. Fixed text, no model, no server (C1, C2)."""
 from __future__ import annotations
 
 import asyncio
@@ -33,9 +33,13 @@ ESCALATE_AFTER = 300
 DAILY_NOTICES = 10
 DAY = 86400
 
-TEXT = {"leak": "Water leak detected", "smoke": "Smoke detected. Check now"}
-SILENT = {"leak": "leak", "smoke": "smoke"}
-CLEAR = {"leak": "is dry", "smoke": "is clear"}
+TEXT = {"leak": "Water leak detected", "smoke": "Smoke detected. Check now",
+        "co": "CARBON MONOXIDE detected. Get out and call for help",
+        "gas": "GAS detected. Get out and call for help", "heat": "Dangerous heat detected",
+        "hazard": "Safety problem detected"}
+SILENT = {"leak": "leaks", "smoke": "smoke", "co": "carbon monoxide", "gas": "gas",
+          "heat": "heat", "hazard": "problems"}
+CLEAR = {"leak": "is dry", "heat": "is normal"}
 ACK, MUTE = "BRAM_ACK_", "BRAM_MUTE_"
 
 
@@ -108,7 +112,7 @@ class HomeAlerts:
             self._heard(entity_id, name)
             self._raise(entity_id, f"{TEXT[kind]}: {name}")
         elif value == "off":
-            self._heard(entity_id, f"{name} {CLEAR[kind]}")
+            self._heard(entity_id, f"{name} {CLEAR.get(kind, 'is clear')}")
             if entity_id in self._alerts:
                 self._alerts[entity_id]["cleared"] = True
                 if self._alerts[entity_id]["acked"]:

@@ -73,4 +73,6 @@ Usual patterns and what departs from them, appliances left on, unusual power use
 
 ## 8. Identity and trainer
 
+People in Home Assistant are linked to their phones, so messages can go to the right person. Rooms, and later routines, can be linked to people by the owner.
+
 Opt-in face and voice recognition for personalization only, then the optional trainer.

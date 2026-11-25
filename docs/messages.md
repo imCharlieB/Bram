@@ -4,14 +4,14 @@
 
 | Event | Sent by | Where |
 |---|---|---|
-| Leak or smoke: at once, then up to 11 reminders until acknowledged, even in quiet hours | Home Assistant | HA app, and inside Home Assistant |
-| Leak or smoke sensor silent for 5 minutes | Home Assistant | HA app |
+| Leak, smoke, gas, carbon monoxide, heat, safety, or tamper: at once, then up to 11 reminders until acknowledged, even in quiet hours | Home Assistant | HA app, and inside Home Assistant |
+| Safety sensor silent for 5 minutes | Home Assistant | HA app |
 | Lock and door watching, if turned on | Home Assistant | HA app |
 | BRAM Server lost for 3 minutes | Home Assistant | HA app |
 | Home Assistant lost for 3 minutes: reminders until acknowledged or it returns | BRAM Server | Telegram, ntfy |
 | A monitor not answering, or back | BRAM Server | Telegram, ntfy |
 
-Home alerts do not need the server, a model, or the internet connection between them, but your phone still needs to be reachable. Only leak and smoke sensors you chose in BRAM's options are covered. Safety alerts use fixed wording; personality is not used in alerts.
+Home alerts do not need the server, a model, or the internet connection between them, but your phone still needs to be reachable. Only safety sensors you chose in BRAM's options are covered. Safety alerts use fixed wording; personality is not used in alerts.
 
 Home Assistant and each of Telegram and ntfy send at most 10 routine messages a day. Safety alerts are not limited by that.
 
