@@ -34,6 +34,7 @@ async function api(path, body) {
 function show(name) {
   signedIn = name === "app";
   if (!signedIn) $("chat-log").replaceChildren();
+  if (!signedIn) document.body.classList.remove("on-deck");
   for (const id of ["setup", "closed", "login", "app"]) $(id).hidden = id !== name;
 }
 
@@ -321,7 +322,7 @@ async function saveNtfy(extra = {}) {
 
 // --- home ---
 
-const world = { houses: [], monitors: [], urgent: 0 };
+const world = { houses: [], monitors: [], urgent: 0, devices: 0 };
 
 function dots(id, items) {
   $(id).replaceChildren(...(items.length ? items.map(([name, good, text]) => {
@@ -337,8 +338,8 @@ function headline(problem) {
   $("hello").textContent = `Good ${hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}, ${user}`;
   const down = [...world.houses.filter((house) => !house.connected), ...world.monitors.filter((item) => item.up === false)];
   $("hero").classList.toggle("worried", Boolean(problem) || down.length > 0 || world.urgent > 0);
-  $("pulse").textContent = problem ? "NO SIGNAL" : world.urgent ? "ALERT" : down.length ? "ATTENTION" : "WATCHING";
-  $("pulse").className = problem || world.urgent ? "bad" : down.length ? "amber" : "good";
+  $("hud-pulse").textContent = problem ? "No signal" : world.urgent ? "Alert" : down.length ? "Attention" : "Watching";
+  $("hud-pulse").className = problem || world.urgent ? "bad" : down.length ? "amber" : "";
   if (world.urgent && !problem) {
     $("headline").textContent = world.urgent === 1 ? "A safety sensor needs you" : `${world.urgent} safety sensors need you`;
     $("detail").textContent = "See Alerts. Home Assistant has messaged your phones if you set that up.";
@@ -570,19 +571,12 @@ async function loadHouse() {
       groups.get(title).push({ ...device, home: homes.length > 1 ? home.name : "" });
     }
   }
-  $("wall").replaceChildren(...ORDER.filter((title) => groups.has(title)).map((title) => {
-    const block = element("div", undefined, "block"), tiles = element("div", undefined, "cells");
-    tiles.append(...groups.get(title).map((device) => {
-      const cell = element("div", undefined, `cell ${device.state}`);
-      cell.append(element("b", device.name), element("span", device.state === "unknown" ? "unknown" : device.says));
-      if (device.home) cell.title = device.home;
-      return cell;
-    }));
-    block.append(element("h3", title), tiles);
-    return block;
-  }));
-  if (!total) $("wall").replaceChildren(element("p", "Nothing is shared yet. In Home Assistant: BRAM, Configure, Recommended setup.", "note"));
-  $("wall-count").textContent = total ? `${total} devices${unseen ? `, ${unseen} unknown` : ""}` : "";
+  const devices = [...groups.values()].flat();
+  deck.update(ORDER.filter((title) => groups.has(title)).map((title) => ({ title, devices: groups.get(title) })));
+  deck.gauge("g-seen", total - unseen, total, "Seen");
+  const shut = devices.filter((device) => device.kind === "lock" || device.kind === "opening");
+  deck.gauge("g-secure", shut.filter((device) => device.state === "off").length, shut.length, "Secured");
+  world.devices = total;
   const rows = [...urgent.map((text) => [text, "now", true]),
     ...alerts.map((alert) => [alert.text, ago(alert.created), Boolean(alert.safety)])];
   $("alert-count").textContent = rows.length ? String(rows.length) : "";
@@ -596,22 +590,60 @@ async function loadHouse() {
 }
 
 function setLook(look) {
-  document.body.classList.toggle("command", look !== "classic");
-  for (const chip of document.querySelectorAll("#looks button")) chip.classList.toggle("on", chip.dataset.look === (look === "classic" ? "classic" : "command"));
+  const command = look !== "classic";
+  document.body.classList.toggle("command", command);
+  // One chat and one alert list, moved to where the look wants them.
+  if (command) {
+    $("slot-chat").append($("chat"));
+    $("slot-alerts").append($("alerts-panel"));
+  } else {
+    $("start").before($("alerts-panel"), $("chat"));
+  }
+  for (const chip of document.querySelectorAll("#looks button")) chip.classList.toggle("on", chip.dataset.look === (command ? "command" : "classic"));
+  deck.draw();
+}
+
+function setHue(hue) {
+  document.body.dataset.hue = hue;
+  for (const chip of document.querySelectorAll("#hues button")) chip.classList.toggle("on", chip.dataset.hue === hue);
+  deck.colors();
+  deck.draw();
 }
 
 function tick() {
   $("clock").textContent = new Date().toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" });
 }
 
+async function loadLinks() {
+  const links = [...world.houses.map((house) => [house.name, house.connected]), ...world.monitors.map((item) => [item.name, item.up])];
+  deck.gauge("g-up", links.filter(([, good]) => good).length, links.length, "Links up");
+  dots("hud-systems", links.map(([name, good]) => [name, good, good === null ? "checking" : good ? "up" : "down"]));
+  $("hud-moods").replaceChildren(...[...$("moods").children].map((chip) => {
+    const copy = chip.cloneNode(true);
+    copy.addEventListener("click", () => chip.click());
+    return copy;
+  }));
+  const { entries } = await api("log?limit=200");
+  deck.activity(entries.map((entry) => entry.at));
+  $("hud-term").replaceChildren(...entries.slice(0, 40).map((entry) => {
+    const row = element("li", undefined, ALARMING.has(entry.decision) ? "alarming" : "");
+    const when = element("time", new Date(entry.at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    row.append(when, STORY[entry.decision] || entry.reason);
+    return row;
+  }));
+}
+
 async function loadHome() {
   let problem = "";
   try {
     await Promise.all([loadStatus(), loadMonitors(), loadSettings(), loadLatest(), loadHouse()]);
+    await loadLinks();
   } catch (error) {
     problem = error.message;
   }
   headline(problem);
+  $("hud-headline").textContent = $("headline").textContent;
+  $("hud-sub").textContent = problem || world.urgent ? $("detail").textContent : world.devices ? `${$("hello").textContent}. Watching ${world.devices} devices.` : "Nothing is shared yet. In Home Assistant: BRAM, Configure, Recommended setup.";
 }
 
 setInterval(() => {
@@ -641,6 +673,7 @@ async function openPage() {
     if (link.hash === "#" + page) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
+  document.body.classList.toggle("on-deck", page === "overview");
   // Never leave a pairing code or a typed password behind.
   $("code-box").hidden = true;
   $("code").textContent = "";
@@ -773,8 +806,16 @@ for (const chip of document.querySelectorAll("#looks button")) {
     try { localStorage.setItem("look", chip.dataset.look); } catch { /* not remembered */ }
   });
 }
+for (const chip of document.querySelectorAll("#hues button")) {
+  chip.addEventListener("click", () => {
+    setHue(chip.dataset.hue);
+    try { localStorage.setItem("hue", chip.dataset.hue); } catch { /* not remembered */ }
+  });
+}
+try { setHue(localStorage.getItem("hue") || "cyan"); } catch { setHue("cyan"); }
 try { setLook(localStorage.getItem("look") || "command"); } catch { setLook("command"); }
 tick();
+deck.start();
 onClick("chat-clear", "chat-message", async () => {
   await api("chat-clear", {});
   await loadChat();

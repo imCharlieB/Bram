@@ -45,7 +45,7 @@ HEADERS = {
     "Cache-Control": "no-store",
 }
 FILES = {"": "index.html", "app.js": "app.js", "style.css": "style.css", "icon.png": "icon.png",
-         "recorder.js": "recorder.js"}
+         "recorder.js": "recorder.js", "deck.js": "deck.js", "deck.css": "deck.css"}
 
 
 class ConfigPage:

@@ -6,6 +6,8 @@
 <title>BRAM</title>
 <link rel="icon" href="icon.png">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="deck.css">
+<script src="deck.js" defer></script>
 <script src="app.js" defer></script>
 </head>
 <body>
@@ -80,18 +82,44 @@
           <p class="note" id="detail"></p>
         </div>
       </div>
-      <div class="ticker command-only"><span id="clock"></span><span id="pulse"></span></div>
-      <div class="card warn" id="outdated" hidden>
+      <div id="hud" class="command-only">
+        <div class="hud-side">
+          <div class="pane"><h2>Systems</h2><div class="gauges"><div id="g-seen"></div><div id="g-secure"></div><div id="g-up"></div></div></div>
+          <div id="slot-alerts"></div>
+          <div class="pane grow"><h2>Sectors</h2><div id="hud-sectors" class="scroller"></div></div>
+        </div>
+        <div class="scope-box">
+          <div class="hud-top"><span id="clock"></span><span id="hud-pulse"></span></div>
+          <div class="scope-wrap"><canvas id="scope" role="img" aria-label="Map of the devices BRAM can see. The same information is listed under Sectors."></canvas>
+            <svg class="butler" viewBox="0 0 200 200" aria-hidden="true">
+          <defs><linearGradient id="neon2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ff"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs>
+          <g class="ring" fill="none" stroke="url(#neon)" stroke-width="8" stroke-linecap="round">
+            <path d="M 120 37 A 38 38 0 1 1 66 55"/><path d="M 78 41 A 38 38 0 0 1 99 34"/>
+          </g>
+          <circle class="core" cx="100" cy="71" r="15"/>
+          <g fill="url(#neon)"><path d="M92 128 L71 116 L71 148 L92 136 Z"/><path d="M108 128 L129 116 L129 148 L108 136 Z"/></g>
+          <circle class="knot" cx="100" cy="132" r="7"/>
+          <g fill="none" stroke="url(#neon)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M64 126 L48 142 L40 170"/><path d="M136 126 L152 142 L160 170"/></g>
+        </svg>
+          </div>
+          <div class="hud-head"><h1 id="hud-headline"></h1><p id="hud-sub"></p></div>
+          <div id="slot-chat"></div>
+        </div>
+        <div class="hud-side">
+          <div class="pane grow"><h2 id="hud-detail-title">Active now</h2><ul id="hud-detail" class="scroller"></ul></div>
+          <div class="pane"><h2>Activity <span id="hud-activity-total"></span></h2><div id="hud-activity"></div></div>
+          <div class="pane grow"><h2>Event log</h2><ul id="hud-term" class="scroller"></ul></div>
+          <div class="pane"><h2>Links</h2><ul id="hud-systems"></ul></div>
+          <div class="pane"><h2>Mood</h2><div id="hud-moods"></div></div>
+        </div>
+      </div>
+      <div class="card notice" id="outdated" hidden>
         <h2>An update is needed</h2>
         <p id="outdated-text"></p>
       </div>
       <div class="card alerts command-only" id="alerts-panel">
         <div class="head"><h2>Alerts</h2><span id="alert-count" class="note"></span></div>
         <ul id="open-alerts"></ul>
-      </div>
-      <div class="card wall command-only" id="wall-panel">
-        <div class="head"><h2>House</h2><span id="wall-count" class="note"></span></div>
-        <div id="wall"></div>
       </div>
       <div class="card chat" id="chat">
         <div class="head"><h2>Talk to BRAM</h2><button id="chat-clear" class="quiet small" hidden>Clear</button></div>
@@ -345,6 +373,13 @@
         <div id="looks">
           <button class="chip" data-look="command">Command</button>
           <button class="chip" data-look="classic">Classic</button>
+        </div>
+        <p class="note">Command color</p>
+        <div id="hues">
+          <button class="chip" data-hue="cyan">Cyan</button>
+          <button class="chip" data-hue="green">Green</button>
+          <button class="chip" data-hue="amber">Amber</button>
+          <button class="chip" data-hue="violet">Violet</button>
         </div>
       </div>
       <div class="card">

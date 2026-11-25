@@ -459,7 +459,9 @@ async def test_password_not_stored_or_returned(page, tmp_path):
 
 
 async def test_static_files_and_headers(page):
-    for path in ("/ui/", "/ui/app.js", "/ui/style.css", "/ui/recorder.js", "/ui/icon.png"):
+    for path in ("/ui/", "/ui/app.js", "/ui/style.css", "/ui/recorder.js", "/ui/deck.js",
+                 "/ui/deck.css",
+                 "/ui/icon.png"):
         response = await page.get(path)
         assert response.status == 200
         for key, value in HEADERS.items():
@@ -544,7 +546,8 @@ def test_every_mode_keeps_the_rules():
 
 def test_page_ids_are_unique_and_every_id_the_script_uses_exists():
     html = (STATIC / "index.html").read_text("utf-8")
-    script = (STATIC / "app.js").read_text("utf-8")
+    scripts = [(STATIC / name).read_text("utf-8") for name in ("app.js", "deck.js")]
+    script = "".join(scripts)
     ids = re.findall(r'\bid="([^"]+)"', html)
     assert len(ids) == len(set(ids))
     assert set(re.findall(r'\$\("([^"]+)"\)', script)) <= set(ids) | {"at-"}

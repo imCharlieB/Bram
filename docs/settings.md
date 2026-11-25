@@ -41,7 +41,7 @@ Quiet hours here affect only Home Assistant's messages.
 | Settings > Model | Ollama address, model, context size | None, 8192 |
 | Settings > Personality | Mode, custom style | Professional |
 | Settings > Voice | Hearing, speaking, voice name | Off |
-| Profile | Look: Command or Classic, in this browser | Command |
+| Profile | Look: Command or Classic, and the Command color, in this browser | Command, cyan |
 | | Username, password, signed-in devices | |
 
 These ask for your password again: homes, model, Telegram, ntfy, voice, username, and password.

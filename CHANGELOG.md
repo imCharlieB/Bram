@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.15.0
+
+- A real command deck: a full-screen live map of the house with gauges, sectors, activity, and an event log, in four colors.
+
 ## 0.14.1
 
 - Choose phones that get safety alerts only.
