@@ -48,7 +48,8 @@ async def local_models(url: str) -> list[str]:
         await provider.close()
 
 
-async def open_model(url: str, model: str, context: int) -> OllamaProvider:
+async def open_model(url: str, model: str, context: int, *,
+                     max_output: int = 300) -> OllamaProvider:
     """Open a model, keeping the settings it is already loaded with.
 
     Others may share this Ollama. A different context size or unload time would
@@ -67,7 +68,7 @@ async def open_model(url: str, model: str, context: int) -> OllamaProvider:
         context = loaded.get("context_length") or context
         keep = _keep_alive(loaded.get("expires_at"))
     return OllamaProvider(url, model, context=context, keep_alive=keep, think=False,
-                          temperature=0.8, max_output=300, timeout=90)
+                          temperature=0.8, max_output=max_output, timeout=90)
 
 
 def _keep_alive(expires_at: object) -> str | int:

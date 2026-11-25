@@ -251,6 +251,12 @@ class HomeAlerts:
                 item["tries"] += 1
                 self._waiting.append(item)
 
+    @callback
+    def allow_all(self) -> None:
+        """Undo every Stop these."""
+        self._muted = []
+        self._save()
+
     async def test(self) -> bool:
         return await notify(self._hass, self._phones, "BRAM", "This is a test message.",
                             "bram_test", safety=False, actions=[])

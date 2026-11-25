@@ -12,6 +12,9 @@ In the same change:
 - anything a user would notice: add a line under Unreleased in `CHANGELOG.md`
 - what works and what does not: keep the README status table honest
 
+- before each release, read `README.md` and every page in `docs/` and fix anything no longer true. `docs_check.py` cannot tell
+- any setup steps given to the owner in chat also go in `docs/`
+
 ## Versions
 
 Any change to shipped code bumps the version in `manifest.json` and `server/pyproject.toml` together, with a matching `CHANGELOG.md` section. CI enforces this and publishes the release HACS offers. Versions below 1.0.0 may ship before every hard rule has a test; 1.0.0 may not.

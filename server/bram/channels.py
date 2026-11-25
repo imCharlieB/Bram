@@ -8,11 +8,12 @@ import logging
 import re
 import secrets
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
 import httpx
 
 from .alerts import Outgoing
+from .chat import Busy
 from .local_model import check_local
 from .models.base import ModelError
 from .settings import Settings
@@ -124,8 +125,11 @@ class Telegram:
 
     def __init__(self, settings: Settings, answer: Callable[[str, str], str],
                  transport: httpx.AsyncBaseTransport | None = None,
-                 clock: Callable[[], float] = time.monotonic) -> None:
+                 clock: Callable[[], float] = time.monotonic,
+                 talk: Callable[[str], Awaitable[str]] | None = None) -> None:
         self._settings, self._answer, self._clock = settings, answer, clock
+        self._talk = talk
+        self._talking: set[asyncio.Task] = set()
         self._transport = transport
         self._link: tuple[str, float] | None = None
         self._link_failures = 0
@@ -215,7 +219,26 @@ class Telegram:
             self._settings.update_channel("telegram", {"user_id": user_id})
             await self._reply(user_id, "Linked. BRAM will message you here.")
         elif user_id == self.config().get("user_id"):
-            await self._reply(user_id, "I can't chat yet. For now, use the buttons on my messages.")
+            if self._talk is None or not self.config().get("chat"):
+                await self._reply(user_id, "Chat is turned off for Telegram. You can turn it on "
+                                           "on BRAM's Messages page.")
+                return
+            # A slow model must not hold up buttons.
+            task = asyncio.create_task(self._chat(user_id, text))
+            self._talking.add(task)
+            task.add_done_callback(self._talking.discard)
+
+    async def _chat(self, user_id: int, text: str) -> None:
+        try:
+            answer = await self._talk(text)
+        except Busy:
+            answer = "I'm still thinking about the last thing. Try again in a moment."
+        except ModelError as err:
+            answer = f"I can't answer right now: {err}"
+        await self._reply(user_id, answer[:4000])
+
+    async def idle(self) -> None:
+        await asyncio.gather(*self._talking, return_exceptions=True)
 
     def _try_link(self, code: str) -> bool:
         if self._link is None or self._clock() > self._link[1]:

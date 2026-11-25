@@ -59,6 +59,9 @@ class World:
         self._events[event.entity_id] = event
         self.heartbeat()
 
+    def all(self) -> list[Event]:
+        return list(self._events.values())
+
     def event(self, entity_id: object) -> Event | None:
         return self._events.get(entity_id) if isinstance(entity_id, str) else None
 

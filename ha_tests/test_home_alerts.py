@@ -178,6 +178,15 @@ async def test_mute_stops_silent_notices(env):
     assert len(env.calls) == 1
 
 
+async def test_stopped_messages_can_be_allowed_again(env):
+    await env.start()
+    await env.press(f"BRAM_MUTE_{LEAK}")
+    env.alerts.allow_all()
+    await env.set("unavailable")
+    await env.wait(400)
+    assert len(env.calls) == 1
+
+
 async def test_quiet_hours_delay_notices(env):
     local = dt_util.as_local(START).time()
     later = (dt_util.as_local(START) + datetime.timedelta(hours=2)).time()

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.5.0
+
+- Chat with BRAM on its home page. It answers from live state, shows the sensor readings it should match, cannot control anything, and saves nothing.
+- Optional chat through Telegram, off by default.
+- **Allow stopped messages** button in Home Assistant.
+- New monitors are checked as soon as they are added.
+- Step-by-step guides for installing and for alerts.
+
 ## 0.4.0
 
 - Leak, smoke, and silent-sensor alerts from Home Assistant to your phone, with reminders until acknowledged and quiet hours in BRAM's options. They work without the server.

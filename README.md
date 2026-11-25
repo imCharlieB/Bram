@@ -25,6 +25,7 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 - A device page showing what BRAM believes, live
 - Leak, smoke, and silent-sensor alerts through the Home Assistant app, even if the server is down
 - Optional Telegram and ntfy messages when Home Assistant or a monitored device is lost
+- Chat with BRAM on its page, and in Telegram if you turn it on; it saves nothing and controls nothing
 - A config page for setup, messages, model, personality, and the log
 
 ## Status
@@ -35,8 +36,8 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 |---|---|
 | M0 Model connection, benchmark, test fakes | Built |
 | M1 Connect to Home Assistant, log only | Built |
-| M2 Reach out | In progress |
-| M3 Control | Planned |
+| M2 Reach out | Built |
+| M3 Chat and control | Chat built; control planned |
 | M4 Optional memory | Planned |
 | M5 Watchdog | Planned |
 | M6 Learning | Planned |
@@ -46,6 +47,8 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 ## Documentation
 
 - [Installing](docs/installation.md)
+- [Alerts and messages](docs/messages.md)
+- [Chat](docs/chat.md)
 - [BRAM Server](docs/server.md)
 - [Testing your model](docs/benchmark.md)
 - [Safety rules](HARD_RULES.md)

@@ -64,6 +64,11 @@ async def test_tells_after_repeated_failures_and_when_back(env):
     assert env.box.sent[-1].text == "My Ollama is back." and len(env.box.sent) == 2
 
 
+async def test_checked_as_soon_as_it_is_added(env):
+    await env.monitors.add("device", "Router", "127.0.0.1:80")
+    assert env.monitors.status == {env.monitors.all()[0]["id"]: True}
+
+
 async def test_brief_failure_is_ignored(env):
     await env.monitors.add("device", "Router", "127.0.0.1:80")
     for _ in range(5):

@@ -80,6 +80,16 @@
           <p class="note" id="detail"></p>
         </div>
       </div>
+      <div class="card chat" id="chat">
+        <div class="head"><h2>Talk to BRAM</h2><button id="chat-clear" class="quiet small" hidden>Clear</button></div>
+        <div id="chat-log" role="log" aria-live="polite"></div>
+        <form id="chat-form" class="row">
+          <input id="chat-text" maxlength="2000" autocomplete="off" placeholder="Ask about your home, or anything" aria-label="Message" required>
+          <button id="chat-send">Send</button>
+        </form>
+        <p class="message" id="chat-message" role="status"></p>
+        <p class="note">Talk only: it cannot control anything, and nothing is saved. It can be wrong, so check the sensor readings shown under its answers.</p>
+      </div>
       <div class="card" id="start" hidden>
         <h2>Getting started</h2>
         <ul id="steps"></ul>
@@ -172,6 +182,7 @@
         <div class="head"><h2>Telegram</h2><span id="tg-state"></span></div>
         <p class="note">Messages pass through Telegram's servers and are not end-to-end encrypted. In Telegram, message @BotFather, send /newbot, and paste the token here.</p>
         <label><input type="checkbox" id="tg-on"> Turned on</label>
+        <label><input type="checkbox" id="tg-chat"> Let me chat with BRAM here (answers about your home pass through Telegram)</label>
         <label for="tg-token">Bot token</label>
         <input id="tg-token" type="password" autocomplete="off">
         <div class="row">

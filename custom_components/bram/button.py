@@ -13,7 +13,7 @@ from .entity import BramEntity
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
                             async_add_entities: AddConfigEntryEntitiesCallback) -> None:
-    async_add_entities([TestMessage(entry, "test")])
+    async_add_entities([TestMessage(entry, "test"), AllowMessages(entry, "allow")])
 
 
 class TestMessage(BramEntity, ButtonEntity):
@@ -25,3 +25,12 @@ class TestMessage(BramEntity, ButtonEntity):
     async def async_press(self) -> None:
         if not await self._feed.alerts.test():
             raise HomeAssistantError("No phone received it. Choose phones in BRAM's options.")
+
+
+class AllowMessages(BramEntity, ButtonEntity):
+    _attr_name = "Allow stopped messages"
+    _attr_icon = "mdi:bell-ring"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    async def async_press(self) -> None:
+        self._feed.alerts.allow_all()

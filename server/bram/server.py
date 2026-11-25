@@ -15,6 +15,7 @@ from aiohttp import WSCloseCode, WSMsgType, web
 
 from .alerts import Alerts
 from .audit import Audit
+from .chat import Chat
 from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing, ensure_certificate
 from .settings import Settings
@@ -29,6 +30,7 @@ SOCKETS = web.AppKey("sockets", dict)
 ALERTS = web.AppKey("alerts", Alerts)
 MONITORS = web.AppKey("monitors", Monitors)
 TASKS = web.AppKey("tasks", list)
+CHAT = web.AppKey("chat", Chat)
 
 
 def _event(house_id: str, raw: object) -> Event:
@@ -192,13 +194,15 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
                 await ws.close(code=WSCloseCode.POLICY_VIOLATION, message=b"unpaired")
 
         page = ConfigPage(settings, pairing, audit, fingerprint, lambda: set(app[SOCKETS]),
-                          disconnect, alerts, clock)
+                          disconnect, alerts,
+                          lambda: {k: v[0] for k, v in app[HOUSES].items()}, clock)
         if alerts is not None:
             app[ALERTS], app[TASKS] = alerts, []
             alerts.channels = [page.ntfy, page.telegram]
             app[MONITORS] = page.monitors
             app.on_startup.append(_start)
             app.on_cleanup.append(_stop)
+        app[CHAT] = page.chat
         app.add_routes(page.routes())
     app.on_shutdown.append(_shutdown)
     return app

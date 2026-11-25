@@ -166,7 +166,7 @@ async def test_test_button(hass, server):
         "entities": [], "phones": ["mobile_app_phone"], "escalate": False,
         "quiet_from": "22:00:00", "quiet_to": "07:00:00"})
     await reconnected(hass, entry)
-    button = hass.states.async_entity_ids("button")[0]
+    button = "button.bram_send_test_message"
     await hass.services.async_call("button", "press", {"entity_id": button}, blocking=True)
     assert calls[0].data["message"] == "This is a test message."
     await hass.config_entries.async_unload(entry.entry_id)

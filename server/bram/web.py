@@ -16,12 +16,14 @@ from aiohttp import web
 from .alerts import Alerts, Outgoing
 from .audit import KINDS, Audit
 from .channels import TOKEN, ChannelError, Ntfy, Telegram, new_topic
+from .chat import MAX_TEXT, Busy, Chat
 from .local_model import check_local, local_models, open_model
 from .models.base import ModelError
 from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing
 from .personality import CUSTOM_LIMIT, MODES, messages
 from .settings import Settings, login_matches, owner_name
+from .world import World
 
 STATIC = Path(__file__).parent / "static"
 COOKIE = "__Host-bram"
@@ -46,6 +48,7 @@ class ConfigPage:
     def __init__(self, settings: Settings, pairing: Pairing, audit: Audit,
                  fingerprint: str, connected: Callable[[], set[str]],
                  disconnect: Callable[[str], Awaitable[None]], alerts: Alerts | None = None,
+                 worlds: Callable[[], dict[str, World]] | None = None,
                  clock: Callable[[], float] = time.monotonic) -> None:
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._fingerprint, self._connected = fingerprint, connected
@@ -54,7 +57,8 @@ class ConfigPage:
         self._alerts = alerts
         self.monitors = Monitors(settings, alerts) if alerts is not None else None
         self.ntfy = Ntfy(settings, self._answer)
-        self.telegram = Telegram(settings, self._answer)
+        self.chat = Chat(settings, pairing, audit, worlds or dict, self.monitors)
+        self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk)
         self._sessions: dict[str, tuple[float, float, str]] = {}
         self._failures: dict[str, tuple[int, float]] = {}
         self._login_lock = asyncio.Lock()
@@ -69,6 +73,9 @@ class ConfigPage:
             web.post("/api/username", self._private(self._change_username)),
             web.post("/api/logout-others", self._private(self._logout_others)),
             web.post("/api/password", self._private(self._change_password)),
+            web.get("/api/chat", self._private(self._chat_history)),
+            web.post("/api/chat", self._private(self._chat_ask)),
+            web.post("/api/chat-clear", self._private(self._chat_clear)),
             web.get("/api/monitors", self._private(self._list_monitors)),
             web.post("/api/monitors", self._private(self._add_monitor)),
             web.post("/api/monitor-remove", self._private(self._remove_monitor)),
@@ -92,6 +99,9 @@ class ConfigPage:
 
     def _answer(self, action: str, by: str) -> str:
         return self._alerts.answer(action, by) if self._alerts else "That is no longer active."
+
+    async def _telegram_talk(self, text: str) -> str:
+        return (await self.chat.ask("telegram", text)).text
 
     # --- access ---
 
@@ -217,6 +227,7 @@ class ConfigPage:
 
     async def _logout(self, request: web.Request) -> web.Response:
         self._sessions.pop(_key(request.cookies.get(COOKIE, "")), None)
+        self.chat.clear(self._chat_key(request))
         response = _json({"ok": True})
         response.del_cookie(COOKIE, path="/", secure=True, httponly=True, samesite="Strict")
         return response
@@ -286,6 +297,7 @@ class ConfigPage:
     async def _logout_others(self, request: web.Request) -> web.Response:
         key = _key(request.cookies.get(COOKIE, ""))
         self._sessions = {k: v for k, v in self._sessions.items() if k == key}
+        self.chat.clear_others(f"web:{key}", "web:")
         self._audit.record("server", "config page", "signed out others", "by owner", "ok",
                            approver="owner")
         return _json({"ok": True})
@@ -344,6 +356,7 @@ class ConfigPage:
             # The token itself is never sent back.
             "telegram": {"on": bool(t.get("on")), "token_saved": bool(t.get("token")),
                          "bot": t.get("bot", ""), "linked": bool(t.get("user_id")),
+                         "chat": bool(t.get("chat")),
                          "quiet": t.get("quiet", {})},
             "muted": [{**m, "house": names.get(m["house_id"], m["house_id"])} for m in muted]})
 
@@ -362,7 +375,8 @@ class ConfigPage:
         return _json({"ok": True})
 
     async def _save_telegram(self, body: dict) -> web.Response:
-        token, values = body.get("token"), {"on": body.get("on") is True}
+        token, values = body.get("token"), {
+            "on": body.get("on") is True, "chat": body.get("chat") is True}
         if token:
             if not isinstance(token, str) or not TOKEN.fullmatch(token.strip()):
                 return _json({"error": "That does not look like a bot token"}, 400)
@@ -375,7 +389,8 @@ class ConfigPage:
                 # A different bot must be linked again.
                 values |= {"token": token, "bot": bot, "user_id": None}
         if body.get("remove") is True:
-            values = {"on": False, "token": "", "bot": "", "user_id": None}
+            values = {"on": False, "chat": False, "token": "", "bot": "", "user_id": None}
+            self.chat.clear("telegram")
         self._settings.update_channel("telegram", values)
         self._audit.record("server", "config page", "telegram saved",
                            "on" if values["on"] else "off", "ok", approver="owner")
@@ -409,6 +424,38 @@ class ConfigPage:
             await channel.send(Outgoing("0" * 16, "BRAM", "This is a test message.", False))
         except ChannelError as err:
             return _json({"error": str(err)}, 400)
+        return _json({"ok": True})
+
+    @staticmethod
+    def _chat_key(request: web.Request) -> str:
+        return f"web:{_key(request.cookies.get(COOKIE, ''))}"
+
+    async def _chat_history(self, request: web.Request) -> web.Response:
+        return _json({"messages": self.chat.history(self._chat_key(request))})
+
+    async def _chat_ask(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        text, zone = body.get("text"), body.get("timezone")
+        if not isinstance(text, str) or len(text) > MAX_TEXT:
+            return _json({"error": f"Use up to {MAX_TEXT} characters"}, 400)
+        if isinstance(zone, str) and zone in available_timezones():
+            if zone != self._settings.all()["timezone"]:
+                self._settings.update({"timezone": zone})
+        key = self._chat_key(request)
+        try:
+            reply = await self.chat.ask(key, text)
+        except Busy:
+            return _json({"error": "I'm still thinking about something else."}, 409)
+        except ModelError as err:
+            return _json({"error": str(err)}, 400)
+        # Signed out while it was thinking: keep nothing.
+        if not self._signed_in(request):
+            self.chat.clear(key)
+            return _json({"error": "Sign in first"}, 401)
+        return _json({"text": reply.text, "facts": reply.facts})
+
+    async def _chat_clear(self, request: web.Request) -> web.Response:
+        self.chat.clear(self._chat_key(request))
         return _json({"ok": True})
 
     async def _list_monitors(self, request: web.Request) -> web.Response:

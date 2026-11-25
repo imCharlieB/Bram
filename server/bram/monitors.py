@@ -71,8 +71,9 @@ class Monitors:
             raise ValueError(f"At most {LIMIT} monitors")
         text = url.strip() if "://" in url else f"http://{url.strip()}"
         clean = await check_local(text, KINDS[kind])
-        self._save([*self.all(), {"id": secrets.token_hex(6), "kind": kind, "name": name,
-                                  "url": clean}])
+        monitor = {"id": secrets.token_hex(6), "kind": kind, "name": name, "url": clean}
+        self._save([*self.all(), monitor])
+        await self._one(monitor)  # show a result now, not at the next pass
 
     def remove(self, monitor_id: object) -> None:
         self._save([m for m in self.all() if m["id"] != monitor_id])

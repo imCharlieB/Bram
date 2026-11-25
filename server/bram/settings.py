@@ -12,7 +12,7 @@ from typing import Any
 MIN_PASSWORD, MAX_PASSWORD = 12, 200
 DEFAULTS: dict[str, Any] = {
     "model_url": "", "model": "", "context": 8192, "personality": "professional",
-    "custom_style": "",
+    "custom_style": "", "timezone": "",
 }
 
 

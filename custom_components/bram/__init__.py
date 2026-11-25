@@ -18,7 +18,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.runtime_data = feed = Feed(hass, entry)
     feed.version = str((await async_get_integration(hass, DOMAIN)).version)
     wanted = {f"{entry.entry_id}_{e}" for e in entry.options.get(CONF_ENTITIES, [])}
-    wanted |= {f"{entry.entry_id}_connected", f"{entry.entry_id}_test"}
+    wanted |= {f"{entry.entry_id}_connected", f"{entry.entry_id}_test",
+               f"{entry.entry_id}_allow"}
     registry = er.async_get(hass)
     for item in er.async_entries_for_config_entry(registry, entry.entry_id):
         if item.unique_id not in wanted:

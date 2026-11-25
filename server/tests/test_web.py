@@ -13,7 +13,7 @@ from bram.local_model import _is_remote, _keep_alive, check_local
 from bram.models.base import ModelError, Reply
 from bram.pairing import Pairing, ensure_certificate
 from bram.personality import MODES, messages
-from bram.server import make_app
+from bram.server import CHAT, make_app
 from bram.settings import Settings
 from bram.web import COOKIE, HEADERS, SAMPLE, STATIC
 from fakes import FakeModel
@@ -58,6 +58,7 @@ async def page(tmp_path):
 
 PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "settings"),
            ("POST", "models"), ("POST", "sample"), ("POST", "logout"),
+           ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
            ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),
            ("GET", "messages"), ("POST", "ntfy"), ("POST", "telegram"),
            ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),
@@ -227,7 +228,7 @@ async def test_messages_settings(page, monkeypatch):
     data = json.loads(text)
     assert token not in text and page.settings.channel("ntfy")["reply"] not in text
     assert data["telegram"] == {"on": True, "token_saved": True, "bot": "example_bot",
-                                "linked": False, "quiet": {}}
+                                "linked": False, "chat": False, "quiet": {}}
     topic = data["ntfy"]["topic"]
     await page.post("ntfy", {**ntfy, **ok})
     assert page.settings.channel("ntfy")["topic"] == topic
@@ -242,6 +243,37 @@ async def test_messages_settings(page, monkeypatch):
     assert page.settings.channel("telegram")["token"] == ""
 
 
+async def test_chat_on_the_page(page, monkeypatch):
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    assert (await page.post("chat", {"text": "hi"})).status == 400  # no model yet
+    page.settings.update({"model_url": "http://127.0.0.1:11434", "model": "m:1"})
+
+    class Closing(FakeModel):
+        async def close(self):
+            pass
+
+    async def opened(*args, **kw):
+        return Closing(Reply("Good evening."))
+
+    monkeypatch.setattr(page.app[CHAT], "_open", opened)
+    for bad in ({}, {"text": 5}, {"text": "x" * 2001}):
+        assert (await page.post("chat", bad)).status == 400
+    reply = await page.post("chat", {"text": "hi", "timezone": "America/New_York"})
+    assert (await reply.json()) == {"text": "Good evening.", "facts": []}
+    assert page.settings.all()["timezone"] == "America/New_York"
+    await page.post("chat", {"text": "hi", "timezone": "../../etc"})
+    assert page.settings.all()["timezone"] == "America/New_York"
+    messages = (await (await page.get("/api/chat")).json())["messages"]
+    assert [m["role"] for m in messages] == ["user", "assistant"] * 2
+    await page.post("logout", {})
+    await page.login()
+    assert (await (await page.get("/api/chat")).json())["messages"] == []
+    await page.post("chat", {"text": "hi"})
+    await page.post("chat-clear", {})
+    assert (await (await page.get("/api/chat")).json())["messages"] == []
+
+
 async def test_monitors_page(page):
     page.settings.create_login("Owner", PASSWORD)
     await page.login()
@@ -252,7 +284,7 @@ async def test_monitors_page(page):
     good = {"kind": "device", "name": "Router", "url": "127.0.0.1"}
     assert (await page.post("monitors", good)).status == 200
     items = (await (await page.get("/api/monitors")).json())["monitors"]
-    assert items[0]["url"] == "http://127.0.0.1:80" and items[0]["up"] is None
+    assert items[0]["url"] == "http://127.0.0.1:80" and items[0]["up"] in (True, None)
     await page.post("monitor-remove", {"id": items[0]["id"]})
     assert (await (await page.get("/api/monitors")).json())["monitors"] == []
 
@@ -349,7 +381,8 @@ async def test_settings(page):
     good = {"model_url": "http://127.0.0.1:11434/", "model": "m:1", "context": 4096,
             "personality": "custom", "custom_style": "private pirate words"}
     assert (await page.post("settings", {**good, "confirm": PASSWORD})).status == 200
-    assert page.settings.all() == {**good, "model_url": "http://127.0.0.1:11434"}
+    assert page.settings.all() == {
+        **good, "model_url": "http://127.0.0.1:11434", "timezone": ""}
     log = json.dumps(page.audit.recent(10))
     assert "settings saved" in log and "pirate" not in log
     for bad in ({"_password": "x"}, {"tier": 1}, {"personality": "evil"}, {"personality": []},

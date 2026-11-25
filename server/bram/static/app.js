@@ -33,6 +33,7 @@ async function api(path, body) {
 
 function show(name) {
   signedIn = name === "app";
+  if (!signedIn) $("chat-log").replaceChildren();
   for (const id of ["setup", "closed", "login", "app"]) $(id).hidden = id !== name;
 }
 
@@ -270,6 +271,7 @@ async function loadMessages() {
   const state = (id, ready) => { $(id).textContent = ready ? "On" : "Off"; $(id).className = ready ? "good" : "note"; };
   state("tg-state", telegram.on && telegram.linked);
   $("tg-on").checked = telegram.on;
+  $("tg-chat").checked = telegram.chat;
   $("tg-token").value = "";
   $("tg-token").placeholder = telegram.token_saved ? `Saved (${telegram.bot})` : "";
   $("tg-link").textContent = telegram.linked ? "Link a different account" : "Link my account";
@@ -334,6 +336,27 @@ function headline(problem) {
   }
 }
 
+function bubble(role, text, facts = []) {
+  const box = element("div", undefined, `bubble ${role}`);
+  box.append(element("p", text));
+  if (facts.length) {
+    const list = element("ul", undefined, "facts");
+    list.append(...facts.map((fact) => element("li", fact)));
+    box.append(list);
+  }
+  $("chat-log").append(box);
+  $("chat-log").scrollTop = $("chat-log").scrollHeight;
+  $("chat-clear").hidden = false;
+  return box;
+}
+
+async function loadChat() {
+  const { messages } = await api("chat");
+  $("chat-log").replaceChildren();
+  $("chat-clear").hidden = true;
+  for (const message of messages) bubble(message.role, message.text);
+}
+
 async function loadHome() {
   let problem = "";
   try {
@@ -351,7 +374,7 @@ setInterval(() => {
 // --- pages ---
 
 const LOADERS = {
-  overview: loadHome,
+  overview: () => Promise.all([loadChat(), loadHome()]),
   settings: () => Promise.all([loadStatus(), loadSettings()]),
   messages: () => Promise.all([loadMonitors(), loadMessages()]),
   log: async () => say("log-message", await loadLog()), profile: loadProfile,
@@ -432,6 +455,29 @@ $("copy").addEventListener("click", async () => {
   }
 });
 
+onSubmit("chat-form", "chat-send", "chat-message", async () => {
+  const text = $("chat-text").value.trim();
+  if (!text) return "";
+  const mine = bubble("user", text);
+  $("chat-text").value = "";
+  $("hero").classList.add("thinking");
+  try {
+    const reply = await api("chat", { text, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+    bubble("assistant", reply.text, reply.facts);
+  } catch (error) {
+    mine.remove();
+    if (!$("chat-text").value) $("chat-text").value = text;
+    throw error;
+  } finally {
+    $("hero").classList.remove("thinking");
+    $("chat-text").focus();
+  }
+});
+onClick("chat-clear", "chat-message", async () => {
+  await api("chat-clear", {});
+  await loadChat();
+});
+
 onClick("find", "model-message", async () => {
   const { models } = await api("models", { url: $("url").value });
   fillModels(models, models.includes($("model").value) ? $("model").value : models[0]);
@@ -460,7 +506,7 @@ onSubmit("monitor-form", "monitor-add", "monitor-message", async () => {
 });
 onClick("tg-save", "tg-message", async () => {
   const confirm = await askPassword("This is where BRAM sends your alerts.");
-  await api("telegram", { confirm, on: $("tg-on").checked, token: $("tg-token").value });
+  await api("telegram", { confirm, on: $("tg-on").checked, chat: $("tg-chat").checked, token: $("tg-token").value });
   await loadMessages();
   return "Saved";
 });
@@ -526,6 +572,7 @@ onSubmit("change-form", "change", "change-message", async () => {
 });
 
 $("logout").addEventListener("click", async () => {
+  $("chat-log").replaceChildren();
   try { await api("logout", {}); } finally { location.assign("/ui/"); }
 });
 
