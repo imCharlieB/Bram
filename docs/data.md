@@ -18,6 +18,7 @@ One SQLite file, plus a key and certificate, in the data folder.
 | [Findings](findings.md) | What was found, told, and ended | |
 | Learned nights, if learning is on | A copy of Home Assistant's | |
 | [History](history.md), if on | Trends | **Plain**; off until you turn it on |
+| [Prints](printers.md), if history is on | Printer, file, result, length | |
 | Log | What happened and why | Entries cannot be changed or deleted through BRAM |
 
 The log holds events such as connections, sign-ins, alerts, and messages sent, including device names. It has no size limit yet.

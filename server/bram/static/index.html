@@ -93,6 +93,7 @@
           <div class="pane"><h2>Systems</h2><div class="gauges"><div id="g-seen"></div><div id="g-secure"></div><div id="g-up"></div></div></div>
           <div id="slot-alerts"></div>
           <div class="pane" id="people-pane" hidden><h2>People</h2><div id="hud-people"></div></div>
+          <div class="pane" id="printers-pane" hidden><h2>3D printers</h2><ul id="hud-printers"></ul></div>
           <div class="pane grow"><h2>Sectors <button type="button" id="hud-by" class="by"></button></h2><div id="hud-sectors" class="scroller"></div></div>
         </div>
         <div class="scope-box">
@@ -419,6 +420,13 @@
         <div class="scroll"><table>
           <thead><tr><th>Room</th><th>Thermostat</th><th>Room sensor</th><th>Apart</th><th>Most</th></tr></thead>
           <tbody id="history-compare"></tbody>
+        </table></div>
+      </div>
+      <div class="card" id="prints-card" hidden>
+        <h2>3D prints</h2>
+        <div class="scroll"><table>
+          <thead><tr><th>Ended</th><th>Printer</th><th>File</th><th>Result</th><th>Took</th><th>Filament</th></tr></thead>
+          <tbody id="history-prints"></tbody>
         </table></div>
       </div>
     </section>

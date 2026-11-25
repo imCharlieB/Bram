@@ -123,3 +123,22 @@ def test_server_alerts_are_findings_too(env):
     env.note("open", key="safety:binary_sensor.leak", source="safety", severity="high")
     alerts.raise_alert("h1", "binary_sensor.leak", "Leak. Not acknowledged.", safety=True)
     assert len(env.f.list("open")) == 2
+
+
+PRINT = ('{"printer": "Big One", "file": "boat", "start": 1699990000, "end": 1699999000, '
+         '"result": "finished", "whole": true, "progress": 100, "weight": 12}')
+
+
+def test_prints_are_kept_only_with_history_on(env):
+    env.note("print", key="print:x", source="printers", text=PRINT)
+    assert env.f.prints("h1") == []
+    env.f.keep_prints = lambda: True
+    env.note("print", key="print:x", source="printers", text=PRINT)
+    env.note("print", key="print:x", source="printers", text=PRINT, id=f"{env.count:016x}")
+    (row,) = env.f.prints("h1")
+    assert row["file"] == "boat" and row["weight"] == 12 and env.f.prints("h2") == []
+    for bad in ("{}", "[]", PRINT.replace("finished", "evil"), PRINT.replace("1699990000", "1e99")):
+        with pytest.raises(ValueError):
+            env.note("print", key="print:x", source="printers", text=bad)
+    env.f.forget_house("h1")
+    assert env.f.prints("h1") == []

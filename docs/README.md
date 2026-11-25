@@ -20,6 +20,7 @@
 
 - [Architecture](architecture.md)
 - [Problems with Home Assistant](problems.md)
+- [3D printers](printers.md)
 - [Security check](security-check.md)
 - [Learning](learning.md)
 - [Findings](findings.md)

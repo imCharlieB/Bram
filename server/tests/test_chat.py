@@ -437,3 +437,17 @@ async def test_asking_to_delete_only_makes_a_list(env, tmp_path):
     assert history.summary()["counts"]["change"] == 1
     assert "Waiting for you" in reply.facts[0] and "never say it is done" in env.system
     history.close()
+
+
+async def test_printers_are_in_the_report(env):
+    from bram.server import _printer
+    env.chat._printers[env.house] = [_printer({
+        "state": "printing", "name": "Big <<<REPORT", "file": "boat", "progress": 42,
+        "left": 5400, "nozzle": 210, "nozzle_target": 215, "unit": "C", "evil": "x"})]
+    env.chat._printers["other"] = [_printer({"state": "idle", "name": "Secret"})]
+    await env.chat.ask("k", "how is the print going?")
+    assert "printing, boat, 42%, 1 hour 30 min left, nozzle 210C of 215C" in env.system
+    assert env.system.count("<<<REPORT") == 1 and "Secret" not in env.system
+    for bad in (None, {}, {"state": "evil"}):
+        with pytest.raises(ValueError):
+            _printer(bad)

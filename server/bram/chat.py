@@ -57,6 +57,7 @@ WORDS = {
     "satellite": ("in use", "idle"),
 }
 UNKNOWN = "unknown, cannot tell"
+PRINTS = re.compile(r"\b(print\w*|filament|spool)\b", re.I)
 # Common words say nothing about which device was meant.
 STOP = {"the", "is", "are", "my", "a", "an", "of", "in", "on", "off", "and", "or", "to", "sensor",
         "what", "who", "any", "all", "did", "was", "it", "at", "do", "you", "can", "open", "closed"}
@@ -103,8 +104,9 @@ class Chat:
                  clock: Callable[[], float] = time.monotonic,
                  look_up: Callable | None = None, past: History | None = None,
                  findings: Findings | None = None,
-                 cleanup: Cleanup | None = None) -> None:
-        self._cleanup = cleanup
+                 cleanup: Cleanup | None = None,
+                 printers: dict[str, list[dict]] | None = None) -> None:
+        self._cleanup, self._printers = cleanup, printers if printers is not None else {}
         self._past, self._findings = past, findings
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._worlds, self._monitors, self._open, self._clock = worlds, monitors, opener, clock
@@ -317,6 +319,14 @@ class Chat:
         for row in events:
             at = datetime.datetime.fromtimestamp(row["at"], zone).strftime("%a %H:%M")
             lines.append(f"Event {at}: {clean(row['reason'], 160)}")
+        for house_id, _ in self._pairing.houses():
+            if house in (None, house_id):
+                lines += [printer_line(p) for p in self._printers.get(house_id, [])]
+                if self._findings is not None and PRINTS.search(question):
+                    lines += [f"Print {length(time.time() - p['end'])} ago on "
+                              f"{clean(p['printer'], 60)}: {clean(p['file'], 100)}, {p['result']}"
+                              + (f", took {length(p['end'] - p['start'])}" if p["whole"] else "")
+                              for p in self._findings.prints(house_id, 10)]
         if self._findings is not None:
             for row in self._findings.list("open", house_id=house, limit=15):
                 lines.append(f"Open finding ({row['severity']}), for "
@@ -375,6 +385,26 @@ def _full(world: World, event: Event) -> str:
     if since is not None and event.kind not in READINGS:
         says += f", for {length(time.time() - since)}"
     return says
+
+
+def printer_line(printer: dict) -> str:
+    parts = [printer["state"] if printer["state"] != "unknown" else UNKNOWN]
+    if printer.get("file"):
+        parts.append(clean(printer["file"], 80))
+    if "progress" in printer:
+        parts.append(f"{printer['progress']:g}%")
+    if "left" in printer:
+        parts.append(f"{length(printer['left'])} left")
+    unit = clean(printer.get("unit", ""), 5)
+    for key, word in (("nozzle", "nozzle"), ("nozzle2", "left nozzle"), ("bed", "bed"),
+                      ("chamber", "chamber")):
+        if key in printer:
+            target = printer.get(f"{key}_target")
+            parts.append(f"{word} {printer[key]:g}{unit}"
+                         + (f" of {target:g}{unit}" if target else ""))
+    if printer.get("problem"):
+        parts.append("reports a problem")
+    return f"3D printer {clean(printer.get('name', ''), 40)}: {', '.join(parts)}"
 
 
 def length(seconds: float) -> str:

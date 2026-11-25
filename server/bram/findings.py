@@ -11,6 +11,8 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
+from .history import number
+
 SOURCES = ("safety", "silent", "rules", "security", "monitors", "connection", "message",
            "learning", "problems", "printers")
 SEVERITIES = ("high", "medium", "low")
@@ -30,6 +32,10 @@ CREATE TABLE IF NOT EXISTS story (
     id INTEGER PRIMARY KEY, finding INTEGER NOT NULL, uid TEXT UNIQUE, at REAL NOT NULL,
     what TEXT NOT NULL, text TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS story_finding ON story (finding, at);
+CREATE TABLE IF NOT EXISTS print (
+    id INTEGER PRIMARY KEY, house_id TEXT NOT NULL, uid TEXT UNIQUE, printer TEXT NOT NULL,
+    file TEXT NOT NULL, start REAL NOT NULL, end REAL NOT NULL, result TEXT NOT NULL,
+    whole INTEGER NOT NULL, progress REAL, weight REAL);
 CREATE TABLE IF NOT EXISTS learned (
     house_id TEXT NOT NULL, kind TEXT NOT NULL, day TEXT NOT NULL, value TEXT NOT NULL,
     PRIMARY KEY (house_id, kind, day)) WITHOUT ROWID;
@@ -43,7 +49,9 @@ def _line(value: object, limit: int) -> str:
 
 
 class Findings:
-    def __init__(self, path: Path | str, clock: Callable[[], float] = time.time) -> None:
+    def __init__(self, path: Path | str, clock: Callable[[], float] = time.time,
+                 keep_prints: Callable[[], bool] = lambda: False) -> None:
+        self.keep_prints = keep_prints
         self._db = sqlite3.connect(path, timeout=10)
         self._db.row_factory = sqlite3.Row
         self._db.executescript(_SCHEMA)
@@ -66,6 +74,9 @@ class Findings:
         key, text = _line(data.get("key"), 255), _line(data.get("text"), 1000)
         if what in ("learned", "forgot"):
             self._learned(house_id, what, key, data["text"])
+            return
+        if what == "print":
+            self._print(house_id, f"{house_id}:{uid}", data["text"])
             return
         if what not in WHATS or data.get("severity") not in SEVERITIES:
             raise ValueError("bad note")
@@ -111,6 +122,34 @@ class Findings:
                 self._db.execute("UPDATE finding SET is_open = 0 WHERE id = ?", (finding,))
             self._db.execute("INSERT INTO story (finding, uid, at, what, text) "
                              "VALUES (?, ?, ?, ?, ?)", (finding, uid, at, what, text))
+
+    def _print(self, house_id: str, uid: str, raw: str) -> None:
+        """Kept only with history on (E10)."""
+        if not self.keep_prints():
+            return
+        data = json.loads(raw) if len(raw) <= 2000 else None
+        if not isinstance(data, dict) or data.get("result") not in ("finished", "failed",
+                                                                    "stopped"):
+            raise ValueError("bad print")
+        start, end = number(data.get("start")), number(data.get("end"))
+        if start is None or end is None or not 0 < start <= end <= self._clock() + 60:
+            raise ValueError("bad print")
+        with self._db:
+            self._db.execute(
+                "INSERT OR IGNORE INTO print (house_id, uid, printer, file, start, end, result, "
+                "whole, progress, weight) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (house_id, uid, _line(data.get("printer"), 60), _line(data.get("file"), 100),
+                 start, end, data["result"], int(data.get("whole") is True),
+                 number(data.get("progress")), number(data.get("weight"))))
+
+    def prints(self, house_id: str, limit: int = 20) -> list[dict]:
+        return [dict(r) for r in self._db.execute(
+            "SELECT printer, file, start, end, result, whole, progress, weight FROM print "
+            "WHERE house_id = ? ORDER BY end DESC LIMIT ?", (house_id, limit))]
+
+    def forget_prints(self) -> None:
+        with self._db:
+            self._db.execute("DELETE FROM print")
 
     def _learned(self, house_id: str, what: str, key: str, raw: object) -> None:
         with self._db:
@@ -160,6 +199,7 @@ class Findings:
                              "(SELECT id FROM finding WHERE house_id = ?)", (house_id,))
             self._db.execute("DELETE FROM finding WHERE house_id = ?", (house_id,))
             self._db.execute("DELETE FROM learned WHERE house_id = ?", (house_id,))
+            self._db.execute("DELETE FROM print WHERE house_id = ?", (house_id,))
 
     def close(self) -> None:
         self._db.close()

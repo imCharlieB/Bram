@@ -28,6 +28,7 @@ BRAM watches the devices you choose, tells your phone when something matters, re
 | **Silent sensors** | Tells you when a safety sensor stops reporting. Unknown is never treated as safe |
 | **Locks and doors** | Unlocked at night, open while away, left open, offline |
 | **Problems** | Failed integrations, repeating errors, low batteries, offline devices, stuck sensors, broken automations, old backups. Found without being asked |
+| **3D printers** | Found by itself: progress, time left, temperatures. Told when finished, failed, paused, or a heater is left on |
 | **Security check** | New admins and tokens, failed sign-ins, locks exposed to voice assistants, public webhooks, offline cameras, and more |
 | **Findings** | One list of everything it found, with the story of each |
 | **History and trends** | Temperatures, and every heating and cooling run with its settings. Compares each thermostat with the room's own sensor |
@@ -110,7 +111,7 @@ HACS > three dots > **Custom repositories** > add `https://github.com/imCharlieB
 | Add devices quickly | Share many at once, by type and area |
 | What BRAM can see | Add or remove one by one |
 | Phone alerts and quiet hours | Phones, quiet hours, daily summary |
-| What BRAM watches for | Home Assistant problems, lock and door rules, night hours, hourly security check |
+| What BRAM watches for | Home Assistant problems, 3D printers, lock and door rules, night hours, hourly security check |
 | What BRAM may look into | Let the server read history, problems, and the security check |
 | Learning | Suggested hours, undo, delete |
 
@@ -147,6 +148,7 @@ Quiet hours hold routine messages. Safety alerts, and locks and doors at night o
 | "Is the back door locked?" "Who is home?" "What's on?" | The device shared |
 | "When was the garage last opened?" | History on, under What BRAM may look into |
 | "Any errors in Home Assistant?" "Low batteries?" | Problems on |
+| "How is the print going?" | 3D printers on |
 | "Is my home secure?" | Security check on |
 | "How long did the AC run each day?" "Is the bedroom thermostat reading right?" | Keep history on, on BRAM's History page |
 | "Delete hall motion readings older than 90 days" | Keep history on. You confirm the list on the page |
@@ -187,7 +189,7 @@ Update both; BRAM warns you when they differ. [Changes](https://github.com/imCha
 | Phase | |
 |---|---|
 | 1. One record: findings, history, cleaning up | Built |
-| 2. Find: Home Assistant health, then 3D printers, climate, power, network | Home Assistant health built |
+| 2. Find: Home Assistant health, then 3D printers, climate, power, network | Home Assistant health and 3D printers built |
 | 3. Explain: causes and what to do | Planned |
 | 4. Control and fix: lights, one-tap repairs, then locks with approval | Planned |
 | 5 to 10. Memory, cameras, learning, people, models, speakers | Planned |
@@ -207,6 +209,7 @@ Update both; BRAM warns you when they differ. [Changes](https://github.com/imCha
 | [Plan](https://github.com/imCharlieB/Bram/blob/main/docs/roadmap.md) | [Voice](https://github.com/imCharlieB/Bram/blob/main/docs/voice.md) | [Server commands](https://github.com/imCharlieB/Bram/blob/main/docs/server.md) |
 | [Changes](https://github.com/imCharlieB/Bram/blob/main/CHANGELOG.md) | [Personality](https://github.com/imCharlieB/Bram/blob/main/docs/personality.md) | [Development](https://github.com/imCharlieB/Bram/blob/main/docs/development.md) |
 | | [Problems with Home Assistant](https://github.com/imCharlieB/Bram/blob/main/docs/problems.md) | |
+| | [3D printers](https://github.com/imCharlieB/Bram/blob/main/docs/printers.md) | |
 | | [Security check](https://github.com/imCharlieB/Bram/blob/main/docs/security-check.md) | [Testing your model](https://github.com/imCharlieB/Bram/blob/main/docs/benchmark.md) |
 | | [Findings](https://github.com/imCharlieB/Bram/blob/main/docs/findings.md) | |
 | | [History and trends](https://github.com/imCharlieB/Bram/blob/main/docs/history.md) | |

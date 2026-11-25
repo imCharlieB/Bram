@@ -23,7 +23,7 @@ Each problem is told once, and again when it is fixed. Three or more at once are
 
 ## Left out
 
-- Phones, media players, and 3D printers being off or away. Printers get [their own section](roadmap.md#3d-printers).
+- Phones, media players, and 3D printers being off or away. Printers have [their own rules](printers.md).
 - Shared leak, smoke, lock, and door sensors, which have [their own rules](watching.md).
 - Backups Home Assistant has never made, since they may be made another way.
 - For two hours after Home Assistant starts, nothing is called fixed, because not every check has had time to look.

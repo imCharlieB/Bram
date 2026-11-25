@@ -635,3 +635,16 @@ async def test_what_home_assistant_found_reaches_the_server(hass, server):
     await until(lambda: not entry.runtime_data.outbox._waiting)  # confirmed
     await hass.config_entries.async_unload(entry.entry_id)
     await until(lambda: not server[0][SOCKETS])
+
+
+async def test_printers_reach_the_server(hass, server):
+    from bram.server import PRINTERS
+
+    entry = await start(hass, server)
+    feed, house = entry.runtime_data, entry.data["house_id"]
+    await until(lambda: feed.takes_notes())
+    assert feed.send_printers([{"id": "x", "name": "Big", "state": "printing", "progress": 5}])
+    await until(lambda: server[0][PRINTERS].get(house))
+    assert server[0][PRINTERS][house][0]["progress"] == 5
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: house not in server[0][PRINTERS])

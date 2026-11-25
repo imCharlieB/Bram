@@ -67,7 +67,9 @@ class ConfigPage:
                  look_up: Callable | None = None,
                  mood_changed: Callable[[], Awaitable[None]] | None = None,
                  history: History | None = None,
-                 findings: Findings | None = None) -> None:
+                 findings: Findings | None = None,
+                 printers: dict[str, list[dict]] | None = None) -> None:
+        self.printers = printers if printers is not None else {}
         self.history, self.findings = history, findings
         self.cleanup = Cleanup(history, findings) if history is not None else None
         self._settings, self._pairing, self._audit = settings, pairing, audit
@@ -84,7 +86,7 @@ class ConfigPage:
         self._worlds = worlds or dict
         self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors,
                          look_up=look_up, past=history, findings=findings,
-                         cleanup=self.cleanup)
+                         cleanup=self.cleanup, printers=self.printers)
         self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk,
                                  hear=self.speech.hear)
         self._sessions: dict[str, tuple[float, float, str]] = {}
@@ -563,7 +565,8 @@ class ConfigPage:
             return _json({"on": False})
         zone = ZoneInfo(self._settings.all()["timezone"] or "UTC")
         homes = [{"name": name, "days": self.history.climate_days(house, 7, zone),
-                  "compare": self.history.compare(house)}
+                  "compare": self.history.compare(house),
+                  "prints": self.findings.prints(house) if self.findings is not None else []}
                  for house, name in self._pairing.houses()]
         return _json({**self.history.summary(), "homes": homes})
 
@@ -583,6 +586,8 @@ class ConfigPage:
         if self.history is None:
             return _json({"error": "No history"}, 400)
         self.history.forget()
+        if self.findings is not None:
+            self.findings.forget_prints()
         self._audit.record("server", "config page", "history deleted", "everything", "ok",
                            approver="owner")
         return _json({"ok": True})
@@ -737,6 +742,8 @@ class ConfigPage:
 
     async def _house(self, request: web.Request) -> web.Response:
         return _json({"homes": self.chat.house(), "rooms": self.chat.rooms(),
+                      "printers": [p for house, _ in self._pairing.houses()
+                                   for p in self.printers.get(house, [])],
                       "alerts": self._alerts.open() if self._alerts else []})
 
     async def _picture(self, request: web.Request) -> web.Response:

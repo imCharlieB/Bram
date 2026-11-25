@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.27.0
+
+- 3D printers, found by themselves: Bambu Lab, Moonraker, OctoPrint, PrusaLink, and similar. Progress, time left, and temperatures on Home; told when a print ends, pauses, or a heater is left on; each print remembered if history is on. Watches only. Off until you turn it on.
+
 ## 0.26.0
 
 - BRAM finds problems with Home Assistant by itself: failed integrations, repeating errors, repairs, low batteries, offline devices, stuck sensors, broken automations, old backups, and a full disk. Told once, and again when fixed. Off until you turn it on.

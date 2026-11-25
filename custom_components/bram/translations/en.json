@@ -63,6 +63,7 @@
           "left_open": "Tell me if a door is left open (10 minutes)",
           "offline": "Tell me if a lock or door sensor goes offline",
           "problem_watch": "Tell me about problems with Home Assistant",
+          "printers": "Tell me about 3D printers",
           "share_history": "Let BRAM look into the history of what it can see",
           "summary": "Send a daily summary (8 AM)"
         }
@@ -114,6 +115,7 @@
         "description": "Problems covers all of Home Assistant, and sends what it finds to the BRAM Server, with passwords, tokens, and addresses removed; removal cannot catch everything. Lock and door rules cover what BRAM can see. Night and away messages ignore quiet hours. Away counts only the people BRAM can see, so add everyone who lives here first.",
         "data": {
           "problem_watch": "Problems with Home Assistant: integrations, errors, batteries, offline devices, automations, backups",
+          "printers": "3D printers: finished, failed, paused, heater left on",
           "night": "A lock is unlocked at night",
           "away": "Something is open or unlocked while everyone is away",
           "left_open": "A door, window, or garage is left open",

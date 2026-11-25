@@ -46,6 +46,10 @@ FINDINGS = web.AppKey("findings", Findings)
 NUMBERS = ("now", "humidity", "target", "low", "high")
 WORDS = ("unit", "action", "mode", "preset", "fan")
 MAX_PAGES = 60
+PRINTERS = web.AppKey("printers", dict)
+PRINTER_STATES = ("printing", "paused", "finished", "failed", "stopped", "idle", "off", "unknown")
+PRINTER_NUMBERS = ("progress", "left", "nozzle", "nozzle2", "nozzle_target", "nozzle2_target",
+                   "bed", "bed_target", "chamber", "weight")
 
 
 def _detail(raw: object) -> dict:
@@ -68,6 +72,20 @@ def _detail(raw: object) -> dict:
     since = raw.get("since")
     if isinstance(since, (int, float)) and not isinstance(since, bool) and 0 < since < 1e11:
         found["since"] = float(since)
+    return found
+
+
+def _printer(raw: object) -> dict:
+    """Only what is expected, and short."""
+    if not isinstance(raw, dict) or raw.get("state") not in PRINTER_STATES:
+        raise ValueError("bad printer")
+    found: dict = {"state": raw["state"], "problem": raw.get("problem") is True}
+    for key, limit in (("id", 64), ("name", 40), ("area", 40), ("file", 80), ("unit", 5)):
+        if isinstance(raw.get(key), str):
+            found[key] = raw[key][:limit]
+    for key in PRINTER_NUMBERS:
+        if (value := number(raw.get(key))) is not None:
+            found[key] = value
     return found
 
 
@@ -162,6 +180,11 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                     task = asyncio.create_task(_answer(request.app, ws, house_id, data))
                     questions.add(task)
                     task.add_done_callback(questions.discard)
+                elif kind == "printers" and ready:
+                    items = data["items"]
+                    if not isinstance(items, list) or len(items) > 20:
+                        raise ValueError("bad printers")
+                    request.app[PRINTERS][house_id] = [_printer(i) for i in items]
                 elif kind == "note" and ready:
                     uid = data.get("id")
                     if request.app.get(FINDINGS) is not None:
@@ -186,6 +209,7 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
         if sockets.get(house_id) is ws:
             del sockets[house_id]
             world.disconnected()
+            request.app[PRINTERS].pop(house_id, None)
             if request.app.get(HISTORY) is not None:
                 request.app[HISTORY].lost(house_id)
             audit.record(house_id, "feed", "disconnected", "connection closed", "state unknown")
@@ -361,7 +385,7 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
              findings: Findings | None = None) -> web.Application:
     app = web.Application(client_max_size=4096)
     app[PAIRING], app[AUDIT], app[HOUSES], app[SOCKETS] = pairing, audit, {}, {}
-    app[ASKED] = {}
+    app[ASKED], app[PRINTERS] = {}, {}
     if history is not None:
         app[HISTORY] = history
     if findings is not None:
@@ -380,7 +404,8 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
         page = ConfigPage(settings, pairing, audit, fingerprint, lambda: set(app[SOCKETS]),
                           disconnect, alerts,
                           lambda: {k: v[0] for k, v in app[HOUSES].items()}, clock,
-                          lambda *a: ask_house(app, *a), lambda: _tell_mood(app), history, findings)
+                          lambda *a: ask_house(app, *a), lambda: _tell_mood(app), history,
+                          findings, app[PRINTERS])
         app[SETTINGS] = settings
         if alerts is not None:
             app[ALERTS], app[TASKS] = alerts, []
@@ -405,7 +430,8 @@ async def _serve(host: str, port: int, data: Path) -> None:
         audit.record("server", "database", "database damaged", "quick check failed", "problem")
         print("The database failed its check. Restore a backup.", file=sys.stderr)
     app = make_app(Pairing(database), audit, settings, fingerprint, alerts, history=history,
-                   findings=Findings(database))
+                   findings=Findings(
+                       database, keep_prints=lambda: settings.all()["keep_history"]))
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, host, port, ssl_context=context).start()

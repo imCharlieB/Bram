@@ -15,7 +15,8 @@ from homeassistant.util import dt as dt_util
 
 OLD_TOKEN_DAYS = 90
 # Cameras on 3D printers are off whenever the printer is.
-PRINTERS = {"bambu_lab", "moonraker", "octoprint", "prusalink", "elegoo_printer", "creality"}
+PRINTERS = {"bambu_lab", "moonraker", "octoprint", "prusalink", "elegoo_printer",
+            "creality", "ha_creality_ws", "anycubic_cloud"}
 OFFLINE = datetime.timedelta(minutes=30)
 ASSISTANTS = {"conversation": "Assist", "cloud.alexa": "Alexa", "cloud.google_assistant": "Google"}
 NOT_CHECKED = ["Your router and network", "Remote access through Home Assistant Cloud",

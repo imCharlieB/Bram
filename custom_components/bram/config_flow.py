@@ -15,6 +15,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from . import printers
 from .client import CannotConnect, InvalidCode, pair
 from .const import (
     CONF_CODE,
@@ -24,6 +25,7 @@ from .const import (
     CONF_HISTORY,
     CONF_LEARN,
     CONF_PHONES,
+    CONF_PRINTERS,
     CONF_PROBLEM_WATCH,
     CONF_PROBLEMS,
     CONF_QUIET_FROM,
@@ -113,6 +115,8 @@ class BramOptionsFlow(OptionsFlowWithReload):
         # Away stays off here: it is wrong until everyone who lives there is shared.
         schema |= {vol.Required(key, default=options.get(key, True)): bool
                    for key in ("night", "left_open", "offline", CONF_PROBLEM_WATCH, CONF_HISTORY)}
+        if printers.find(self.hass):
+            schema[vol.Required(CONF_PRINTERS, default=options.get(CONF_PRINTERS, True))] = bool
         schema[vol.Required("summary", default=True)] = bool
         return self.async_show_form(step_id="basic", data_schema=vol.Schema(schema))
 
@@ -248,8 +252,8 @@ class BramOptionsFlow(OptionsFlowWithReload):
             return self.async_create_entry(data={**options, **user_input})
         return self.async_show_form(step_id="watch", data_schema=vol.Schema({
             **{vol.Required(rule, default=options.get(rule, False)): bool
-               for rule in (CONF_PROBLEM_WATCH, "night", "away", "left_open", "offline",
-                            CONF_SECURITY_WATCH)},
+               for rule in (CONF_PROBLEM_WATCH, CONF_PRINTERS, "night", "away", "left_open",
+                            "offline", CONF_SECURITY_WATCH)},
             vol.Required("night_from", default=options.get("night_from", DEFAULT_NIGHT_FROM)):
                 selector.TimeSelector(),
             vol.Required("night_to", default=options.get("night_to", DEFAULT_NIGHT_TO)):

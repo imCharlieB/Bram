@@ -92,6 +92,7 @@ class Feed:
         self.learner: Any = None
         self.outbox: Any = None
         self.problems: Any = None
+        self.printers: Any = None
         self._queue: asyncio.Queue[dict] | None = None
         self._queries: set[asyncio.Task] = set()
         self._asked: dict[str, asyncio.Future[str]] = {}
@@ -133,6 +134,13 @@ class Feed:
         """For the server's record. Never needed for an alert to work."""
         if self.outbox is not None:
             self.outbox.note(key, what, text, source, severity)
+
+    @callback
+    def send_printers(self, items: list[dict]) -> bool:
+        if not self.connected or self.server_version is None or _key(
+                self.server_version) < (0, 27):
+            return False
+        return self.send({"type": "printers", "items": items[:20]})
 
     @callback
     def takes_notes(self) -> bool:

@@ -145,13 +145,15 @@ Read from the printer's own integration. One printer is one device with a sectio
 
 | Feature | Status |
 |---|---|
-| Printer found automatically: printing, paused, idle, off, with progress, time left, and file name | ⬜ |
-| Nozzle, bed, and chamber temperatures against target | ⬜ |
-| Told when finished, failed, paused, out of filament, or asking for attention | ⬜ |
-| Heater on while idle, temperature far from target, or hot with no print: routine warning, and never a substitute for a smoke alarm | ⬜ |
-| Printer offline during a print; off when idle is normal | ⬜ |
+| Printer found automatically: printing, paused, idle, off, with progress, time left, and file name | ✅ [3D printers](printers.md) |
+| Nozzle, bed, and chamber temperatures against target | ✅ |
+| Told when finished, failed, paused, or asking for attention | ✅ |
+| Told when out of filament | 🟡 as paused or a problem |
+| Heater on while idle, or temperature far below target: routine warning, and never a substitute for a smoke alarm | ✅ |
+| Printer offline during a print; off when idle is normal | ✅ |
 | Smoke or heat sensor in the printer's room named in the alert | ⬜ |
-| Each print remembered: file, length, result, filament, power used | ⬜ |
+| Each print remembered: file, length, result, filament | ✅ |
+| Power used by a print | ⬜ |
 | Picture of the print, then the vision model looking for failed prints (phase 6) | ⬜ |
 | Pause a print with one tap; never start one or heat anything (phase 4) | ⬜ |
 

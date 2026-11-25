@@ -579,8 +579,34 @@ function arrange() {
     || a.floor.localeCompare(b.floor) || a.title.localeCompare(b.title)));
 }
 
+const PRINTER = { printing: "Printing", paused: "Paused", finished: "Finished", failed: "Failed", stopped: "Stopped", idle: "Idle", off: "Off", unknown: "Unknown" };
+
+function showPrinters(list) {
+  $("printers-pane").hidden = !list.length;
+  $("hud-printers").replaceChildren(...list.map((printer) => {
+    const row = element("li", undefined, `printer ${printer.problem ? "failed" : printer.state}`), head = element("div");
+    head.append(element("b", printer.name || "Printer"), element("span", PRINTER[printer.state] + ("progress" in printer && printer.state !== "finished" ? ` ${printer.progress}%` : "")));
+    row.append(head);
+    if (printer.state === "printing" || printer.state === "paused") {
+      const bar = element("progress");
+      bar.max = 100;
+      if ("progress" in printer) bar.value = printer.progress;
+      bar.setAttribute("aria-label", `${printer.name} progress`);
+      row.append(bar);
+    }
+    const heat = (key, word) => key in printer ? `${word} ${printer[key]}${printer[key + "_target"] ? " / " + printer[key + "_target"] : ""}${printer.unit || ""}` : "";
+    const line = [printer.file, "left" in printer && `${lasted(printer.left)} left`].filter(Boolean).join(", ");
+    if (line) row.append(element("p", line));
+    const temps = [heat("nozzle", "nozzle"), heat("nozzle2", "left"), heat("bed", "bed"), heat("chamber", "chamber")].filter(Boolean).join(", ");
+    if (temps) row.append(element("small", temps));
+    if (printer.problem) row.append(element("small", "Reports a problem"));
+    return row;
+  }));
+}
+
 async function loadHouse() {
-  const { homes, alerts, rooms: occupancy } = await api("house");
+  const { homes, alerts, printers, rooms: occupancy } = await api("house");
+  showPrinters(printers);
   world.rooms = new Map(occupancy.map((room) => [room.room, room]));
   const groups = new Map(), urgent = [];
   let total = 0, unseen = 0;
@@ -734,6 +760,11 @@ async function loadHistory() {
   $("history-compare").replaceChildren(...pairs.map((pair) => cells([
     pair.area, `${pair.climate}: ${pair.climate_avg}${pair.unit}`, `${pair.sensor}: ${pair.sensor_avg}${pair.unit}`,
     `${pair.apart > 0 ? "+" : ""}${pair.apart}${pair.unit}`, `${pair.most}${pair.unit}`])));
+  const prints = data.homes.flatMap((home) => home.prints);
+  $("prints-card").hidden = !prints.length;
+  $("history-prints").replaceChildren(...prints.map((print) => cells([new Date(print.end * 1000).toLocaleString(), print.printer, print.file || "unknown",
+    print.result + (print.result !== "finished" && print.progress !== null ? ` at ${print.progress}%` : ""), print.whole ? lasted(print.end - print.start) : "not all seen",
+    print.weight !== null ? `${print.weight} g` : ""])));
   if (!days.length) $("history-days").append(cells(["Nothing recorded yet"]));
   if (!pairs.length) $("history-compare").append(cells(["Share a thermostat and a temperature sensor in the same room"]));
 }
