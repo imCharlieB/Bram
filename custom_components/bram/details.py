@@ -28,8 +28,11 @@ def picture_path(state: State | None) -> str | None:
     return None
 
 
-def room_sensors(hass: HomeAssistant, person: State | None) -> list[str]:
-    """Room-presence sensors on the devices that track this person."""
+def room_sensors(hass: HomeAssistant, person: State | None,
+                 rooms: dict[str, str] | None = None) -> list[str]:
+    """The sensor the owner chose, or those on the devices that track this person."""
+    if person is not None and (chosen := (rooms or {}).get(person.entity_id)):
+        return [chosen]
     entities = er.async_get(hass)
     trackers = person.attributes.get("device_trackers") if person is not None else None
     found: list[str] = []
@@ -44,7 +47,8 @@ def room_sensors(hass: HomeAssistant, person: State | None) -> list[str]:
     return found
 
 
-def detail(hass: HomeAssistant, state: State | None) -> dict[str, Any]:
+def detail(hass: HomeAssistant, state: State | None,
+           rooms: dict[str, str] | None = None) -> dict[str, Any]:
     if state is None:
         return {}
     found: dict[str, Any] = {"since": state.last_changed.timestamp()}
@@ -62,7 +66,7 @@ def detail(hass: HomeAssistant, state: State | None) -> dict[str, Any]:
         found.pop("area", None)
         found.pop("floor", None)
         if state.state == "home":
-            for sensor in room_sensors(hass, state):
+            for sensor in room_sensors(hass, state, rooms):
                 room = hass.states.get(sensor)
                 if room is not None and room.state.lower() not in _NOWHERE:
                     found["area"] = room.state[:40]

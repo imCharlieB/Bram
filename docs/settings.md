@@ -10,6 +10,7 @@
 | BRAM's suggestions | What it would add | |
 | Add devices quickly | Types and areas to search | |
 | What BRAM can see | People, locks and doors, safety, motion, lights, switches and fans, media, voice assistants, climate, anything else | None |
+| Which room people are in | A room sensor for each person | Found automatically if possible |
 | Phone alerts and quiet hours | Phones that get everything | None |
 | | Phones that get safety alerts only | None |
 | | Quiet from, quiet until | Off |

@@ -45,7 +45,7 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 | What | Where it comes from |
 |---|---|
 | A device's room and floor | Its area in Home Assistant; set areas and floors there |
-| The room a person is in | Bermuda or MQTT Room sensors on a device that tracks that person; add that tracker to the person in Home Assistant |
+| The room a person is in | The sensor you choose in **Configure > Which room people are in**; otherwise Bermuda or MQTT Room sensors on a device attached to that person |
 | A named place, such as Work | The person's zone in Home Assistant |
 
 Coordinates are never shared. If a room is not known, BRAM says only home or away. On the command deck, press **by type** to arrange the house by room.

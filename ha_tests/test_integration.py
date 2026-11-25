@@ -423,6 +423,34 @@ async def test_room_changes_reach_the_server(hass, server):
     await until(lambda: not server[0][SOCKETS])
 
 
+async def test_choose_room_sensor(hass, server):
+    hass.states.async_set("person.alex", "home", {"friendly_name": "Alex"})
+    hass.states.async_set("sensor.alex_room", "Den")
+    entry = await start(hass, server)
+    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    flow = await hass.config_entries.options.async_configure(
+        flow["flow_id"], {"next_step_id": "rooms"})
+    assert flow["reason"] == "no_people"
+    await choose(hass, entry, ["person.alex"])
+    await options(hass, entry, "rooms", {"Alex": "sensor.alex_room"})
+    assert entry.options["rooms"] == {"person.alex": "sensor.alex_room"}
+    world = server[0][HOUSES][entry.data["house_id"]][0]
+
+    def room():
+        event = world.event("person.alex")
+        return event and event.detail.get("area")
+
+    await until(lambda: room() == "Den")
+    hass.states.async_set("sensor.alex_room", "Kitchen")
+    await until(lambda: room() == "Kitchen")
+    hass.states.async_set("sensor.alex_room", "unknown")
+    await until(lambda: room() is None)
+    await options(hass, entry, "rooms", {})
+    assert entry.options["rooms"] == {}
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])
+
+
 async def test_watch_page(hass, server):
     entry = await start(hass, server)
     watch = {"night": True, "away": False, "left_open": True, "offline": False,

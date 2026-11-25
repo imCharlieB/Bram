@@ -69,6 +69,17 @@ async def test_person_room_comes_from_their_tracker(hass):
         assert room_sensors(hass, bad) == []
 
 
+async def test_chosen_room_sensor(hass):
+    rooms = {"person.a": "sensor.my_room"}
+    hass.states.async_set("sensor.my_room", "Master Bedroom")
+    for state, room, expected in (("home", "Master Bedroom", "Master Bedroom"),
+                                  ("home", "unavailable", None), ("home", "not_home", None),
+                                  ("not_home", "Master Bedroom", None)):
+        hass.states.async_set("person.a", state)
+        hass.states.async_set("sensor.my_room", room)
+        assert detail(hass, hass.states.get("person.a"), rooms).get("area") == expected
+
+
 async def test_detail_never_has_coordinates(hass):
     den = ar.async_get(hass).async_create("Den")
     er.async_get(hass).async_get_or_create("person", "test", "1", suggested_object_id="a")

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.17.1
+
+- Choose the sensor that says which room each person is in.
+
 ## 0.17.0
 
 - Location: floors, the room a person is in, and named places such as Work. The command deck can be arranged by type or by room.

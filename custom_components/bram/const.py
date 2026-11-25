@@ -10,6 +10,7 @@ CONF_QUIET_FROM = "quiet_from"
 CONF_QUIET_TO = "quiet_to"
 CONF_ESCALATE = "escalate"
 CONF_DIGEST = "digest"
+CONF_ROOMS = "rooms"
 CONF_PROBLEMS = "share_problems"
 CONF_HISTORY = "share_history"
 # What "yes" and "no" mean for each kind BRAM understands.

@@ -18,7 +18,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 
 from . import gate
 from .client import connect
-from .const import CONF_ENTITIES, CONF_FINGERPRINT, DOMAIN, MOODS
+from .const import CONF_ENTITIES, CONF_FINGERPRINT, CONF_ROOMS, DOMAIN, MOODS
 from .details import detail, room_sensors
 from .queries import answer
 
@@ -84,6 +84,7 @@ class Feed:
         self._entry = entry
         self._entities: list[str] = entry.options.get(CONF_ENTITIES, [])
         self._kinds: dict[str, str] = {}
+        self._rooms: dict[str, str] = entry.options.get(CONF_ROOMS, {})
         self._listeners: list[Callable[[], None]] = []
         self.version: str | None = None
         self.alerts: Any = None  # set during setup
@@ -227,7 +228,7 @@ class Feed:
         return {"entity_id": entity_id, "kind": self._kinds.get(entity_id, "unsupported"),
                 "state": say(state) if state is not None else "unavailable",
                 "name": state.name[:100] if state is not None else "",
-                "detail": detail(self._hass, state)}
+                "detail": detail(self._hass, state, self._rooms)}
 
     def _snapshot(self, entities: Iterable[str]) -> dict:
         return {"type": "snapshot", "version": self.version or "",
@@ -274,7 +275,8 @@ class Feed:
         # A person's room changes without the person changing.
         rooms: dict[str, list[str]] = {}
         for person in (e for e in self._entities if e.startswith("person.")):
-            for sensor in room_sensors(self._hass, self._hass.states.get(person)):
+            for sensor in room_sensors(
+                    self._hass, self._hass.states.get(person), self._rooms):
                 rooms.setdefault(sensor, []).append(person)
 
         @callback

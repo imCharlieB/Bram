@@ -34,11 +34,11 @@
   },
   "options": {
     "error": {"nothing_found": "Nothing new was found there."},
-    "abort": {"nothing_to_suggest": "BRAM has no suggestions. It can see the important things."},
+    "abort": {"no_people": "Share a person with BRAM first.", "nothing_to_suggest": "BRAM has no suggestions. It can see the important things."},
     "step": {
       "init": {
         "title": "BRAM",
-        "menu_options": {"basic": "Recommended setup", "suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors", "chat": "What chat may look up"}
+        "menu_options": {"basic": "Recommended setup", "suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "rooms": "Which room people are in", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors", "chat": "What chat may look up"}
       },
       "basic": {
         "title": "Recommended setup",
@@ -72,6 +72,10 @@
           "switches": "Switches and fans", "media": "Media players and speakers",
           "voice": "Voice assistants", "climate": "Thermostats, temperature, and humidity", "other": "Anything else"
         }
+      },
+      "rooms": {
+        "title": "Which room people are in",
+        "description": "For each person, choose the sensor whose state is the room they are in, such as a Bermuda area sensor or one you made. Empty means BRAM says only home or away."
       },
       "chat": {
         "title": "What chat may look up",

@@ -26,6 +26,7 @@ from .const import (
     CONF_PROBLEMS,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
+    CONF_ROOMS,
     CONF_SAFETY_PHONES,
     DEFAULT_DIGEST,
     DEFAULT_NIGHT_FROM,
@@ -35,6 +36,7 @@ from .const import (
     DOMAIN,
     GROUPS,
 )
+from .details import room_sensors
 from .discover import find, suggest
 from .feed import kind_of
 from .notifier import PREFIX, phones
@@ -73,7 +75,7 @@ class BramConfigFlow(ConfigFlow, domain=DOMAIN):
 class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(step_id="init", menu_options=[
-            "basic", "suggest", "quick", "see", "alerts", "watch", "chat"])
+            "basic", "suggest", "quick", "see", "rooms", "alerts", "watch", "chat"])
 
     _found: list[str] = []
 
@@ -188,6 +190,30 @@ class BramOptionsFlow(OptionsFlowWithReload):
         return self.async_show_form(step_id="chat", data_schema=vol.Schema({
             vol.Required(key, default=options.get(key, False)): bool
             for key in (CONF_HISTORY, CONF_PROBLEMS)}))
+
+    async def async_step_rooms(
+        self, user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Which sensor says what room a person is in."""
+        options = dict(self.config_entry.options)
+        people = {}
+        for entity_id in options.get(CONF_ENTITIES, []):
+            if entity_id.startswith("person."):
+                state = self.hass.states.get(entity_id)
+                people[state.name if state is not None else entity_id] = entity_id
+        if not people:
+            return self.async_abort(reason="no_people")
+        saved = options.get(CONF_ROOMS, {})
+        if user_input is not None:
+            return self.async_create_entry(data={**options, CONF_ROOMS: {
+                people[name]: sensor for name, sensor in user_input.items() if sensor}})
+        fields = {}
+        for name, person in people.items():
+            auto = room_sensors(self.hass, self.hass.states.get(person))
+            fields[vol.Optional(name, description={
+                "suggested_value": saved.get(person) or (auto[0] if auto else None)})] = (
+                selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")))
+        return self.async_show_form(step_id="rooms", data_schema=vol.Schema(fields))
 
     async def async_step_watch(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)
