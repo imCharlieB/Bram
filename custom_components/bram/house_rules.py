@@ -23,7 +23,7 @@ from .const import (
     DOMAIN,
 )
 from .feed import kind_of
-from .home_alerts import within
+from .home_alerts import GROUP_MAX, GROUP_MIN, within
 from .notifier import notify
 
 SETTLE = 120  # a door in use, or someone just leaving, is not news
@@ -154,15 +154,28 @@ class HouseRules:
                 self._save()
             quiet = within(self._quiet, dt_util.now().time())
             self._sent = [t for t in self._sent if now - t < DAY]
+            due = []
             for key, (rule, wait, text) in facts.items():
                 if (key in self._told or key in self._muted or now - self._since[key] < wait
-                        or (quiet and rule not in URGENT) or not self._phones
-                        or len(self._sent) >= DAILY):
+                        or (quiet and rule not in URGENT) or not self._phones):
                     continue
-                if await notify(self._hass, self._phones, "BRAM watch", text, f"bram_{key}",
-                                safety=False,
-                                actions=[{"action": MUTE + key, "title": "Stop these"}]):
-                    self._told.add(key)
+                due.append((rule in URGENT, key, text))
+            routine = [d for d in due if not d[0]]
+            # Several routine messages at once become one. Urgent ones stay on their own.
+            alone = [d for d in due if d[0]] + (routine if len(routine) < GROUP_MIN else [])
+            batches = [[d] for d in alone]
+            if len(routine) >= GROUP_MIN:
+                batches += [routine[i:i + GROUP_MAX] for i in range(0, len(routine), GROUP_MAX)]
+            for batch in batches:
+                if len(self._sent) >= DAILY:
+                    break
+                key = batch[0][1]
+                actions = [{"action": MUTE + key, "title": "Stop these"}
+                           ] if len(batch) == 1 else []
+                if await notify(self._hass, self._phones, "BRAM watch",
+                                "\n".join(text for _, _, text in batch), f"bram_{key}",
+                                safety=False, actions=actions):
+                    self._told.update(k for _, k, _ in batch)
                     self._sent.append(now)
                     self._save()
 

@@ -28,6 +28,8 @@ from .const import (
     CONF_QUIET_TO,
     CONF_ROOMS,
     CONF_SAFETY_PHONES,
+    CONF_SECURITY,
+    CONF_SECURITY_WATCH,
     DEFAULT_DIGEST,
     DEFAULT_NIGHT_FROM,
     DEFAULT_NIGHT_TO,
@@ -189,7 +191,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
             return self.async_create_entry(data={**options, **user_input})
         return self.async_show_form(step_id="chat", data_schema=vol.Schema({
             vol.Required(key, default=options.get(key, False)): bool
-            for key in (CONF_HISTORY, CONF_PROBLEMS)}))
+            for key in (CONF_HISTORY, CONF_PROBLEMS, CONF_SECURITY)}))
 
     async def async_step_rooms(
         self, user_input: dict[str, Any] | None = None,
@@ -221,7 +223,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
             return self.async_create_entry(data={**options, **user_input})
         return self.async_show_form(step_id="watch", data_schema=vol.Schema({
             **{vol.Required(rule, default=options.get(rule, False)): bool
-               for rule in ("night", "away", "left_open", "offline")},
+               for rule in ("night", "away", "left_open", "offline", CONF_SECURITY_WATCH)},
             vol.Required("night_from", default=options.get("night_from", DEFAULT_NIGHT_FROM)):
                 selector.TimeSelector(),
             vol.Required("night_to", default=options.get("night_to", DEFAULT_NIGHT_TO)):

@@ -16,14 +16,16 @@
 | | Quiet from, quiet until | Off |
 | | Daily summary at | Off |
 | | Use Telegram and ntfy after 5 unanswered minutes | Off |
-| Watch locks and doors | Unlocked at night | Off |
+| Watch locks, doors, and security | Unlocked at night | Off |
 | | Open or unlocked while away | Off |
 | | Left open | Off |
 | | Offline | Off |
+| | The security check finds something new | Off |
 | | Night starts, night ends | 10 PM, 6 AM |
 | | Left open minutes | 10 |
 | What chat may look up | History of the devices BRAM can see | Off |
 | | Home Assistant problems | Off |
+| | Security check of Home Assistant | Off |
 
 Quiet hours here affect only Home Assistant's messages.
 

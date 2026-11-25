@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.20.0
+
+- Ask "Is my home secure?" for a read-only check of Home Assistant, and optionally be told when it finds something new. Both are off by default.
+- Three or more routine phone messages at once become one. Safety alerts are never grouped.
+
 ## 0.19.0
 
 - The command look covers every page, including sign-in.

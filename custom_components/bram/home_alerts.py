@@ -32,6 +32,7 @@ SILENT_AFTER = 300
 SERVER_AFTER = 180
 ESCALATE_AFTER = 300
 DAILY_NOTICES = 10
+GROUP_MIN, GROUP_MAX = 3, 8
 DAY = 86400
 
 TEXT = {"leak": "Water leak detected", "smoke": "Smoke detected. Check now",
@@ -254,17 +255,24 @@ class HomeAlerts:
             return
         self._sent_notices = [t for t in self._sent_notices if now - t < DAY]
         waiting, self._waiting = self._waiting, []
-        for item in waiting:
+        while waiting:
             if len(self._sent_notices) >= DAILY_NOTICES:
                 return
-            actions = [{"action": MUTE + item["entity_id"], "title": "Stop these"}
-                       ] if item["mutable"] else []
-            if await notify(self._hass, self._phones, "BRAM", item["text"],
-                            f"bram_{item['key']}", safety=False, actions=actions):
+            # Several at once become one message. Safety alerts never come here.
+            batch, waiting = ((waiting[:GROUP_MAX], waiting[GROUP_MAX:])
+                              if len(waiting) >= GROUP_MIN else (waiting[:1], waiting[1:]))
+            first = batch[0]
+            actions = [{"action": MUTE + first["entity_id"], "title": "Stop these"}
+                       ] if len(batch) == 1 and first["mutable"] else []
+            if await notify(self._hass, self._phones, "BRAM",
+                            "\n".join(item["text"] for item in batch),
+                            f"bram_{first['key']}", safety=False, actions=actions):
                 self._sent_notices.append(now)
-            elif item["tries"] < 30:
-                item["tries"] += 1
-                self._waiting.append(item)
+                continue
+            for item in batch:
+                if item["tries"] < 30:
+                    item["tries"] += 1
+                    self._waiting.append(item)
 
     @callback
     def allow_all(self) -> None:

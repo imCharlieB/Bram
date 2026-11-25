@@ -12,6 +12,7 @@ HISTORY = re.compile(
 PROBLEMS = re.compile(
     r"\b(errors?|logs?|problems?|issues?|repairs?|broken|failing|failed|wrong|batter(y|ies)|"
     r"updates?|unavailable|health)\b", re.I)
+SECURITY = re.compile(r"\b(secur\w*|hack\w*|exposed|intru\w*|safe|vulnerab\w*)\b", re.I)
 MAX_LOOKUPS = 3
 
 
@@ -77,3 +78,31 @@ def problem_lines(name: str, result: dict | None) -> list[str]:
         lines.append(f"{label}: {', '.join(found) or 'none'}")
     lines.append(f"Entities unavailable now: {_text(result.get('unavailable'), 6)}")
     return lines
+
+
+def _findings(result: dict) -> list[tuple[str, str]]:
+    return [(_text(f.get("level"), 10), _text(f.get("text"), 200))
+            for f in _list(result.get("findings"), 15) if isinstance(f, dict)]
+
+
+def security_lines(name: str, result: dict | None) -> list[str]:
+    if result is None or result.get("error"):
+        off = result is not None and result.get("error") == "off"
+        return [f"Security check of {name}: " + (
+            "turned off; the owner can turn it on in Home Assistant, BRAM, Configure, What chat "
+            "may look up" if off else "could not be read")]
+    found = _findings(result)
+    missed = ", ".join(_text(x, 60) for x in _list(result.get("not_checked"), 20))
+    return [f"Security check of {name}, Home Assistant only. Never say it is secure or safe, even "
+            "if nothing was found; say what was found and what was not checked.",
+            *(f"{level}: {text}" for level, text in found),
+            *([] if found else ["Nothing found by the checks that ran"]),
+            f"Not checked: {missed or 'unknown'}"]
+
+
+def security_facts(name: str, result: dict | None) -> list[str]:
+    if result is None or result.get("error"):
+        return []
+    found = [f"{name}: {text}" for _, text in _findings(result)[:5]]
+    return [*(found or [f"{name}: nothing found by the checks that ran"]),
+            f"{name}: does not check your network, router, or passwords"]

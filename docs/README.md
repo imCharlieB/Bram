@@ -19,6 +19,7 @@
 ## How it works
 
 - [Architecture](architecture.md)
+- [Security check](security-check.md)
 - [Security](security.md)
 - [What BRAM stores](data.md)
 - [Hard rules](../HARD_RULES.md)

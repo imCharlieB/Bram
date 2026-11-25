@@ -4,13 +4,12 @@ Plans may change. Every item must follow the [Hard rules](../HARD_RULES.md).
 
 ## Built
 
-Pairing, live state, home alerts, Telegram and ntfy messages, monitors, config page, chat, Assist, voice, personalities, lock and door watching, history and problem questions, daily summary.
+Pairing, live state, home alerts, Telegram and ntfy messages, monitors, config page, chat, Assist, voice, personalities, lock and door watching, history and problem questions, daily summary, grouped messages, Home Assistant [security check](security-check.md).
 
 ## 1. Questions and digests
 
 | Feature | Notes |
 |---|---|
-| Grouped messages | Several routine messages become one; safety alerts are never grouped |
 | Longer gaps for routine messages marked as false alarms | Never for safety alerts |
 
 ### Home Assistant problems
@@ -19,11 +18,12 @@ Built for chat. Next: being told when something new keeps failing.
 
 ## 2. Security check: "Is my home secure?"
 
+The Home Assistant part is built. Still to come: apps with exposed ports, proxy mistakes, and the rows below.
+
 Read-only. Reports which checks could not run, and never says a home is safe.
 
 | Area | Checks |
 |---|---|
-| Home Assistant | New admin accounts and tokens, old tokens, failed logins, locks or doors exposed to voice assistants, public webhooks, apps with exposed ports, login bypass, proxy mistakes |
 | Network | Devices joining for the first time, router updates, UPnP, changed public address |
 | Radios | Joining left open, new devices, weak Z-Wave security on locks, coordinator updates |
 

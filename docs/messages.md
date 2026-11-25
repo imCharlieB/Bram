@@ -41,7 +41,7 @@ In **Phone alerts and quiet hours**, set **Daily summary at**. Once a day it lis
 
 ## Watching locks and doors
 
-**BRAM > Configure > Watch locks and doors.** All are off until you turn them on, and cover only the locks, doors, windows, and garage doors BRAM can see.
+**BRAM > Configure > Watch locks, doors, and security.** All are off until you turn them on, and cover only the locks, doors, windows, and garage doors BRAM can see.
 
 | Choice | Tells you when | In quiet hours |
 |---|---|---|
@@ -49,6 +49,8 @@ In **Phone alerts and quiet hours**, set **Daily summary at**. Once a day it lis
 | Open or unlocked while away | It has been so for 2 minutes and everyone BRAM can see is away | Yes |
 | Left open | It has been open as long as you set | After they end |
 | Offline | It has been unreachable for 5 minutes | After they end |
+
+Three or more routine messages at once become one, without a button. Night and away messages are never grouped.
 
 You are told once each time, at most 20 times a day. **Stop these** stops one message for one device; undo it with **Allow stopped messages** on the device page.
 

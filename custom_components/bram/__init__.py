@@ -13,6 +13,7 @@ from .digest import Digest
 from .feed import Feed
 from .home_alerts import HomeAlerts
 from .house_rules import HouseRules
+from .security_watch import SecurityWatch
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CONVERSATION,
              Platform.SELECT, Platform.SENSOR]
@@ -34,6 +35,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(Digest(hass, entry, feed).start())
     feed.rules = HouseRules(hass, entry)
     entry.async_on_unload(await feed.rules.start())
+    entry.async_on_unload(await SecurityWatch(hass, entry).start())
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_create_background_task(hass, feed.run(), "bram feed")
     return True

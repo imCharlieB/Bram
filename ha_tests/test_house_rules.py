@@ -199,3 +199,16 @@ async def test_failed_send_is_tried_again(env):
         await env.wait(15)
     await env.wait(1)
     assert len(env.calls) == 1
+
+
+async def test_several_routine_messages_become_one(env):
+    doors = [f"cover.d{i}" for i in range(4)]
+    await env.start(entities=doors, offline=True)
+    for door in doors:
+        env.hass.states.async_set(door, "closed", {"device_class": "garage"})
+    await env.wait(1)
+    for door in doors:
+        env.hass.states.async_set(door, "unavailable", {"device_class": "garage"})
+    await env.wait(10)
+    assert len(env.calls) == 1 and env.texts()[0].count("offline") == 4
+    assert env.calls[0].data["data"]["actions"] == []

@@ -238,6 +238,7 @@ async def test_daily_limit(env):
     await env.start()
     for i in range(DAILY_NOTICES + 4):
         env.alerts._notice(f"k{i}", "x", None, False)
+        await env.alerts.run()
     await env.wait(60)
     assert len(env.calls) == DAILY_NOTICES
 
@@ -309,3 +310,11 @@ async def test_only_chosen_safety_sensors(env):
     await env.set("on", "binary_sensor.other", WET)
     await env.wait(600)
     assert env.calls == []
+
+
+async def test_several_notices_become_one(env):
+    await env.start()
+    for i in range(3):
+        env.alerts._notice(f"k{i}", f"text {i}", None, False)
+    await env.alerts.run()
+    assert [c.data["message"] for c in env.calls] == ["text 0\ntext 1\ntext 2"]

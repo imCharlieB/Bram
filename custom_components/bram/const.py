@@ -13,6 +13,8 @@ CONF_DIGEST = "digest"
 CONF_ROOMS = "rooms"
 CONF_PROBLEMS = "share_problems"
 CONF_HISTORY = "share_history"
+CONF_SECURITY = "share_security"
+CONF_SECURITY_WATCH = "security_watch"
 # What "yes" and "no" mean for each kind BRAM understands.
 MEANING = {
     "person": ("home", "away"),

@@ -19,9 +19,12 @@ from .lookup import (
     HISTORY,
     MAX_LOOKUPS,
     PROBLEMS,
+    SECURITY,
     history_facts,
     history_lines,
     problem_lines,
+    security_facts,
+    security_lines,
 )
 from .models.base import Message, ModelError
 from .monitors import Monitors
@@ -210,6 +213,11 @@ class Chat:
         worlds = self._worlds()
         homes = [(h, clean(n, 60)) for h, n in self._pairing.houses()
                  if h in worlds and house in (None, h)]
+        if SECURITY.search(text):
+            for home, name in homes[:MAX_LOOKUPS]:
+                result = await self._look_up(home, "security", "")
+                lines += security_lines(name, result)
+                facts += security_facts(name, result)
         if HISTORY.search(text):
             words = _words(text)
             scored = []
