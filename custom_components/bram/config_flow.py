@@ -26,6 +26,7 @@ from .const import (
     CONF_PROBLEMS,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
+    CONF_SAFETY_PHONES,
     DEFAULT_DIGEST,
     DEFAULT_NIGHT_FROM,
     DEFAULT_NIGHT_TO,
@@ -216,12 +217,16 @@ class BramOptionsFlow(OptionsFlowWithReload):
             options.pop(CONF_QUIET_FROM, None)
             options.pop(CONF_QUIET_TO, None)
             options.pop(CONF_DIGEST, None)
+            options.pop(CONF_SAFETY_PHONES, None)
             return self.async_create_entry(data={**options, **user_input})
+        only = options.get(CONF_SAFETY_PHONES, [])
         # A phone that is missing right now stays chosen.
         saved = options.get(CONF_PHONES, [])
         listed = sorted({*phones(self.hass), *saved})
         return self.async_show_form(step_id="alerts", data_schema=vol.Schema({
             vol.Required(CONF_PHONES, default=saved): self._phone_list(listed),
+            vol.Optional(CONF_SAFETY_PHONES, description={
+                "suggested_value": only}): self._phone_list(sorted({*listed, *only})),
             vol.Optional(CONF_QUIET_FROM, description={
                 "suggested_value": options.get(CONF_QUIET_FROM)}): selector.TimeSelector(),
             vol.Optional(CONF_QUIET_TO, description={

@@ -26,6 +26,15 @@ Safety alerts have **Acknowledge**. Silent-sensor messages have **Stop these**.
 
 **Fallback (off by default):** a leak or smoke alert nobody answers for 5 minutes can also go to Telegram and ntfy. It needs the BRAM Server to be connected.
 
+## Who gets what
+
+| List | Gets |
+|---|---|
+| Phones that get everything | Safety alerts, lock and door messages, notices, daily summary |
+| Phones that get safety alerts only | Leak, smoke, gas, carbon monoxide, heat, and other safety alerts |
+
+Sharing a **person** with BRAM sends that person nothing. Anyone who gets a safety alert can acknowledge it for everyone. Telegram goes to the one linked account, and ntfy to whoever subscribes to its topic.
+
 ## Daily summary
 
 In **Phone alerts and quiet hours**, set **Daily summary at**. Once a day it lists what is open, not locked, or cannot be seen, who is home, and low batteries. It is sent at that time even in quiet hours, uses fixed wording, and needs no server. Leave it empty for none.

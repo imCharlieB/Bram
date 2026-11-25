@@ -19,6 +19,7 @@ from .const import (
     CONF_PHONES,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
+    CONF_SAFETY_PHONES,
     DOMAIN,
 )
 from .feed import Feed, kind_of
@@ -56,6 +57,9 @@ class HomeAlerts:
         options = entry.options
         self._entities: list[str] = options.get(CONF_ENTITIES, [])
         self._phones: list[str] = options.get(CONF_PHONES, [])
+        # These get leak, smoke, and other safety alerts, and nothing else.
+        self._safety_phones = [*dict.fromkeys(
+            [*self._phones, *options.get(CONF_SAFETY_PHONES, [])])]
         self._quiet = (options.get(CONF_QUIET_FROM), options.get(CONF_QUIET_TO))
         self._escalate: bool = options.get(CONF_ESCALATE, False)
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
@@ -216,12 +220,12 @@ class HomeAlerts:
             text = alert["text"] + (". It has since cleared." if alert["cleared"] else ".")
             title = f"BRAM alert, reminder {alert['sends']}" if alert["sends"] else "BRAM alert"
             sent = await notify(
-                self._hass, self._phones, title, text, f"bram_{alert['id']}", safety=True,
+                self._hass, self._safety_phones, title, text, f"bram_{alert['id']}", safety=True,
                 actions=[{"action": ACK + alert["id"], "title": "Acknowledge"}])
             if alert["acked"] or self._alerts.get(entity_id) is not alert:
                 dismiss(self._hass, f"bram_{alert['id']}")
                 continue  # answered or replaced while it was being sent
-            if not sent and self._phones:
+            if not sent and self._safety_phones:
                 alert["next"] = self._now() + RETRY
             else:
                 alert["sends"] += 1
@@ -269,7 +273,7 @@ class HomeAlerts:
         self._save()
 
     async def test(self) -> bool:
-        return await notify(self._hass, self._phones, "BRAM", "This is a test message.",
+        return await notify(self._hass, self._safety_phones, "BRAM", "This is a test message.",
                             "bram_test", safety=False, actions=[])
 
     def _is_quiet(self) -> bool:

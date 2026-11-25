@@ -164,8 +164,11 @@ async def test_option_pages_keep_each_other(hass, server):
     entry = await start(hass, server)
     await choose(hass, entry, [LOCK, LEAK])
     alerts = {"phones": ["mobile_app_phone"], "escalate": True}
+    async_mock_service(hass, "notify", "mobile_app_other")
     await options(hass, entry, "alerts", {
-        **alerts, "quiet_from": "22:00:00", "quiet_to": "07:00:00"})
+        **alerts, "safety_phones": ["mobile_app_other"],
+        "quiet_from": "22:00:00", "quiet_to": "07:00:00"})
+    assert entry.options["safety_phones"] == ["mobile_app_other"]
     assert entry.options["entities"] == [LOCK, LEAK] and entry.options["quiet_from"]
     # A missing sensor is kept when the page is saved unchanged.
     hass.states.async_remove(LEAK)
@@ -182,7 +185,7 @@ async def test_option_pages_keep_each_other(hass, server):
     assert entry.options["entities"] == [LEAK]
     assert entry.options["phones"] == ["mobile_app_phone"] and entry.options["escalate"]
     await options(hass, entry, "alerts", alerts)
-    assert "quiet_from" not in entry.options
+    assert "quiet_from" not in entry.options and "safety_phones" not in entry.options
     await hass.config_entries.async_unload(entry.entry_id)
     await until(lambda: not server[0][SOCKETS])
 

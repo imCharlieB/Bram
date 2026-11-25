@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.14.1
+
+- Choose phones that get safety alerts only.
+
 ## 0.14.0
 
 - Command look for BRAM's home page, with alerts and every shared device live. Choose Classic in Profile for the old look.

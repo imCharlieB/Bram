@@ -281,6 +281,27 @@ async def test_no_phone_still_shows_in_home_assistant(env):
     assert env.calls == [] and shown.called
 
 
+async def test_safety_only_phones_get_safety_and_nothing_else(env):
+    other = async_mock_service(env.hass, "notify", "mobile_app_other")
+    await env.start(safety_phones=["mobile_app_other", "mobile_app_phone"])
+    await env.set("unavailable")
+    await env.wait(400)
+    assert len(env.calls) == 1 and other == []
+    await env.set("on")
+    assert len(env.safety()) == 1  # once, though it is in both lists
+    assert [c.data["message"] for c in other] == ["Water leak detected: Laundry leak."]
+    await env.press(action(other[0]))  # anyone may acknowledge
+    await env.wait(600)
+    assert len(env.safety()) == 1 and len(other) == 1
+
+
+async def test_safety_only_phones_work_alone(env):
+    other = async_mock_service(env.hass, "notify", "mobile_app_other")
+    await env.start(phones=[], safety_phones=["mobile_app_other"])
+    await env.set("on")
+    assert len(other) == 1
+
+
 async def test_only_chosen_safety_sensors(env):
     await env.start(entities=[LEAK, "lock.a", "light.a"])
     await env.set("unlocked", "lock.a", {})

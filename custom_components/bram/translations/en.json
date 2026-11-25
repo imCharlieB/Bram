@@ -44,7 +44,7 @@
         "title": "Recommended setup",
         "description": "Pick your phone, remove anything you do not want, and submit. You can change every part later. BRAM cannot control anything.",
         "data": {
-          "phones": "Phones that get alerts",
+          "phones": "Phones that get everything",
           "add": "Share these with BRAM",
           "night": "Tell me if a lock is unlocked at night (10 PM to 6 AM)",
           "left_open": "Tell me if a door is left open (10 minutes)",
@@ -97,7 +97,8 @@
         "title": "Phone alerts and quiet hours",
         "description": "Safety alerts come from Home Assistant itself and ignore quiet hours. They do not replace certified alarms.",
         "data": {
-          "phones": "Phones that get alerts",
+          "phones": "Phones that get everything",
+          "safety_phones": "Phones that get safety alerts only",
           "quiet_from": "Quiet from",
           "quiet_to": "Quiet until",
           "digest": "Daily summary at (empty means none)",
