@@ -47,19 +47,15 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 
 ## Documentation
 
-- [Installing](docs/installation.md)
-- [Alerts and messages](docs/messages.md)
-- [Chat](docs/chat.md)
-- [Voice](docs/voice.md)
-- [BRAM Server](docs/server.md)
-- [How BRAM watches your home](docs/watching.md)
-- [How BRAM works](docs/architecture.md)
-- [Security](docs/security.md)
-- [Roadmap](docs/roadmap.md)
-- [Testing your model](docs/benchmark.md)
-- [Safety rules](HARD_RULES.md)
-- [Design](SPEC.md)
-- [Development](docs/development.md)
-- [Changes](CHANGELOG.md)
+**[All documentation](docs/README.md)**
+
+| Start | Features | How it works |
+|---|---|---|
+| [Installing](docs/installation.md) | [Watching your home](docs/watching.md) | [Architecture](docs/architecture.md) |
+| [Devices](docs/devices.md) | [Alerts and messages](docs/messages.md) | [Security](docs/security.md) |
+| [Every setting](docs/settings.md) | [Monitors](docs/monitors.md) | [What BRAM stores](docs/data.md) |
+| [Roadmap](docs/roadmap.md) | [Chat](docs/chat.md) | [Hard rules](HARD_RULES.md) |
+| [Changes](CHANGELOG.md) | [Voice](docs/voice.md) | [Server commands](docs/server.md) |
+| | [Personality](docs/personality.md) | [Development](docs/development.md) |
 
 MIT licensed. See [LICENSE](LICENSE).

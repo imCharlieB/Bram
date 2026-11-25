@@ -7,8 +7,11 @@ from pathlib import Path
 import pytest
 from aiohttp import web
 from homeassistant.components import conversation
+from homeassistant.const import EntityCategory
 from homeassistant.core import Context, CoreState
-from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.data_entry_flow import FlowResultType, InvalidData
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.setup import async_setup_component
@@ -23,6 +26,7 @@ from bram.settings import Settings
 from custom_components.bram import gate
 from custom_components.bram.client import InvalidCode, parse_code
 from custom_components.bram.const import GROUPS
+from custom_components.bram.discover import find, suggest
 from custom_components.bram.feed import Feed, kind_of
 
 ROOT = Path(__file__).parents[1]
@@ -215,6 +219,102 @@ async def test_unasked_answers_are_refused(hass):
     feed = Feed(hass, MockConfigEntry(domain="bram", options={"entities": []}))
     feed.handle_message('{"type": "answer", "id": "x", "text": "unlock"}')
     assert feed._asked == {}
+
+
+def add_entity(hass, entity_id, device_class=None, device=None, state="off", **kw):
+    domain, name = entity_id.split(".")
+    er.async_get(hass).async_get_or_create(
+        domain, "test", name, suggested_object_id=name, device_id=device and device.id, **kw)
+    hass.states.async_set(entity_id, state, {"device_class": device_class})
+
+
+async def test_find_devices(hass):
+    MockConfigEntry(domain="test", entry_id="t").add_to_hass(hass)
+    den = ar.async_get(hass).async_create("Den").id
+    sensor = dr.async_get(hass).async_get_or_create(
+        config_entry_id="t", identifiers={("test", "radar")})
+    dr.async_get(hass).async_update_device(sensor.id, area_id=den)
+    for name, cls in (("zone_1", "motion"), ("zone_2", "occupancy"), ("zone_3", "occupancy")):
+        add_entity(hass, f"binary_sensor.{name}", cls, sensor)
+    add_entity(hass, "binary_sensor.hall", "motion")
+    add_entity(hass, "light.hidden", hidden_by=er.RegistryEntryHider.USER)
+    add_entity(hass, "light.status", entity_category=EntityCategory.CONFIG)
+    add_entity(hass, "light.lamp")
+    add_entity(hass, "binary_sensor.battery", "battery")
+    hass.states.async_set("person.alex", "home")
+    hass.states.async_set("lock.front", "locked")
+    assert set(find(hass, list(GROUPS), [])) == {
+        "binary_sensor.zone_2", "binary_sensor.hall", "light.lamp", "person.alex", "lock.front"}
+    assert set(find(hass, ["motion", "people", "lights"], [den])) == {
+        "binary_sensor.zone_2", "person.alex"}
+    assert find(hass, ["safety"], []) == []
+
+
+async def test_suggestions(hass):
+    MockConfigEntry(domain="test", entry_id="t").add_to_hass(hass)
+    areas = {n: ar.async_get(hass).async_create(n).id for n in ("Den", "Hall")}
+    for name, area in (("den_1", "Den"), ("den_2", "Den"), ("hall_1", "Hall"), ("loose", None)):
+        add_entity(hass, f"binary_sensor.{name}", "motion")
+        if area:
+            er.async_get(hass).async_update_entity(
+                f"binary_sensor.{name}", area_id=areas[area])
+    hass.states.async_set("light.a", "on")
+    hass.states.async_set(LOCK, "locked")
+    hass.states.async_set("person.alex", "home")
+    assert set(suggest(hass, [])) == {
+        LOCK, "person.alex", "binary_sensor.den_1", "binary_sensor.hall_1"}
+    assert suggest(hass, [LOCK, "person.alex", "binary_sensor.den_2"]) == [
+        "binary_sensor.hall_1"]
+
+
+async def test_suggestions_page(hass, server):
+    entry = await start(hass, server)
+
+    async def begin():
+        flow = await hass.config_entries.options.async_init(entry.entry_id)
+        return await hass.config_entries.options.async_configure(
+            flow["flow_id"], {"next_step_id": "suggest"})
+
+    assert (await begin())["reason"] == "nothing_to_suggest"
+    hass.states.async_set(LOCK, "locked")
+    flow = await begin()
+    assert entry.options["entities"] == []
+    with pytest.raises(InvalidData):  # only what was offered
+        await hass.config_entries.options.async_configure(
+            flow["flow_id"], {"add": [LOCK, "light.x"]})
+    await hass.config_entries.options.async_configure(flow["flow_id"], {"add": [LOCK]})
+    await reconnected(hass, entry)
+    assert entry.options["entities"] == [LOCK]
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])
+
+
+async def test_quick_add(hass, server):
+    hass.states.async_set("light.a", "on")
+    hass.states.async_set("light.b", "on")
+    hass.states.async_set(LOCK, "locked")
+    entry = await start(hass, server)
+    await choose(hass, entry, ["light.a"])
+
+    async def begin(groups):
+        flow = await hass.config_entries.options.async_init(entry.entry_id)
+        flow = await hass.config_entries.options.async_configure(
+            flow["flow_id"], {"next_step_id": "quick"})
+        return await hass.config_entries.options.async_configure(
+            flow["flow_id"], {"groups": groups})
+
+    flow = await begin(["safety"])
+    assert flow["errors"] == {"base": "nothing_found"}
+    hass.config_entries.options.async_abort(flow["flow_id"])
+    flow = await begin(["lights", "doors"])
+    shown = {str(k): k.description["suggested_value"] for k in flow["data_schema"].schema}
+    assert set(shown["add"]) == {"light.b", LOCK}
+    assert entry.options["entities"] == ["light.a"]  # nothing is shared by looking
+    await hass.config_entries.options.async_configure(flow["flow_id"], {"add": [LOCK]})
+    await reconnected(hass, entry)
+    assert entry.options["entities"] == ["light.a", LOCK]
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])
 
 
 async def test_watch_page(hass, server):

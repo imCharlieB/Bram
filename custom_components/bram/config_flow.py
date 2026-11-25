@@ -29,6 +29,7 @@ from .const import (
     DOMAIN,
     GROUPS,
 )
+from .discover import find, suggest
 from .feed import kind_of
 from .notifier import PREFIX, phones
 
@@ -65,7 +66,52 @@ class BramConfigFlow(ConfigFlow, domain=DOMAIN):
 
 class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="init", menu_options=["see", "alerts", "watch"])
+        return self.async_show_menu(step_id="init", menu_options=[
+            "suggest", "quick", "see", "alerts", "watch"])
+
+    _found: list[str] = []
+
+    async def async_step_quick(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors = {}
+        if user_input is not None:
+            chosen = self.config_entry.options.get(CONF_ENTITIES, [])
+            self._found = [e for e in find(self.hass, user_input["groups"],
+                                           user_input.get("areas", [])) if e not in chosen]
+            if self._found:
+                return await self.async_step_review()
+            errors["base"] = "nothing_found"
+        return self.async_show_form(step_id="quick", errors=errors, data_schema=vol.Schema({
+            vol.Required("groups", default=list(GROUPS)): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(GROUPS), multiple=True, translation_key="groups",
+                    mode=selector.SelectSelectorMode.LIST)),
+            vol.Optional("areas"): selector.AreaSelector(
+                selector.AreaSelectorConfig(multiple=True)),
+        }))
+
+    async def async_step_suggest(
+        self, user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        self._found = suggest(self.hass, self.config_entry.options.get(CONF_ENTITIES, []))
+        if not self._found:
+            return self.async_abort(reason="nothing_to_suggest")
+        return await self.async_step_review()
+
+    async def async_step_review(
+        self, user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        options = dict(self.config_entry.options)
+        if user_input is not None:
+            chosen = options.get(CONF_ENTITIES, [])
+            # Only what was offered, and only what the owner left in the list.
+            add = [e for e in user_input.get("add", []) if e in self._found]
+            return self.async_create_entry(data={**options, CONF_ENTITIES: [*chosen, *add]})
+        return self.async_show_form(
+            step_id="review", description_placeholders={"count": str(len(self._found))},
+            data_schema=vol.Schema({
+                vol.Optional("add", description={"suggested_value": self._found}): (
+                    selector.EntitySelector(selector.EntitySelectorConfig(
+                        include_entities=self._found, multiple=True)))}))
 
     async def async_step_see(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)

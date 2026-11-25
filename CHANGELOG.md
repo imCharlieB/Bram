@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.9.0
+
+- BRAM's suggestions: what it most needs to see and cannot yet.
+- Add devices quickly: BRAM finds what it understands by type and area, and you choose what to share.
+- A documentation index, and pages for devices, settings, monitors, personality, watching, and stored data.
+
 ## 0.8.0
 
 - Watch locks and doors: unlocked at night, open or unlocked while everyone is away, left open, or offline. All off until you turn them on.

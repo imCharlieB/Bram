@@ -13,11 +13,11 @@ for page in pages:
         if target and "://" not in target and not (page.parent / target).exists():
             problems.append(f"{page.relative_to(ROOT)}: broken link {link}")
 
-readme = (ROOT / "README.md").read_text(encoding="utf-8")
+index = (ROOT / "docs/README.md").read_text(encoding="utf-8")
 docs = "".join(p.read_text(encoding="utf-8") for p in ROOT.glob("docs/**/*.md"))
 for page in ROOT.glob("docs/**/*.md"):
-    if page.relative_to(ROOT).as_posix() not in readme:
-        problems.append(f"{page.relative_to(ROOT)}: not linked from README.md")
+    if page.name != "README.md" and f"({page.name})" not in index:
+        problems.append(f"{page.relative_to(ROOT)}: not linked from docs/README.md")
 
 for source in ROOT.glob("server/bram/**/*.py"):
     text = source.read_text(encoding="utf-8")

@@ -65,17 +65,7 @@ Treat the topic like a password: anyone on your network who knows it can read yo
 
 ## Monitors
 
-On the **Messages** page, add things on your own network.
-
-| Kind | Address | Counts as up when |
-|---|---|---|
-| Ollama | `http://HOST:11434` | It answers |
-| Frigate | `HOST:8971` or `HOST:5000` | It answers, or asks for a login |
-| Computer or device | `HOST:PORT` | It accepts or refuses a connection |
-
-Each is checked every minute. You are told after three failures in a row, and again when it is back. Websites and Docker containers are not supported.
-
-BRAM cannot report that its own machine has failed. If Home Assistant runs elsewhere, it will tell you.
+See [Monitors](monitors.md).
 
 ## What buttons and replies can do
 

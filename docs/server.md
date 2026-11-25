@@ -46,16 +46,6 @@ The page cannot control anything, change what BRAM may do, or approve actions. *
 - Five wrong passwords from one address, or 20 in all, lock sign-in for 15 minutes. Resetting the login signs everyone out.
 - Alerts use fixed wording, so personality affects only chat and **Try it**.
 
-## What BRAM can see
-
-People, locks, lights, and motion, occupancy, presence, leak, smoke, door, window, garage door, and gate entities, and only those you choose.
-
-## Device page
-
-**Settings > Devices & services > BRAM** shows whether the server is connected, plus one sensor per chosen entity. Each shows what the server believes, so you can turn on a light and watch it change. *Unknown* means BRAM cannot tell; *unavailable* means it is not connected.
-
-BRAM does not store light, motion, or presence activity. Home Assistant's own history records these sensors like any other sensor.
-
 ## Security
 
 - Traffic is encrypted. The integration accepts only the server that made the code.

@@ -15,6 +15,18 @@ Pairing, live state, home alerts, Telegram and ntfy messages, monitors, config p
 | Grouped messages | Several routine messages become one; safety alerts are never grouped |
 | Longer gaps for routine messages marked as false alarms | Never for safety alerts |
 
+### Home Assistant problems
+
+Ask "anything wrong with Home Assistant?" and get a plain summary, or be told when something new keeps failing.
+
+| Feature | Notes |
+|---|---|
+| Errors and warnings, grouped by integration, with how often and since when | Grouped and counted by code |
+| Open repairs, devices that went offline, integrations that failed to start, low batteries, updates waiting | |
+| What it probably means and what to try | Written by the model, marked as a guess |
+
+Off by default. Passwords, tokens, keys, addresses, and locations are removed in Home Assistant before anything is sent. Log text is data, never instructions. BRAM fixes nothing by itself. Logs are not stored.
+
 ## 2. Security check: "Is my home secure?"
 
 Read-only. Reports which checks could not run, and never says a home is safe.

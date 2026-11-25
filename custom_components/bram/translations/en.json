@@ -22,11 +22,31 @@
       "cannot_connect": "Could not reach that server, or it is not the one that made this code."
     }
   },
+  "selector": {
+    "groups": {
+      "options": {
+        "people": "People", "doors": "Locks and doors", "safety": "Leak and smoke sensors",
+        "motion": "Motion and presence", "lights": "Lights"
+      }
+    }
+  },
   "options": {
+    "error": {"nothing_found": "Nothing new was found there."},
+    "abort": {"nothing_to_suggest": "BRAM has no suggestions. It can see the important things."},
     "step": {
       "init": {
         "title": "BRAM",
-        "menu_options": {"see": "What BRAM can see", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors"}
+        "menu_options": {"suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors"}
+      },
+      "quick": {
+        "title": "Add devices quickly",
+        "description": "BRAM looks for devices it understands. You choose which to share on the next page.",
+        "data": {"groups": "Look for", "areas": "Only in these areas (empty means everywhere)"}
+      },
+      "review": {
+        "title": "Choose what to share",
+        "description": "Found {count}. Remove any you do not want BRAM to see.",
+        "data": {"add": "Devices to add"}
       },
       "see": {
         "title": "What BRAM can see",
