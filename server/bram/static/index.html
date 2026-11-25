@@ -162,7 +162,8 @@
         <h2>Add a monitor</h2>
         <form id="monitor-form">
           <label for="monitor-kind">What is it?</label>
-          <select id="monitor-kind">
+          <select id="monitor-kind" required>
+            <option value="">Choose...</option>
             <option value="ollama">Ollama</option>
             <option value="frigate">Frigate</option>
             <option value="device">A computer or device</option>
@@ -170,7 +171,7 @@
           <label for="monitor-name">Name</label>
           <input id="monitor-name" maxlength="60" required>
           <label for="monitor-url">Address</label>
-          <input id="monitor-url" placeholder="http://HOST:11434" required>
+          <input id="monitor-url" placeholder="HOST:PORT" required>
           <button id="monitor-add">Add</button>
         </form>
         <p class="message" id="monitor-message" role="status"></p>

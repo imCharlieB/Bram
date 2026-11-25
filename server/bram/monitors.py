@@ -21,51 +21,64 @@ LIMIT = 20
 KINDS = {"ollama": 11434, "frigate": 5000, "device": 80}
 
 
-async def probe(kind: str, url: str, transport: httpx.AsyncBaseTransport | None = None) -> bool:
-    """Is it answering? Sends nothing about the home."""
+async def diagnose(kind: str, url: str, transport: httpx.AsyncBaseTransport | None = None) -> str:
+    """Empty if it is answering, or why not. Sends nothing about the home."""
     try:
         url = await check_local(url, KINDS[kind])
-        if kind == "device":
-            host, _, port = url.removeprefix("http://").removeprefix("https://").rpartition(":")
-            return await _reachable(host.strip("[]"), int(port))
-        # Frigate's login port has a self-made certificate. Nothing is sent to it, and
-        # being asked to sign in means Frigate itself answered.
-        frigate = kind == "frigate"
-        async with httpx.AsyncClient(timeout=10, transport=transport, trust_env=False,
-                                     verify=not frigate, follow_redirects=False) as client:
-            # People leave off https, so Frigate is tried both ways.
-            host = url.partition("://")[2]
-            urls = [f"https://{host}", f"http://{host}"] if frigate else [url]
-            for address in urls:
-                try:
-                    response = await client.get(f"{address}/api/version")
-                except httpx.HTTPError:
-                    continue
-                if response.status_code in ((200, 401, 403) if frigate else (200,)):
-                    return True
-            return False
-    except (ModelError, httpx.HTTPError):
-        return False
+    except ModelError as err:
+        return str(err)
+    if kind == "device":
+        host, _, port = url.partition("://")[2].rpartition(":")
+        return await _reach(host.strip("[]"), int(port))
+    # Frigate's login port has a self-made certificate. Nothing is sent to it, and
+    # being asked to sign in means Frigate itself answered.
+    frigate, reason = kind == "frigate", ""
+    good = (200, 401, 403) if frigate else (200,)
+    # People leave off https, so Frigate is tried both ways.
+    host = url.partition("://")[2]
+    async with httpx.AsyncClient(timeout=10, transport=transport, trust_env=False,
+                                 verify=not frigate, follow_redirects=False) as client:
+        for address in [f"https://{host}", f"http://{host}"] if frigate else [url]:
+            try:
+                response = await client.get(f"{address}/api/version")
+            except httpx.TimeoutException:
+                reason = reason or "no reply in time"
+            except httpx.HTTPError as err:
+                untrusted = "CERTIFICATE_VERIFY" in str(err).upper()
+                reason = reason or ("its certificate is not trusted" if untrusted
+                                    else "could not connect")
+            else:
+                if response.status_code in good:
+                    return ""
+                reason = f"it replied with error {response.status_code}"
+    return reason
 
 
-async def _reachable(host: str, port: int) -> bool:
+async def probe(kind: str, url: str, transport: httpx.AsyncBaseTransport | None = None) -> bool:
+    return not await diagnose(kind, url, transport)
+
+
+async def _reach(host: str, port: int) -> str:
     try:
         async with asyncio.timeout(5):
             _, writer = await asyncio.open_connection(host, port)
     except ConnectionRefusedError:
-        return True  # something answered, so the device is up
-    except (OSError, TimeoutError):
-        return False
+        return ""  # something answered, so the device is up
+    except TimeoutError:
+        return "no reply in time"
+    except OSError:
+        return "could not connect"
     writer.close()
-    return True
+    return ""
 
 
 class Monitors:
     def __init__(self, settings: Settings, alerts: Alerts,
-                 check: Callable = probe) -> None:
+                 check: Callable = diagnose) -> None:
         self._settings, self._alerts, self._check = settings, alerts, check
         self._failures: dict[str, int] = {}
         self.status: dict[str, bool] = {}
+        self.reasons: dict[str, str] = {}
 
     def all(self) -> list[dict]:
         return self._settings.channel("monitors").get("list", [])
@@ -91,6 +104,7 @@ class Monitors:
         self._save([m for m in self.all() if m["id"] != monitor_id])
         self._failures.pop(str(monitor_id), None)
         self.status.pop(str(monitor_id), None)
+        self.reasons.pop(str(monitor_id), None)
         self._alerts.forget(HOUSE, f"monitor {monitor_id}")
 
     async def tick(self) -> None:
@@ -98,10 +112,11 @@ class Monitors:
 
     async def _one(self, monitor: dict) -> None:
         monitor_id, key = monitor["id"], f"monitor {monitor['id']}"
-        up = await self._check(monitor["kind"], monitor["url"])
+        reason = await self._check(monitor["kind"], monitor["url"])
         if monitor_id not in {m["id"] for m in self.all()}:
             return  # removed while it was being checked
-        if up:
+        self.reasons[monitor_id] = reason
+        if not reason:
             self._failures[monitor_id] = 0
             self.status[monitor_id] = True
             self._alerts.clear(HOUSE, key, f"{monitor['name']} is back.", safety=False)

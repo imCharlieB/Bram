@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.6.2
+
+- Monitors show their type and why they are not answering, and the type must be chosen.
+
 ## 0.6.1
 
 - Frigate monitors work whether or not you type `https://`.

@@ -80,5 +80,6 @@ Buttons can acknowledge, snooze, or stop a routine message. Safety alerts can on
 | Nothing after linking Telegram | Press **Start** in the chat; links last 10 minutes |
 | ntfy test is Sent but nothing arrives | Check the phone can reach port 2586 and that the topic matches exactly |
 | ntfy buttons do nothing | The phone must be able to reach **Address your phone uses** |
+| A monitor is not answering but the thing is up | Check its type and the reason shown; remove it and add it again with the right type |
 | ntfy suggests WebSockets | Optional; you can enable or dismiss it |
 | Ntfy or monitor address refused | Only addresses on your own network are accepted |

@@ -233,7 +233,9 @@ async function loadMonitors() {
     }));
     const [text, kind] = item.up === null ? ["Checking", "note"] : item.up ? ["Answering", "good"] : ["Not answering", "bad"];
     side.append(element("span", text, kind), remove);
-    row.append(element("span", `${item.name} (${item.url})`), side);
+    const left = element("span", item.name), type = { ollama: "Ollama", frigate: "Frigate", device: "Device" }[item.kind];
+    left.append(element("span", `${type} at ${item.url}${item.reason ? `: ${item.reason}` : ""}`, "note sub"));
+    row.append(left, side);
     return row;
   }) : [element("li", "None yet")]));
 }
@@ -644,7 +646,7 @@ onClick("save-model", "model-message", async () => {
 $("monitor-kind").addEventListener("change", () => {
   $("monitor-url").placeholder = {
     ollama: "http://HOST:11434", frigate: "https://HOST:8971", device: "HOST:80",
-  }[$("monitor-kind").value];
+  }[$("monitor-kind").value] || "HOST:PORT";
 });
 onSubmit("monitor-form", "monitor-add", "monitor-message", async () => {
   await api("monitors", {

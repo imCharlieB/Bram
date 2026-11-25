@@ -519,7 +519,8 @@ class ConfigPage:
     async def _list_monitors(self, request: web.Request) -> web.Response:
         if self.monitors is None:
             return _json({"monitors": []})
-        return _json({"monitors": [{**m, "up": self.monitors.status.get(m["id"])}
+        return _json({"monitors": [{**m, "up": self.monitors.status.get(m["id"]),
+                                    "reason": self.monitors.reasons.get(m["id"], "")}
                                    for m in self.monitors.all()]})
 
     async def _add_monitor(self, request: web.Request) -> web.Response:

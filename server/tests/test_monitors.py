@@ -6,7 +6,7 @@ import pytest
 from bram.alerts import Alerts
 from bram.audit import Audit
 from bram.models.base import ModelError
-from bram.monitors import FAILURES, LIMIT, Monitors, probe
+from bram.monitors import FAILURES, LIMIT, Monitors, diagnose, probe
 from bram.settings import Settings
 
 
@@ -35,7 +35,7 @@ def env():
     e.alerts.channels = [e.box]
 
     async def check(kind, url):
-        return e.up
+        return "" if e.up else "could not connect"
 
     e.monitors = Monitors(e.settings, e.alerts, check)
 
@@ -134,6 +134,26 @@ async def test_frigate_is_tried_with_and_without_https():
         raise httpx.ConnectError("no")
 
     assert not await probe("frigate", "http://127.0.0.1", httpx.MockTransport(down))
+
+
+async def test_says_why():
+    def transport(result):
+        def handler(request):
+            if isinstance(result, Exception):
+                raise result
+            return httpx.Response(result)
+        return httpx.MockTransport(handler)
+
+    for result, reason in ((500, "error 500"), (httpx.ConnectTimeout("x"), "in time"),
+                           (httpx.ConnectError("x"), "could not connect"),
+                           (httpx.ConnectError("CERTIFICATE_VERIFY_FAILED"), "not trusted")):
+        assert reason in await diagnose("ollama", "http://127.0.0.1", transport(result))
+
+
+async def test_failing_monitor_keeps_its_reason(env):
+    env.up = False
+    await env.monitors.add("ollama", "x", "http://127.0.0.1")
+    assert list(env.monitors.reasons.values()) == ["could not connect"]
 
 
 async def test_probe_device():
