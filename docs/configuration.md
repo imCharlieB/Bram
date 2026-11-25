@@ -52,6 +52,7 @@ Any local Ollama chat model can be tried. Bigger models usually follow instructi
 | Phone alerts and quiet hours | Choose phones, quiet hours, daily summary, and the fallback |
 | Watch locks, doors, and security | Choose rules, night hours, left-open time, and the hourly security check |
 | What chat may look up | Allow history, problems, and the security check |
+| Learning | Let BRAM suggest better hours, undo, or delete |
 
 On the device page: **Mood**, **Visit**, **Send test message**, and **Allow stopped messages**.
 

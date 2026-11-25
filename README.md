@@ -40,8 +40,8 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 | M2 Reach out | Built |
 | M3 Chat and control | Chat built; control planned |
 | M4 Optional memory | Planned |
-| M5 Watchdog | Planned |
-| M6 Learning | Planned |
+| M5 Watchdog | Lock, door, and security watching built |
+| M6 Learning | Suggested hours built |
 | M7 Identity | Planned |
 | M8 Trainer | Planned |
 
@@ -57,5 +57,6 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 | [Roadmap](docs/roadmap.md) | [Chat](docs/chat.md) | [Hard rules](HARD_RULES.md) |
 | [Changes](CHANGELOG.md) | [Voice](docs/voice.md) | [Server commands](docs/server.md) |
 | | [Personality](docs/personality.md) | [Development](docs/development.md) |
+| | [Security check](docs/security-check.md) | [Learning](docs/learning.md) |
 
 MIT licensed. See [LICENSE](LICENSE).

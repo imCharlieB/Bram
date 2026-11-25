@@ -89,6 +89,7 @@ class Feed:
         self.version: str | None = None
         self.alerts: Any = None  # set during setup
         self.rules: Any = None
+        self.learner: Any = None
         self._queue: asyncio.Queue[dict] | None = None
         self._queries: set[asyncio.Task] = set()
         self._asked: dict[str, asyncio.Future[str]] = {}

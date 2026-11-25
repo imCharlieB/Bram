@@ -1,5 +1,18 @@
 {
   "issues": {
+    "suggestion": {
+      "title": "BRAM suggests a change",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "BRAM suggests a change",
+            "description": "{text}",
+            "menu_options": {"approve": "Approve", "later": "Not now", "never": "Never suggest this"}
+          }
+        },
+        "abort": {"gone": "This suggestion is no longer waiting."}
+      }
+    },
     "server_outdated": {
       "title": "The BRAM Server is out of date",
       "description": "The server is {server} and BRAM here is {here}. Update the server: in Portainer, recreate the bram container with Re-pull image turned on."
@@ -38,7 +51,7 @@
     "step": {
       "init": {
         "title": "BRAM",
-        "menu_options": {"basic": "Recommended setup", "suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "rooms": "Fix a person's room (rarely needed)", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors", "chat": "What chat may look up"}
+        "menu_options": {"basic": "Recommended setup", "suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "rooms": "Fix a person's room (rarely needed)", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors", "chat": "What chat may look up", "learn": "Learning"}
       },
       "basic": {
         "title": "Recommended setup",
@@ -86,6 +99,15 @@
           "share_security": "Security check of Home Assistant"
         }
       },
+      "learn": {
+        "title": "Learning",
+        "description": "BRAM notes when your home goes quiet and how long doors stay open, one line a day, and may suggest better hours under Settings > Repairs. Nothing changes until you approve it. Nights noted so far: {nights}.",
+        "data": {
+          "learn": "Suggest better hours",
+          "undo": "Undo the last approved change",
+          "forget": "Delete everything learned"
+        }
+      },
       "watch": {
         "title": "Watch locks, doors, and security",
         "description": "Covers the locks and doors BRAM can see. Night and away messages ignore quiet hours. Away counts only the people BRAM can see, so add everyone who lives here first.",
@@ -96,6 +118,7 @@
           "offline": "A lock or door sensor goes offline",
           "security_watch": "The security check finds something new",
           "night_from": "Night starts", "night_to": "Night ends",
+          "weekend_night_from": "Friday and Saturday night starts (empty: same)", "weekend_night_to": "Friday and Saturday night ends (empty: same)",
           "open_minutes": "Left open means this many minutes"
         }
       },

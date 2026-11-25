@@ -20,6 +20,7 @@
 
 - [Architecture](architecture.md)
 - [Security check](security-check.md)
+- [Learning](learning.md)
 - [Security](security.md)
 - [What BRAM stores](data.md)
 - [Hard rules](../HARD_RULES.md)

@@ -55,17 +55,7 @@ Frigate events described by a vision model, unknown people through Frigate, vehi
 
 ## 7. Learning
 
-### Suggested times
-
-BRAM will compare your night hours, quiet hours, and left-open time with what actually happens, and suggest changes:
-
-> "For two weeks the house has gone quiet around 11:40 PM on weeknights and 1 AM on weekends. Change night to match?" **Approve / Not now / Never**
-
-- Weekdays and weekends can differ.
-- Numbers come from code, with how many days support them. The model only words the message.
-- It needs at least 14 days, and suggests a change at most once a month.
-- Nothing changes until you approve, every change can be undone, and a suggestion can never turn a rule off or touch leak and smoke alerts.
-- It uses Home Assistant's own history for shared devices. It keeps only daily summaries, and only if memory is on.
+[Suggested hours](learning.md) are built.
 
 ### Patterns
 

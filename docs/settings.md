@@ -22,10 +22,12 @@
 | | Offline | Off |
 | | The security check finds something new | Off |
 | | Night starts, night ends | 10 PM, 6 AM |
+| | Friday and Saturday night starts, ends | Same as other nights |
 | | Left open minutes | 10 |
 | What chat may look up | History of the devices BRAM can see | Off |
 | | Home Assistant problems | Off |
 | | Security check of Home Assistant | Off |
+| Learning | Suggest better hours | Off |
 
 Quiet hours here affect only Home Assistant's messages.
 

@@ -22,6 +22,7 @@ from .const import (
     CONF_ENTITIES,
     CONF_ESCALATE,
     CONF_HISTORY,
+    CONF_LEARN,
     CONF_PHONES,
     CONF_PROBLEMS,
     CONF_QUIET_FROM,
@@ -30,6 +31,8 @@ from .const import (
     CONF_SAFETY_PHONES,
     CONF_SECURITY,
     CONF_SECURITY_WATCH,
+    CONF_WEEKEND_FROM,
+    CONF_WEEKEND_TO,
     DEFAULT_DIGEST,
     DEFAULT_NIGHT_FROM,
     DEFAULT_NIGHT_TO,
@@ -77,7 +80,7 @@ class BramConfigFlow(ConfigFlow, domain=DOMAIN):
 class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(step_id="init", menu_options=[
-            "basic", "suggest", "quick", "see", "rooms", "alerts", "watch", "chat"])
+            "basic", "suggest", "quick", "see", "rooms", "alerts", "watch", "chat", "learn"])
 
     _found: list[str] = []
 
@@ -217,9 +220,30 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")))
         return self.async_show_form(step_id="rooms", data_schema=vol.Schema(fields))
 
+    async def async_step_learn(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        options = dict(self.config_entry.options)
+        learner = getattr(getattr(self.config_entry, "runtime_data", None), "learner", None)
+        if learner is None:
+            return self.async_abort(reason="not_running")
+        if user_input is not None:
+            if user_input.get("undo"):
+                options = learner.undone(options)
+            if user_input["forget"]:
+                await learner.forget()
+            return self.async_create_entry(data={**options, CONF_LEARN: user_input[CONF_LEARN]})
+        fields = {vol.Required(CONF_LEARN, default=options.get(CONF_LEARN, False)): bool}
+        if learner.data["undo"]:
+            fields[vol.Required("undo", default=False)] = bool
+        fields[vol.Required("forget", default=False)] = bool
+        return self.async_show_form(
+            step_id="learn", data_schema=vol.Schema(fields),
+            description_placeholders={"nights": str(len(learner.data["nights"]))})
+
     async def async_step_watch(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)
         if user_input is not None:
+            options.pop(CONF_WEEKEND_FROM, None)
+            options.pop(CONF_WEEKEND_TO, None)
             return self.async_create_entry(data={**options, **user_input})
         return self.async_show_form(step_id="watch", data_schema=vol.Schema({
             **{vol.Required(rule, default=options.get(rule, False)): bool
@@ -228,6 +252,8 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 selector.TimeSelector(),
             vol.Required("night_to", default=options.get("night_to", DEFAULT_NIGHT_TO)):
                 selector.TimeSelector(),
+            **{vol.Optional(key, description={"suggested_value": options.get(key)}):
+               selector.TimeSelector() for key in (CONF_WEEKEND_FROM, CONF_WEEKEND_TO)},
             vol.Required("open_minutes", default=options.get(
                 "open_minutes", DEFAULT_OPEN_MINUTES)): vol.All(int, vol.Range(1, 1440)),
         }))

@@ -51,7 +51,7 @@ If a device is unavailable, BRAM does not assume it is locked, closed, or dry. I
 
 You set when night starts and ends, separately from quiet hours. Night decides when an unlocked lock matters; quiet hours decide when routine messages wait.
 
-BRAM does not learn these yet. It is [planned](roadmap.md): BRAM will suggest better hours from your activity, and nothing changes until you approve it.
+Friday and Saturday nights can have their own hours. BRAM can [suggest better hours](learning.md); nothing changes until you approve it.
 
 ## What it does not do
 

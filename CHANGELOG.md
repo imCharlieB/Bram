@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.21.0
+
+- BRAM can suggest better night hours and left-open time from your activity, for you to approve in Repairs. Off by default.
+- Friday and Saturday nights can have their own night hours.
+- Removing BRAM from Home Assistant deletes everything it kept there.
+
 ## 0.20.0
 
 - Ask "Is my home secure?" for a read-only check of Home Assistant, and optionally be told when it finds something new. Both are off by default.

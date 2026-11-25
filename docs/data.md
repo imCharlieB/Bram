@@ -20,7 +20,7 @@ The log holds events such as connections, sign-ins, alerts, and messages sent, i
 
 ## In Home Assistant
 
-The connection token, BRAM's options, open alerts, stopped messages, and which device types it has seen. If the hourly security check is on, the ids of known administrators and tokens (never the tokens) and the findings already told. Home Assistant's own history records the lines on BRAM's device page like any other sensor.
+The connection token, BRAM's options, open alerts, stopped messages, and which device types it has seen. If the hourly security check is on, the ids of known administrators and tokens (never the tokens) and the findings already told. If [learning](learning.md) is on, one line for each of the last 60 days. Home Assistant's own history records the lines on BRAM's device page like any other sensor.
 
 ## Kept only in memory
 

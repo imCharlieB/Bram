@@ -17,6 +17,8 @@ from .const import (
     CONF_PHONES,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
+    CONF_WEEKEND_FROM,
+    CONF_WEEKEND_TO,
     DEFAULT_NIGHT_FROM,
     DEFAULT_NIGHT_TO,
     DEFAULT_OPEN_MINUTES,
@@ -46,6 +48,8 @@ class HouseRules:
         self._quiet = (options.get(CONF_QUIET_FROM), options.get(CONF_QUIET_TO))
         self._night = (options.get("night_from", DEFAULT_NIGHT_FROM),
                        options.get("night_to", DEFAULT_NIGHT_TO))
+        self._weekend = (options.get(CONF_WEEKEND_FROM) or self._night[0],
+                         options.get(CONF_WEEKEND_TO) or self._night[1])
         self._open_seconds = options.get("open_minutes", DEFAULT_OPEN_MINUTES) * 60
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.rules")
         self._kinds: dict[str, str] = {}
@@ -106,6 +110,12 @@ class HouseRules:
                 self._save()
         return self._kinds.get(entity_id)
 
+    def is_night(self) -> bool:
+        now = dt_util.now()
+        # Friday and Saturday nights run into the next morning.
+        weekend = (now - datetime.timedelta(hours=12)).weekday() in (4, 5)
+        return within(self._weekend if weekend else self._night, now.time())
+
     def _everyone_away(self) -> bool:
         """True only if every shared person is known to be away (B2)."""
         people = [e for e in self._entities if e.startswith("person.")]
@@ -115,7 +125,7 @@ class HouseRules:
 
     def _facts(self) -> Iterator[tuple[str, str, float, str]]:
         """Rule, entity, seconds it must hold, and what to say."""
-        night = within(self._night, dt_util.now().time())
+        night = self.is_night()
         away = self._everyone_away()
         for entity_id in self._entities:
             state = self._hass.states.get(entity_id)
