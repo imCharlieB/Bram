@@ -2,6 +2,10 @@
 
 BRAM sees only the devices you choose. Choosing one does not let BRAM control it.
 
+## Names
+
+BRAM uses the names you see in Home Assistant. A name a device gave itself with a serial number in it, such as `H2D_0947AJ612800457`, is shown as its model, or its room and type, instead: **H2D**, **Master Bedroom presence**. To choose a name, rename the device or entity in Home Assistant.
+
 ## BRAM's suggestions
 
 **Configure > BRAM's suggestions** lists what matters most and BRAM cannot see yet: people, locks and doors, safety sensors, and a motion sensor for each area without one. Remove what you do not want, and **Submit**. Nothing is shared until you do. These come from simple rules, not a model.

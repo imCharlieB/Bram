@@ -230,3 +230,12 @@ async def test_a_printer_turned_off_is_not_watched(hass, freezer):
     await env.run(status="printing", progress=50)
     await env.run(status="complete")
     assert env.items == [[]] and env.texts() == []
+
+
+async def test_what_the_problem_is(hass, freezer):
+    env = Env(hass, freezer, "bambu_lab")
+    env.set(status="running")
+    hass.states.async_set(env.ids["problem"], "on", {
+        "Count": 1, "1-Code": "HMS_0300", "1-Error": "The nozzle\nis clogged", "1-Url": "x"})
+    now = env.now()
+    assert now["problem"] and now["problem_text"] == "The nozzle is clogged"

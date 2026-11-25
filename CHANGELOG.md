@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.28.1
+
+- Names with serial numbers in them, such as `H2D_0947AJ612800457`, show as the model, or the room and type, instead. Names you set in Home Assistant come first.
+- A printer's problem shows what the printer says, such as a Bambu HMS message.
+
 ## 0.28.0
 
 - Choose which 3D printers BRAM watches: BRAM > Configure > 3D printers.

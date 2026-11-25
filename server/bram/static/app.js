@@ -599,7 +599,7 @@ function showPrinters(list) {
     if (line) row.append(element("p", line));
     const temps = [heat("nozzle", "nozzle"), heat("nozzle2", "left"), heat("bed", "bed"), heat("chamber", "chamber")].filter(Boolean).join(", ");
     if (temps) row.append(element("small", temps));
-    if (printer.problem) row.append(element("small", "Reports a problem"));
+    if (printer.problem) row.append(element("small", printer.problem_text ? `Problem: ${printer.problem_text}` : "Reports a problem"));
     return row;
   }));
 }

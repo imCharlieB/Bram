@@ -403,7 +403,8 @@ def printer_line(printer: dict) -> str:
             parts.append(f"{word} {printer[key]:g}{unit}"
                          + (f" of {target:g}{unit}" if target else ""))
     if printer.get("problem"):
-        parts.append("reports a problem")
+        parts.append("reports a problem" + (f": {clean(printer['problem_text'], 160)}"
+                                            if printer.get("problem_text") else ""))
     return f"3D printer {clean(printer.get('name', ''), 40)}: {', '.join(parts)}"
 
 

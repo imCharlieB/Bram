@@ -11,6 +11,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
+from .names import device_name
 from .security import PRINTERS
 
 # What each integration calls things: the end of a unique id, or its start if it ends with "-".
@@ -84,7 +85,7 @@ def find(hass: HomeAssistant) -> list[Printer]:
         if device is None or "status" not in roles:
             continue
         area = areas.async_get_area(device.area_id) if device.area_id else None
-        name = " ".join(str(device.name_by_user or device.name or "Printer").split())[:40]
+        name = device_name(hass, device)[:40]
         printers.append(Printer(device_id, name, area.name[:40] if area else "", roles))
     return sorted(printers, key=lambda p: p.name)
 
@@ -122,8 +123,17 @@ def read(hass: HomeAssistant, printer: Printer) -> dict[str, Any]:
             result[role] = round(value)
     if (heat := state("nozzle") or state("bed")) is not None:
         result["unit"] = str(heat.attributes.get("unit_of_measurement") or "")[:5]
-    result["problem"] = any((s := hass.states.get(e)) is not None and s.state == "on"
-                            for e in printer.roles.get("problem", []))
+    problems = [s for e in printer.roles.get("problem", [])
+                if (s := hass.states.get(e)) is not None and s.state == "on"]
+    result["problem"] = bool(problems)
+    # What the printer says is wrong, such as a Bambu HMS message. It is data, kept short.
+    for found in problems:
+        words = [v for k, v in sorted(found.attributes.items())
+                 if str(k).lower().endswith(("error", "message")) and isinstance(v, str) and v]
+        if words:
+            result["problem_text"] = " ".join(
+                "".join(c if c.isprintable() else " " for c in words[0]).split())[:160]
+            break
     if result["state"] in ("printing", "paused", "finished", "failed", "stopped"):
         if (file := state("file")) is not None:
             result["file"] = " ".join(

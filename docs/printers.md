@@ -14,7 +14,7 @@ State, progress, time left, file, and the nozzle, bed, and chamber temperatures 
 |---|---|
 | Finished, failed, or stopped | At once |
 | Paused | 1 minute |
-| Reports a problem, such as a Bambu HMS error | 1 minute |
+| Reports a problem, such as a Bambu HMS error, with what it says | 1 minute |
 | Stopped answering during a print | 5 minutes |
 | Not printing, but a heater is still set and hot | 20 minutes |
 | Printing, but the nozzle or bed is far below its target | 15 minutes |

@@ -173,7 +173,8 @@ class PrinterWatch:
                      f"{printer.name} is printing, but its "
                      f"{' and '.join(words[p] for p in cold)} is far below its target."),
             "problem": (bool(says.get("problem")) and state != "off", PAUSED_AFTER,
-                        f"{printer.name} reports a problem."),
+                        f"{printer.name} reports a problem"
+                        + (f": {says['problem_text']}" if says.get("problem_text") else ".")),
         }
         for kind, (true, wait, text) in now_true.items():
             key = f"{kind}:{printer.id}"

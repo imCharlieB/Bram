@@ -20,6 +20,7 @@ from . import gate
 from .client import connect
 from .const import CONF_ENTITIES, CONF_FINGERPRINT, CONF_ROOMS, DOMAIN, MOODS
 from .details import detail, room_sensors
+from .names import entity_name
 from .queries import answer
 
 _LOGGER = logging.getLogger(__name__)
@@ -256,7 +257,7 @@ class Feed:
         # A missing entity is reported as unavailable, never left out (B2).
         return {"entity_id": entity_id, "kind": self._kinds.get(entity_id, "unsupported"),
                 "state": say(state) if state is not None else "unavailable",
-                "name": state.name[:100] if state is not None else "",
+                "name": entity_name(self._hass, state) if state is not None else "",
                 "detail": detail(self._hass, state, self._rooms)}
 
     def _snapshot(self, entities: Iterable[str]) -> dict:

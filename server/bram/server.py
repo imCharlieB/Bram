@@ -80,7 +80,8 @@ def _printer(raw: object) -> dict:
     if not isinstance(raw, dict) or raw.get("state") not in PRINTER_STATES:
         raise ValueError("bad printer")
     found: dict = {"state": raw["state"], "problem": raw.get("problem") is True}
-    for key, limit in (("id", 64), ("name", 40), ("area", 40), ("file", 80), ("unit", 5)):
+    for key, limit in (("id", 64), ("name", 40), ("area", 40), ("file", 80), ("unit", 5),
+                       ("problem_text", 160)):
         if isinstance(raw.get(key), str):
             found[key] = raw[key][:limit]
     for key in PRINTER_NUMBERS:
