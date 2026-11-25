@@ -9,6 +9,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import async_get_integration
 
 from .const import CONF_ENTITIES, DOMAIN
+from .digest import Digest
 from .feed import Feed
 from .home_alerts import HomeAlerts
 from .house_rules import HouseRules
@@ -28,6 +29,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             registry.async_remove(item.entity_id)
     feed.alerts = HomeAlerts(hass, entry, feed)
     entry.async_on_unload(await feed.alerts.start())
+    entry.async_on_unload(Digest(hass, entry, feed).start())
     feed.rules = HouseRules(hass, entry)
     entry.async_on_unload(await feed.rules.start())
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

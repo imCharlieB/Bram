@@ -15,7 +15,14 @@ from zoneinfo import ZoneInfo
 
 from .audit import Audit
 from .local_model import open_model
-from .lookup import HISTORY, MAX_LOOKUPS, PROBLEMS, history_lines, problem_lines
+from .lookup import (
+    HISTORY,
+    MAX_LOOKUPS,
+    PROBLEMS,
+    history_facts,
+    history_lines,
+    problem_lines,
+)
 from .models.base import Message, ModelError
 from .monitors import Monitors
 from .pairing import Pairing
@@ -121,10 +128,10 @@ class Chat:
             self._expire()
             conversation = self._conversations.get(key) or Conversation()
             states = self._states(house)
+            extra, past = await self._extra(text, house)
             manner = style(saved["personality"], saved["custom_style"])
             system = "\n\n".join((RULES, f"Style: {manner}",
-                                  self._report(text, states, house,
-                                               await self._extra(text, house))))
+                                  self._report(text, states, house, extra)))
             question = Message("user", text)
             model = await self._open(saved["model_url"], saved["model"], saved["context"],
                                      max_output=600)
@@ -143,15 +150,16 @@ class Chat:
             while len(self._conversations) > MAX_CONVERSATIONS:
                 oldest = min(self._conversations, key=lambda k: self._conversations[k].used)
                 del self._conversations[oldest]
-            return Reply(answer, self._facts(f"{text} {answer}", states))
+            return Reply(answer, past or self._facts(f"{text} {answer}", states))
 
     # --- what BRAM knows ---
 
-    async def _extra(self, text: str, house: str | None) -> list[str]:
+    async def _extra(self, text: str, house: str | None) -> tuple[list[str], list[str]]:
         """History or problems, only when the question is about them."""
-        if self._look_up is None:
-            return []
         lines: list[str] = []
+        facts: list[str] = []
+        if self._look_up is None:
+            return lines, facts
         worlds = self._worlds()
         homes = [(h, clean(n, 60)) for h, n in self._pairing.houses()
                  if h in worlds and house in (None, h)]
@@ -166,11 +174,13 @@ class Chat:
                         scored.append((score, home, event.entity_id, name))
             top = max((s[0] for s in scored), default=0)
             for _, home, entity_id, name in [s for s in scored if s[0] == top][:MAX_LOOKUPS]:
-                lines += history_lines(name, await self._look_up(home, "history", entity_id))
+                result = await self._look_up(home, "history", entity_id)
+                lines += history_lines(name, result)
+                facts += history_facts(name, result)
         if PROBLEMS.search(text):
             for home, name in homes[:MAX_LOOKUPS]:
                 lines += problem_lines(name, await self._look_up(home, "problems", ""))
-        return lines
+        return lines, facts[:MAX_FACTS]
 
     def _states(self, house: str | None) -> list[tuple[str, str, str, Answer]]:
         names = dict(self._pairing.houses())

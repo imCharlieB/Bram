@@ -124,12 +124,33 @@ async def history(hass: HomeAssistant, entity_id: str, kind: str) -> dict[str, A
     yes, no = MEANING.get(kind, ("", ""))
     words = {"on": yes, "open": yes, "unlocked": yes, "home": yes,
              "off": no, "closed": no, "locked": no, "not_home": no}
-    changes: list[list[str]] = []
+    runs: list[tuple[float, str]] = []
     for state in found.get(entity_id, []):
         word = words.get(state.state, "unknown" if kind != "person" else "away")
         if state.state in ("unavailable", "unknown"):
             word = "unknown"
-        if not changes or changes[-1][1] != word:
-            changes.append([_when(state.last_changed.timestamp()), word])
-    counts = {w: sum(1 for c in changes if c[1] == w) for w in {c[1] for c in changes}}
-    return {"changes": changes[::-1][:MAX_CHANGES], "counts": counts, "days": DAYS}
+        if not runs or runs[-1][1] != word:
+            runs.append((state.last_changed.timestamp(), word))
+    # Models are bad at arithmetic, so every length is worked out here.
+    ends = [at for at, _ in runs[1:]] + [dt_util.utcnow().timestamp()]
+    changes, counts, totals = [], {}, {}
+    for (at, word), end in zip(runs, ends, strict=True):
+        counts[word] = counts.get(word, 0) + 1
+        totals[word] = totals.get(word, 0.0) + end - at
+        now = " so far" if at == runs[-1][0] else ""
+        changes.append([_when(at), word, f"for {length(end - at)}{now}"])
+    return {"changes": changes[::-1][:MAX_CHANGES], "counts": counts, "days": DAYS,
+            "totals": {w: length(t) for w, t in totals.items()}}
+
+
+def length(seconds: float) -> str:
+    seconds = max(0, round(seconds))
+    if seconds < 60:
+        return f"{seconds} seconds"
+    minutes = round(seconds / 60)
+    if minutes < 60:
+        return f"{minutes} minute{'s' * (minutes != 1)}"
+    if minutes < 2880:
+        hours, rest = divmod(minutes, 60)
+        return f"{hours} hour{'s' * (hours != 1)}" + (f" {rest} min" if rest else "")
+    return f"{round(minutes / 1440)} days"

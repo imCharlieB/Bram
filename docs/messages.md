@@ -26,6 +26,10 @@ Safety alerts have **Acknowledge**. Silent-sensor messages have **Stop these**.
 
 **Fallback (off by default):** a leak or smoke alert nobody answers for 5 minutes can also go to Telegram and ntfy. It needs the BRAM Server to be connected.
 
+## Daily summary
+
+In **Phone alerts and quiet hours**, set **Daily summary at**. Once a day it lists what is open, not locked, or cannot be seen, who is home, and low batteries. It is sent at that time even in quiet hours, uses fixed wording, and needs no server. Leave it empty for none.
+
 ## Watching locks and doors
 
 **BRAM > Configure > Watch locks and doors.** All are off until you turn them on, and cover only the locks, doors, windows, and garage doors BRAM can see.

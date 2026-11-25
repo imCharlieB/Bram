@@ -30,15 +30,30 @@ def history_lines(name: str, result: dict | None) -> list[str]:
         return [f"History of {name}: " + (
             "turned off; the owner can turn it on in Home Assistant, BRAM, Configure, What chat "
             "may look up" if off else "could not be read")]
-    changes = [c for c in _list(result.get("changes"), 20) if isinstance(c, list) and len(c) == 2]
+    changes = _changes(result)
+    days = _text(result.get("days"), 4)
     if not changes:
-        return [f"History of {name}: no changes recorded in {_text(result.get('days'), 4)} days"]
-    counts = result.get("counts")
-    total = ", ".join(f"{_text(k, 20)} {_text(v, 8)} times" for k, v in sorted(counts.items())
-                      ) if isinstance(counts, dict) else ""
-    return [f"History of {name}, newest first, last {_text(result.get('days'), 4)} days: "
-            + "; ".join(f"{_text(when, 30)} became {_text(word, 20)}" for when, word in changes),
+        return [f"History of {name}: no changes recorded in {days} days"]
+    counts, totals = result.get("counts"), result.get("totals")
+    totals = totals if isinstance(totals, dict) else {}
+    total = ", ".join(
+        f"{_text(k, 20)} {_text(v, 8)} times, {_text(totals.get(k), 30)} in all"
+        for k, v in sorted(counts.items())) if isinstance(counts, dict) else ""
+    return [f"History of {name}, newest first, last {days} days. Use these lengths; do not work "
+            "out your own: " + "; ".join(f"{c[0]} became {c[1]} {c[2]}" for c in changes),
             f"Totals for {name}: {total}"]
+
+
+def _changes(result: dict) -> list[list[str]]:
+    return [[_text(part, 40) for part in c] for c in _list(result.get("changes"), 20)
+            if isinstance(c, list) and len(c) == 3]
+
+
+def history_facts(name: str, result: dict | None) -> list[str]:
+    """Shown beside the answer, straight from Home Assistant."""
+    if result is None or result.get("error"):
+        return []
+    return [f"{name}: {c[1]} {c[0]}, {c[2]}" for c in _changes(result)[:4]]
 
 
 def problem_lines(name: str, result: dict | None) -> list[str]:

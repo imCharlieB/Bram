@@ -118,11 +118,13 @@ async def test_away_people_do_not_mean_an_empty_house(env):
 async def test_history_is_looked_up_only_for_the_device_asked_about(env):
     env.set("Back door", "opening", "off")
     env.set("Front door", "lock", "locked")
-    env.results["history"] = {"changes": [["Tue 14:03", "open"], "junk"],
-                              "counts": {"open": 4}, "days": 10}
-    await env.chat.ask("k", "When was the back door last opened?")
+    env.results["history"] = {"changes": [["Tue 14:03", "open", "for 7 minutes"], "junk"],
+                              "counts": {"open": 4}, "totals": {"open": "2 hours"}, "days": 10}
+    reply = await env.chat.ask("k", "When was the back door last opened?")
+    assert reply.facts == ["Back door: open Tue 14:03, for 7 minutes"]
     assert env.asked == [(env.house, "history", "x.Back door")]
-    assert "Tue 14:03 became open" in env.system and "open 4 times" in env.system
+    assert "Tue 14:03 became open for 7 minutes" in env.system
+    assert "open 4 times, 2 hours in all" in env.system
     env.asked.clear()
     for text in ("Is the back door open?", "When is Christmas?", "hello"):
         await env.chat.ask("k", text)

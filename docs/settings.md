@@ -11,6 +11,7 @@
 | What BRAM can see | People, locks and doors, leak and smoke, motion, lights | None |
 | Phone alerts and quiet hours | Phones that get alerts | None |
 | | Quiet from, quiet until | Off |
+| | Daily summary at | Off |
 | | Use Telegram and ntfy after 5 unanswered minutes | Off |
 | Watch locks and doors | Unlocked at night | Off |
 | | Open or unlocked while away | Off |

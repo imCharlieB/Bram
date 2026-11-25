@@ -17,6 +17,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .client import CannotConnect, InvalidCode, pair
 from .const import (
     CONF_CODE,
+    CONF_DIGEST,
     CONF_ENTITIES,
     CONF_ESCALATE,
     CONF_HISTORY,
@@ -165,6 +166,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
             # Emptied quiet hours are turned off.
             options.pop(CONF_QUIET_FROM, None)
             options.pop(CONF_QUIET_TO, None)
+            options.pop(CONF_DIGEST, None)
             return self.async_create_entry(data={**options, **user_input})
         # A phone that is missing right now stays chosen.
         saved = options.get(CONF_PHONES, [])
@@ -179,5 +181,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 "suggested_value": options.get(CONF_QUIET_FROM)}): selector.TimeSelector(),
             vol.Optional(CONF_QUIET_TO, description={
                 "suggested_value": options.get(CONF_QUIET_TO)}): selector.TimeSelector(),
+            vol.Optional(CONF_DIGEST, description={
+                "suggested_value": options.get(CONF_DIGEST)}): selector.TimeSelector(),
             vol.Required(CONF_ESCALATE, default=options.get(CONF_ESCALATE, False)): bool,
         }))

@@ -4,13 +4,12 @@ Plans may change. Every item must follow the [Hard rules](../HARD_RULES.md).
 
 ## Built
 
-Pairing, live state, home alerts, Telegram and ntfy messages, monitors, config page, chat, Assist, voice, personalities, lock and door watching, history and problem questions.
+Pairing, live state, home alerts, Telegram and ntfy messages, monitors, config page, chat, Assist, voice, personalities, lock and door watching, history and problem questions, daily summary.
 
 ## 1. Questions and digests
 
 | Feature | Notes |
 |---|---|
-| Daily digest | Optional, at a chosen time |
 | Grouped messages | Several routine messages become one; safety alerts are never grouped |
 | Longer gaps for routine messages marked as false alarms | Never for safety alerts |
 

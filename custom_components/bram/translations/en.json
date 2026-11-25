@@ -83,6 +83,7 @@
           "phones": "Phones that get alerts",
           "quiet_from": "Quiet from",
           "quiet_to": "Quiet until",
+          "digest": "Daily summary at (empty means none)",
           "escalate": "Also use Telegram and ntfy if nobody answers a leak or smoke alert in 5 minutes"
         }
       }

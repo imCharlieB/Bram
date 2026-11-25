@@ -15,7 +15,7 @@ Type to BRAM on its home page. It uses the model and personality from **Settings
 | History | "When was the back door last opened?" "How often did the garage open this week?" | 10 days of one to three devices named in the question, only devices BRAM can see |
 | Problems | "Any errors in Home Assistant?" "Any low batteries?" | Grouped errors and warnings, failed integrations, open repairs, low batteries, updates |
 
-  Use the device's name in a history question. Causes it suggests for a problem are guesses, and it fixes nothing.
+  Lengths of time are worked out by code and shown under the answer, because models are bad at arithmetic. Use the device's name in a history question. Causes it suggests for a problem are guesses, and it fixes nothing.
 
 - **Check important answers.** Models make mistakes. Under an answer BRAM lists what the matching sensors actually say. *Unknown* means it cannot tell.
 - **"Anyone home"** covers only people you shared. It is not proof the house is empty.

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.11.0
+
+- Daily summary on your phone at a time you choose. Off until set.
+- History answers use lengths worked out by code, and show the recorded changes under the answer.
+
 ## 0.10.0
 
 - Chat can look up history ("when was the back door last opened?") and Home Assistant problems ("any errors?"). Both are off until you turn them on.

@@ -8,7 +8,7 @@ from pytest_homeassistant_custom_component.components.recorder.common import (
     async_wait_recording_done,
 )
 
-from custom_components.bram.queries import MAX_ERRORS, answer, clean, problems
+from custom_components.bram.queries import MAX_ERRORS, answer, clean, length, problems
 
 DOOR = "binary_sensor.back"
 
@@ -79,6 +79,13 @@ async def test_everything_else_is_refused(hass, options, what, entity, error):
     assert await answer(hass, entry, {}, what, entity) == {"error": error}
 
 
+@pytest.mark.parametrize(("seconds", "text"), [
+    (0, "0 seconds"), (59, "59 seconds"), (60, "1 minute"), (420, "7 minutes"),
+    (3600, "1 hour"), (3600 * 5 + 180, "5 hours 3 min"), (86400 * 3, "3 days")])
+def test_length(seconds, text):
+    assert length(seconds) == text
+
+
 async def test_history(recorder_mock, hass, enable_custom_integrations):
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
     entry = MockConfigEntry(domain="bram", options={"share_history": True, "entities": [DOOR]})
@@ -91,3 +98,5 @@ async def test_history(recorder_mock, hass, enable_custom_integrations):
     assert [c[1] for c in result["changes"]] == ["open", "unknown", "closed", "open", "closed"]
     assert result["counts"] == {"open": 2, "closed": 2, "unknown": 1}
     assert "unlocked" not in str(result)
+    assert result["changes"][0][2].endswith("so far")
+    assert not result["changes"][1][2].endswith("so far") and "open" in result["totals"]
