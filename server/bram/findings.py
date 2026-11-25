@@ -189,9 +189,10 @@ class Findings:
             "SELECT at, what, text FROM story WHERE finding = ? ORDER BY at DESC, id DESC "
             "LIMIT 100", (finding,))]
 
-    def learned(self, house_id: str) -> int:
-        return self._db.execute("SELECT COUNT(*) FROM learned WHERE house_id = ?",
-                                (house_id,)).fetchone()[0]
+    def learned(self, house_id: str, kind: str | None = None) -> int:
+        return self._db.execute(
+            "SELECT COUNT(*) FROM learned WHERE house_id = ? AND (? IS NULL OR kind = ?)",
+            (house_id, kind, kind)).fetchone()[0]
 
     def forget_house(self, house_id: str) -> None:
         with self._db:

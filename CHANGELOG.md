@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.27.1
+
+- Clearer wording on the Learning page in Home Assistant, with what each choice does.
+- BRAM's History page shows how many nights are noted and any suggestion waiting.
+
 ## 0.27.0
 
 - 3D printers, found by themselves: Bambu Lab, Moonraker, OctoPrint, PrusaLink, and similar. Progress, time left, and temperatures on Home; told when a print ends, pauses, or a heater is left on; each print remembered if history is on. Watches only. Off until you turn it on.

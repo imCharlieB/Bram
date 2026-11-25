@@ -760,6 +760,9 @@ async function loadHistory() {
   $("history-compare").replaceChildren(...pairs.map((pair) => cells([
     pair.area, `${pair.climate}: ${pair.climate_avg}${pair.unit}`, `${pair.sensor}: ${pair.sensor_avg}${pair.unit}`,
     `${pair.apart > 0 ? "+" : ""}${pair.apart}${pair.unit}`, `${pair.most}${pair.unit}`])));
+  const nights = Math.max(0, ...data.homes.map((home) => home.nights)), waiting = data.homes.map((home) => home.suggestion).filter(Boolean);
+  $("learning-card").hidden = !nights && !waiting.length;
+  $("learning-state").textContent = waiting.length ? `Waiting for you: ${waiting.join(" ")}` : nights >= 14 ? `${nights} nights noted. Nothing worth changing yet.` : `${nights} of 14 nights noted before the first suggestion.`;
   const prints = data.homes.flatMap((home) => home.prints);
   $("prints-card").hidden = !prints.length;
   $("history-prints").replaceChildren(...prints.map((print) => cells([new Date(print.end * 1000).toLocaleString(), print.printer, print.file || "unknown",

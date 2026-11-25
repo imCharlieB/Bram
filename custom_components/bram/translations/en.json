@@ -7,10 +7,16 @@
           "init": {
             "title": "BRAM suggests a change",
             "description": "{text}",
-            "menu_options": {"approve": "Approve", "later": "Not now", "never": "Never suggest this"}
+            "menu_options": {
+              "approve": "Approve",
+              "later": "Not now",
+              "never": "Never suggest this"
+            }
           }
         },
-        "abort": {"gone": "This suggestion is no longer waiting."}
+        "abort": {
+          "gone": "This suggestion is no longer waiting."
+        }
       }
     },
     "server_outdated": {
@@ -27,7 +33,11 @@
       "user": {
         "title": "Pair with your BRAM Server",
         "description": "Open the BRAM Server's config page, press Get code, and paste the code here.",
-        "data": {"host": "Server address", "port": "Port", "code": "Pairing code"}
+        "data": {
+          "host": "Server address",
+          "port": "Port",
+          "code": "Pairing code"
+        }
       }
     },
     "error": {
@@ -38,20 +48,40 @@
   "selector": {
     "groups": {
       "options": {
-        "people": "People", "doors": "Locks and doors", "safety": "Safety sensors",
-        "motion": "Motion and presence", "lights": "Lights",
-          "switches": "Switches and fans", "media": "Media players and speakers",
-          "voice": "Voice assistants", "climate": "Thermostats, temperature, and humidity"
+        "people": "People",
+        "doors": "Locks and doors",
+        "safety": "Safety sensors",
+        "motion": "Motion and presence",
+        "lights": "Lights",
+        "switches": "Switches and fans",
+        "media": "Media players and speakers",
+        "voice": "Voice assistants",
+        "climate": "Thermostats, temperature, and humidity"
       }
     }
   },
   "options": {
-    "error": {"nothing_found": "Nothing new was found there."},
-    "abort": {"no_people": "Share a person with BRAM first.", "nothing_to_suggest": "BRAM has no suggestions. It can see the important things."},
+    "error": {
+      "nothing_found": "Nothing new was found there."
+    },
+    "abort": {
+      "no_people": "Share a person with BRAM first.",
+      "nothing_to_suggest": "BRAM has no suggestions. It can see the important things."
+    },
     "step": {
       "init": {
         "title": "BRAM",
-        "menu_options": {"basic": "Recommended setup", "suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "rooms": "Fix a person's room (rarely needed)", "alerts": "Phone alerts and quiet hours", "watch": "What BRAM watches for", "chat": "What BRAM may look into", "learn": "Learning"}
+        "menu_options": {
+          "basic": "Recommended setup",
+          "suggest": "BRAM's suggestions",
+          "quick": "Add devices quickly",
+          "see": "What BRAM can see",
+          "rooms": "Fix a person's room (rarely needed)",
+          "alerts": "Phone alerts and quiet hours",
+          "watch": "What BRAM watches for",
+          "chat": "What BRAM may look into",
+          "learn": "Learning"
+        }
       },
       "basic": {
         "title": "Recommended setup",
@@ -71,21 +101,32 @@
       "quick": {
         "title": "Add devices quickly",
         "description": "BRAM looks for devices it understands. You choose which to share on the next page.",
-        "data": {"groups": "Look for", "areas": "Only in these areas (empty means everywhere)"}
+        "data": {
+          "groups": "Look for",
+          "areas": "Only in these areas (empty means everywhere)"
+        }
       },
       "review": {
         "title": "Choose what to share",
         "description": "Found {count}. Remove any you do not want BRAM to see.",
-        "data": {"add": "Devices to add"}
+        "data": {
+          "add": "Devices to add"
+        }
       },
       "see": {
         "title": "What BRAM can see",
         "description": "Only what you choose here is shared with BRAM. It cannot control any of it.",
         "data": {
-          "people": "People", "doors": "Locks and doors", "safety": "Safety sensors",
-          "motion": "Motion and presence", "lights": "Lights",
-          "switches": "Switches and fans", "media": "Media players and speakers",
-          "voice": "Voice assistants", "climate": "Thermostats, temperature, and humidity", "other": "Anything else"
+          "people": "People",
+          "doors": "Locks and doors",
+          "safety": "Safety sensors",
+          "motion": "Motion and presence",
+          "lights": "Lights",
+          "switches": "Switches and fans",
+          "media": "Media players and speakers",
+          "voice": "Voice assistants",
+          "climate": "Thermostats, temperature, and humidity",
+          "other": "Anything else"
         }
       },
       "rooms": {
@@ -103,11 +144,16 @@
       },
       "learn": {
         "title": "Learning",
-        "description": "BRAM notes when your home goes quiet and how long doors stay open, one line a day, and may suggest better hours under Settings > Repairs. Nothing changes until you approve it. Nights noted so far: {nights}.",
+        "description": "BRAM watches when your home goes quiet at night and how long doors stay open, then suggests better night hours and left-open times. Suggestions appear in Settings > System > Repairs. Nothing changes until you approve one.\n\nNights noted so far: {nights} of the 14 needed. The first is noted at noon after its night.",
         "data": {
           "learn": "Suggest better hours",
-          "undo": "Undo the last approved change",
-          "forget": "Delete everything learned"
+          "undo": "Undo the last change I approved",
+          "forget": "Erase what BRAM has learned and start over"
+        },
+        "data_description": {
+          "learn": "Turning this off stops noting new nights. What was noted is kept.",
+          "undo": "Puts back the hours you had before you approved the last suggestion.",
+          "forget": "Your current hours stay as they are. BRAM forgets the nights it noted, any waiting suggestion, and your Never answers."
         }
       },
       "watch": {
@@ -121,8 +167,10 @@
           "left_open": "A door, window, or garage is left open",
           "offline": "A lock or door sensor goes offline",
           "security_watch": "The security check finds something new",
-          "night_from": "Night starts", "night_to": "Night ends",
-          "weekend_night_from": "Friday and Saturday night starts (empty: same)", "weekend_night_to": "Friday and Saturday night ends (empty: same)",
+          "night_from": "Night starts",
+          "night_to": "Night ends",
+          "weekend_night_from": "Friday and Saturday night starts (empty: same)",
+          "weekend_night_to": "Friday and Saturday night ends (empty: same)",
           "open_minutes": "Left open means this many minutes"
         }
       },

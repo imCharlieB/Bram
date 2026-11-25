@@ -236,6 +236,7 @@ class Learner:
         if found := suggest(self.data, dict(self._entry.options)):
             self.data["last"] = now.timestamp()
             self.data["suggestion"] = {**found, "at": now.timestamp()}
+            self._feed.note("learning:suggestion", "open", found["text"], "learning")
             self._show()
 
     @callback
@@ -249,6 +250,7 @@ class Learner:
     @callback
     def _clear(self) -> None:
         self.data["suggestion"] = None
+        self._feed.note("learning:suggestion", "closed", "Answered or expired", "learning")
         ir.async_delete_issue(self._hass, DOMAIN, ISSUE)
         self._store.async_delay_save(lambda: self.data, 0)
 

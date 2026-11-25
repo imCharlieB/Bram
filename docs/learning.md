@@ -29,8 +29,19 @@ It appears in **Settings > System > Repairs**, with how many nights support it.
 
 An unanswered suggestion goes away after 30 days. A suggestion can change only the hours and left-open time. It cannot turn a rule off or touch safety alerts.
 
-## Undo or delete
+## On BRAM's page
 
-On the same **Learning** page: **Undo the last approved change**, or **Delete everything learned**, which also clears your Never answers. Turning learning off stops notes but keeps them until you delete them.
+**History > Learning** shows how many nights are noted and any suggestion waiting. Approving stays in Home Assistant, because a suggestion changes when lock and door alerts apply, and those settings never depend on the server.
+
+## Undo or start over
+
+On the same **Learning** page in Home Assistant:
+
+| Choice | Does |
+|---|---|
+| Undo the last change I approved | Puts back the hours you had before |
+| Erase what BRAM has learned and start over | Forgets the nights noted, any waiting suggestion, and your Never answers. Your current hours stay |
+
+Turning learning off stops noting new nights and keeps what was noted.
 
 Summaries stay in Home Assistant for 60 days. A copy of each summary is kept in the BRAM Server's database until you delete everything learned or remove the home. Removing BRAM deletes Home Assistant's.

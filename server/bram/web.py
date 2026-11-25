@@ -566,9 +566,17 @@ class ConfigPage:
         zone = ZoneInfo(self._settings.all()["timezone"] or "UTC")
         homes = [{"name": name, "days": self.history.climate_days(house, 7, zone),
                   "compare": self.history.compare(house),
-                  "prints": self.findings.prints(house) if self.findings is not None else []}
+                  "prints": self.findings.prints(house) if self.findings is not None else [],
+                  "nights": self.findings.learned(house, "night") if self.findings else 0,
+                  "suggestion": self._suggestion(house)}
                  for house, name in self._pairing.houses()]
         return _json({**self.history.summary(), "homes": homes})
+
+    def _suggestion(self, house_id: str) -> str:
+        if self.findings is None:
+            return ""
+        waiting = self.findings.list("open", house_id=house_id, limit=50)
+        return next((r["text"] for r in waiting if r["source"] == "learning"), "")
 
     async def _save_history(self, body: dict) -> web.Response:
         on, limit = body.get("on"), body.get("limit_mb")
