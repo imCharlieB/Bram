@@ -19,7 +19,9 @@ from .const import (
     CONF_CODE,
     CONF_ENTITIES,
     CONF_ESCALATE,
+    CONF_HISTORY,
     CONF_PHONES,
+    CONF_PROBLEMS,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
     DEFAULT_NIGHT_FROM,
@@ -67,7 +69,7 @@ class BramConfigFlow(ConfigFlow, domain=DOMAIN):
 class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(step_id="init", menu_options=[
-            "suggest", "quick", "see", "alerts", "watch"])
+            "suggest", "quick", "see", "alerts", "watch", "chat"])
 
     _found: list[str] = []
 
@@ -131,6 +133,16 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 selector.EntitySelector(
                     selector.EntitySelectorConfig(include_entities=listed, multiple=True)))
         return self.async_show_form(step_id="see", data_schema=vol.Schema(fields))
+
+    async def async_step_chat(
+        self, user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        options = dict(self.config_entry.options)
+        if user_input is not None:
+            return self.async_create_entry(data={**options, **user_input})
+        return self.async_show_form(step_id="chat", data_schema=vol.Schema({
+            vol.Required(key, default=options.get(key, False)): bool
+            for key in (CONF_HISTORY, CONF_PROBLEMS)}))
 
     async def async_step_watch(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)

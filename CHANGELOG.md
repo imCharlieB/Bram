@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.10.0
+
+- Chat can look up history ("when was the back door last opened?") and Home Assistant problems ("any errors?"). Both are off until you turn them on.
+
 ## 0.9.0
 
 - BRAM's suggestions: what it most needs to see and cannot yet.

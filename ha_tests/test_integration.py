@@ -29,6 +29,8 @@ from custom_components.bram.const import GROUPS
 from custom_components.bram.discover import find, suggest
 from custom_components.bram.feed import Feed, kind_of
 
+pytestmark = pytest.mark.usefixtures("custom")
+
 ROOT = Path(__file__).parents[1]
 
 
@@ -315,6 +317,21 @@ async def test_quick_add(hass, server):
     assert entry.options["entities"] == ["light.a", LOCK]
     await hass.config_entries.async_unload(entry.entry_id)
     await until(lambda: not server[0][SOCKETS])
+
+
+async def test_server_can_look_things_up_only_when_allowed(hass, server):
+    from bram.server import ask_house
+
+    entry = await start(hass, server)
+    app, house = server[0], entry.data["house_id"]
+    assert await ask_house(app, house, "problems") == {"error": "off"}
+    await options(hass, entry, "chat", {"share_history": False, "share_problems": True})
+    assert "errors" in await ask_house(app, house, "problems")
+    assert await ask_house(app, house, "call_service") == {"error": "refused"}
+    assert await ask_house(app, "other", "problems") is None
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not app[SOCKETS])
+    assert await ask_house(app, house, "problems") is None
 
 
 async def test_watch_page(hass, server):

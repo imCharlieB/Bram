@@ -4,28 +4,19 @@ Plans may change. Every item must follow the [Hard rules](../HARD_RULES.md).
 
 ## Built
 
-Pairing, live state, home alerts, Telegram and ntfy messages, monitors, config page, chat, Assist, voice, personalities, lock and door watching.
+Pairing, live state, home alerts, Telegram and ntfy messages, monitors, config page, chat, Assist, voice, personalities, lock and door watching, history and problem questions.
 
 ## 1. Questions and digests
 
 | Feature | Notes |
 |---|---|
-| "When did the back door last open?" | Reads Home Assistant's history for shared devices only |
 | Daily digest | Optional, at a chosen time |
 | Grouped messages | Several routine messages become one; safety alerts are never grouped |
 | Longer gaps for routine messages marked as false alarms | Never for safety alerts |
 
 ### Home Assistant problems
 
-Ask "anything wrong with Home Assistant?" and get a plain summary, or be told when something new keeps failing.
-
-| Feature | Notes |
-|---|---|
-| Errors and warnings, grouped by integration, with how often and since when | Grouped and counted by code |
-| Open repairs, devices that went offline, integrations that failed to start, low batteries, updates waiting | |
-| What it probably means and what to try | Written by the model, marked as a guess |
-
-Off by default. Passwords, tokens, keys, addresses, and locations are removed in Home Assistant before anything is sent. Log text is data, never instructions. BRAM fixes nothing by itself. Logs are not stored.
+Built for chat. Next: being told when something new keeps failing.
 
 ## 2. Security check: "Is my home secure?"
 

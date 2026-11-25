@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
-      - run: pip install pytest-homeassistant-custom-component==0.13.375 gazetteer-matcher==1.1.0 hassil==3.12.1 home-assistant-intents==2026.10.6 pytest-github-actions-annotate-failures
+      - run: pip install pytest-homeassistant-custom-component==0.13.375 SQLAlchemy==2.0.54 fnv-hash-fast==2.0.3 psutil-home-assistant==0.0.1 gazetteer-matcher==1.1.0 hassil==3.12.1 home-assistant-intents==2026.10.6 pytest-github-actions-annotate-failures
       - run: pip install -e server
       - run: python -m pytest ha_tests -o asyncio_mode=auto
   image:

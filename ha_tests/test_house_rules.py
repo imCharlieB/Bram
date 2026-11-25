@@ -7,6 +7,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 
 from custom_components.bram.house_rules import DAILY, HouseRules
 
+pytestmark = pytest.mark.usefixtures("custom")
+
 LOCK, DOOR, ALEX, SAM = "lock.front", "binary_sensor.back", "person.alex", "person.sam"
 ALL = {"night": True, "away": True, "left_open": True, "offline": True}
 

@@ -19,6 +19,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 from . import gate
 from .client import connect
 from .const import CONF_ENTITIES, CONF_FINGERPRINT, DOMAIN
+from .queries import answer
 
 _LOGGER = logging.getLogger(__name__)
 HEARTBEAT = 30
@@ -60,6 +61,7 @@ class Feed:
         self.alerts: Any = None  # set during setup
         self.rules: Any = None
         self._queue: asyncio.Queue[dict] | None = None
+        self._queries: set[asyncio.Task] = set()
         self._asked: dict[str, asyncio.Future[str]] = {}
         self.connected = False
         self.beliefs: dict[str, str] = {}
@@ -119,6 +121,16 @@ class Feed:
                     waiting.set_result("I lost contact with the BRAM Server.")
         self._notify()
 
+    async def _query(self, data: dict) -> None:
+        try:
+            async with asyncio.timeout(15):
+                result = await answer(self._hass, self._entry, self._kinds, data["what"],
+                                      data["entity_id"])
+        except Exception:
+            _LOGGER.exception("Could not answer a question from the server")
+            result = {"error": "failed"}
+        self.send({"type": "result", "id": data["id"], "result": result})
+
     @callback
     def _compare(self) -> None:
         """Show a repair while the two halves of BRAM differ."""
@@ -139,6 +151,14 @@ class Feed:
             data = json.loads(raw)
         except ValueError:
             data = None
+        if (isinstance(data, dict) and data.keys() == {"type", "id", "what", "entity_id"}
+                and data["type"] == "query" and isinstance(data["id"], str)
+                and len(data["id"]) <= 32 and len(self._queries) < 5):
+            # Reads only, and only what the owner turned on.
+            task = self._hass.async_create_task(self._query(data), "bram query")
+            self._queries.add(task)
+            task.add_done_callback(self._queries.discard)
+            return
         if (isinstance(data, dict) and data.keys() == {"type", "id", "text"}
                 and data["type"] == "answer" and isinstance(data["id"], str)
                 and isinstance(data["text"], str) and data["id"] in self._asked):

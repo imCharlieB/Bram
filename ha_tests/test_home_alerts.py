@@ -8,6 +8,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 from custom_components.bram.feed import Feed
 from custom_components.bram.home_alerts import DAILY_NOTICES, REPEAT, HomeAlerts
 
+pytestmark = pytest.mark.usefixtures("custom")
+
 LEAK = "binary_sensor.leak"
 WET = {"device_class": "moisture", "friendly_name": "Laundry leak"}
 START = datetime.datetime(2026, 1, 1, 12, tzinfo=datetime.UTC)

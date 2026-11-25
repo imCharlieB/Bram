@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import json
 import os
+import secrets
 import signal
 import sys
 import time
@@ -33,6 +34,8 @@ ALERTS = web.AppKey("alerts", Alerts)
 MONITORS = web.AppKey("monitors", Monitors)
 TASKS = web.AppKey("tasks", list)
 CHAT = web.AppKey("chat", Chat)
+ASKED = web.AppKey("asked", dict)
+ASK_TIMEOUT = 12
 
 
 def _event(house_id: str, raw: object) -> Event:
@@ -104,6 +107,10 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                     await _belief(ws, world, event)
                 elif kind in ("escalate", "deescalate") and ready:
                     _escalate(request.app, world.event(data.get("entity_id")), kind)
+                elif kind == "result" and ready:
+                    waiting = request.app[ASKED].get((house_id, data.get("id")))
+                    if waiting is not None and not waiting.done():
+                        waiting.set_result(data.get("result"))
                 elif kind == "ask" and ready:
                     # Answered on the side, so a slow model never holds up the feed.
                     task = asyncio.create_task(_answer(request.app, ws, house_id, data))
@@ -129,6 +136,25 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
             if request.app.get(ALERTS) is not None and request.app[PAIRING].house_for(token):
                 request.app[ALERTS].house_down(house_id, _name(request.app, house_id))
     return ws
+
+
+async def ask_house(app: web.Application, house_id: str, what: str,
+                    entity_id: str = "") -> dict | None:
+    """Ask Home Assistant one of its two allowed questions. None if it did not answer."""
+    ws = app[SOCKETS].get(house_id)
+    if ws is None:
+        return None
+    key = (house_id, secrets.token_hex(8))
+    waiting = app[ASKED][key] = asyncio.get_running_loop().create_future()
+    try:
+        await ws.send_json({"type": "query", "id": key[1], "what": what, "entity_id": entity_id})
+        async with asyncio.timeout(ASK_TIMEOUT):
+            result = await waiting
+    except (TimeoutError, ConnectionError):
+        return None
+    finally:
+        app[ASKED].pop(key, None)
+    return result if isinstance(result, dict) else None
 
 
 async def _answer(app: web.Application, ws: web.WebSocketResponse, house_id: str,
@@ -217,6 +243,7 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
              clock: Callable[[], float] = time.monotonic) -> web.Application:
     app = web.Application(client_max_size=4096)
     app[PAIRING], app[AUDIT], app[HOUSES], app[SOCKETS] = pairing, audit, {}, {}
+    app[ASKED] = {}
     app.router.add_post("/pair", _pair)
     app.router.add_get("/feed", _feed)
     app.router.add_get("/health", _health)
@@ -228,7 +255,8 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
 
         page = ConfigPage(settings, pairing, audit, fingerprint, lambda: set(app[SOCKETS]),
                           disconnect, alerts,
-                          lambda: {k: v[0] for k, v in app[HOUSES].items()}, clock)
+                          lambda: {k: v[0] for k, v in app[HOUSES].items()}, clock,
+                          lambda *a: ask_house(app, *a))
         if alerts is not None:
             app[ALERTS], app[TASKS] = alerts, []
             alerts.channels = [page.ntfy, page.telegram]

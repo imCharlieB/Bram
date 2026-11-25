@@ -18,6 +18,8 @@
 | | Offline | Off |
 | | Night starts, night ends | 10 PM, 6 AM |
 | | Left open minutes | 10 |
+| What chat may look up | History of the devices BRAM can see | Off |
+| | Home Assistant problems | Off |
 
 Quiet hours here affect only Home Assistant's messages.
 

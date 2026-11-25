@@ -53,7 +53,8 @@ class ConfigPage:
                  fingerprint: str, connected: Callable[[], set[str]],
                  disconnect: Callable[[str], Awaitable[None]], alerts: Alerts | None = None,
                  worlds: Callable[[], dict[str, World]] | None = None,
-                 clock: Callable[[], float] = time.monotonic) -> None:
+                 clock: Callable[[], float] = time.monotonic,
+                 look_up: Callable | None = None) -> None:
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._fingerprint, self._connected = fingerprint, connected
         self._disconnect, self._clock = disconnect, clock
@@ -63,7 +64,8 @@ class ConfigPage:
         self.ntfy = Ntfy(settings, self._answer)
         self.speech = Speech(settings)
         self._worlds = worlds or dict
-        self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors)
+        self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors,
+                         look_up=look_up)
         self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk,
                                  hear=self.speech.hear)
         self._sessions: dict[str, tuple[float, float, str]] = {}

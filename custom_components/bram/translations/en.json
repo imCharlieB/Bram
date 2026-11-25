@@ -36,7 +36,7 @@
     "step": {
       "init": {
         "title": "BRAM",
-        "menu_options": {"suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors"}
+        "menu_options": {"suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors", "chat": "What chat may look up"}
       },
       "quick": {
         "title": "Add devices quickly",
@@ -54,6 +54,14 @@
         "data": {
           "people": "People", "doors": "Locks and doors", "safety": "Leak and smoke sensors",
           "motion": "Motion and presence", "lights": "Lights"
+        }
+      },
+      "chat": {
+        "title": "What chat may look up",
+        "description": "History covers only devices BRAM can see. Problems sends short summaries of errors, repairs, low batteries, and updates, with passwords, tokens, and addresses removed. Removal cannot catch everything.",
+        "data": {
+          "share_history": "History of the devices BRAM can see, 10 days",
+          "share_problems": "Home Assistant problems"
         }
       },
       "watch": {

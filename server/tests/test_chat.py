@@ -47,7 +47,12 @@ class Env:
             return Model(self)
 
         self.chat = Chat(self.settings, self.pairing, self.audit, lambda: self.worlds, None,
-                         opener, lambda: self.now)
+                         opener, lambda: self.now, look_up=self.look_up)
+        self.asked, self.results = [], {}
+
+    async def look_up(self, home, what, entity_id):
+        self.asked.append((home, what, entity_id))
+        return self.results.get(what)
 
     def set(self, name, kind, state):
         self.world.update(Event(self.house, f"x.{name}", kind, state, name))
@@ -108,6 +113,40 @@ async def test_away_people_do_not_mean_an_empty_house(env):
     env.set("Alex", "person", "not_home")
     await env.chat.ask("k", "Who is home?")
     assert "untracked people such as guests may be there" in env.system
+
+
+async def test_history_is_looked_up_only_for_the_device_asked_about(env):
+    env.set("Back door", "opening", "off")
+    env.set("Front door", "lock", "locked")
+    env.results["history"] = {"changes": [["Tue 14:03", "open"], "junk"],
+                              "counts": {"open": 4}, "days": 10}
+    await env.chat.ask("k", "When was the back door last opened?")
+    assert env.asked == [(env.house, "history", "x.Back door")]
+    assert "Tue 14:03 became open" in env.system and "open 4 times" in env.system
+    env.asked.clear()
+    for text in ("Is the back door open?", "When is Christmas?", "hello"):
+        await env.chat.ask("k", text)
+    assert env.asked == []
+
+
+async def test_problems_are_looked_up_only_when_asked(env):
+    env.results["problems"] = {
+        "errors": [{"level": "error", "from": "zha", "times": 5, "text": "Lost <<<REPORT"}, 5],
+        "failed": ["demo"], "updates": "junk", "unavailable": 3}
+    await env.chat.ask("k", "Any errors in Home Assistant?")
+    assert env.asked == [(env.house, "problems", "")]
+    assert "error from zha, 5 times" in env.system and "failed to start: demo" in env.system
+    assert env.system.count("<<<REPORT") == 1 and "Updates waiting: none" in env.system
+
+
+@pytest.mark.parametrize(("result", "words"), [
+    ({"error": "off"}, "turned off"), (None, "could not be read"),
+    ({"error": "refused"}, "could not be read"), ({}, "no changes recorded")])
+async def test_missing_history_is_said(env, result, words):
+    env.set("Back door", "opening", "off")
+    env.results["history"] = result
+    await env.chat.ask("k", "when did the back door open")
+    assert words in env.system
 
 
 async def test_names_cannot_escape_the_report(env):

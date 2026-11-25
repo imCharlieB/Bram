@@ -27,7 +27,7 @@ The config page makes a one-time code holding the server certificate's fingerpri
 
 On connecting, the integration sends a snapshot, then each change, and a heartbeat every 30 seconds. After 90 seconds of silence, or a lost connection, every device is *unknown* until a fresh snapshot. Unknown is never treated as safe, locked, closed, dry, or empty. State is not stored on disk.
 
-The server sends back what it believes, for the device page, and answers to Assist questions. The integration refuses anything else.
+The server sends back what it believes, for the device page, and answers to Assist questions. It may also ask two read-only questions, for history and for problems, which the integration answers only if the owner turned them on. The integration refuses anything else.
 
 ## Alerts
 
@@ -44,8 +44,9 @@ Wording is fixed. Safety alerts repeat until acknowledged, up to a limit, and ig
 
 1. A question arrives from the page, Assist, or Telegram.
 2. The server builds a report of live devices, monitors, and recent events. Assist questions get only their own home, without monitors.
-3. The model answers in the owner's personality.
-4. On the page, matching sensor readings are shown under the answer.
+3. If the question is about history or problems, plain rules decide what to look up in Home Assistant. The model cannot ask for anything.
+4. The model answers in the owner's personality.
+5. On the page, matching sensor readings are shown under the answer.
 
 Names and other text in the report are cleaned and marked as data. One question is answered at a time. Conversations are kept in memory for 30 minutes of silence, up to 12 messages, and never written to disk.
 

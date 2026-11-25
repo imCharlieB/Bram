@@ -8,6 +8,15 @@ Type to BRAM on its home page. It uses the model and personality from **Settings
 | Answer general questions from the model's own knowledge | Search the internet, see cameras, or set reminders |
 | Keep up with the current conversation | Remember it later |
 
+- **It can look things up if you let it.** In **BRAM > Configure > What chat may look up**:
+
+| Turn on | Ask | It reads |
+|---|---|---|
+| History | "When was the back door last opened?" "How often did the garage open this week?" | 10 days of one to three devices named in the question, only devices BRAM can see |
+| Problems | "Any errors in Home Assistant?" "Any low batteries?" | Grouped errors and warnings, failed integrations, open repairs, low batteries, updates |
+
+  Use the device's name in a history question. Causes it suggests for a problem are guesses, and it fixes nothing.
+
 - **Check important answers.** Models make mistakes. Under an answer BRAM lists what the matching sensors actually say. *Unknown* means it cannot tell.
 - **"Anyone home"** covers only people you shared. It is not proof the house is empty.
 - **Nothing is saved to disk.** A chat is forgotten when you clear it, sign out, leave it for 30 minutes, or restart the server. The last 12 messages are kept in mind.
