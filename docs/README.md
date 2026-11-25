@@ -28,7 +28,7 @@
 
 ## The project
 
-- [Roadmap](roadmap.md)
+- [Plan](roadmap.md)
 - [Testing your model](benchmark.md)
 - [Development](development.md)
 - [Design](../SPEC.md)
