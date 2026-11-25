@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.18.1
+
+- Devices on the command deck are larger, with icons and names, and open their details when clicked.
+
 ## 0.18.0
 
 - Rooms need no setup: BRAM reads each room's presence from its own sensors in Home Assistant, and finds a person's room sensor by name.

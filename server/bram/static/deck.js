@@ -12,6 +12,16 @@ const deck = (() => {
   const TAU = Math.PI * 2;
   const photos = new Map();
   let speed = 1, spun = 0, lastTime = 0;
+  // Line icons on a 16 by 16 grid.
+  const ICONS = Object.fromEntries(Object.entries({
+    lock: "M4 7h8v6H4z M5.5 7V5a2.5 2.5 0 0 1 5 0v2", opening: "M4 2h8v12H4z M9.8 8v.1", person: "M8 7.2a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8z M3 14c0-3 2-4.6 5-4.6s5 1.6 5 4.6",
+    motion: "M3 8a7 7 0 0 1 10 0 M5 10.2a4.2 4.2 0 0 1 6 0 M8 13v.1", light: "M5.6 10a4 4 0 1 1 4.8 0v1.6H5.6z M6.4 13.8h3.2", switch: "M5 4.5h6a3.5 3.5 0 0 1 0 7H5a3.5 3.5 0 0 1 0-7z M11 8v.1",
+    fan: "M8 8V3 M8 8l4.5 2.5 M8 8l-4.5 2.5 M8 8v.1", media: "M4 2h8v12H4z M8 9.6v.1 M8 5v.1 M5.8 10a2.2 2.2 0 1 0 4.4 0 2.2 2.2 0 0 0-4.4 0", satellite: "M8 2.5a1.8 1.8 0 0 1 1.8 1.8v3a1.8 1.8 0 0 1-3.6 0v-3A1.8 1.8 0 0 1 8 2.5z M4.4 7.4a3.6 3.6 0 0 0 7.2 0 M8 11v2.6",
+    climate: "M7 9V3.6a1.2 1.2 0 0 1 2.4 0V9a2.6 2.6 0 1 1-2.4 0z", temperature: "M7 9V3.6a1.2 1.2 0 0 1 2.4 0V9a2.6 2.6 0 1 1-2.4 0z", humidity: "M8 2.5c2.4 3 3.6 5 3.6 6.8a3.6 3.6 0 0 1-7.2 0C4.4 7.5 5.6 5.5 8 2.5z",
+    leak: "M8 2.5c2.4 3 3.6 5 3.6 6.8a3.6 3.6 0 0 1-7.2 0C4.4 7.5 5.6 5.5 8 2.5z", smoke: "M8 2l5 2v4c0 3-2 5-5 6-3-1-5-3-5-6V4z", co: "M8 2l5 2v4c0 3-2 5-5 6-3-1-5-3-5-6V4z", gas: "M8 2l5 2v4c0 3-2 5-5 6-3-1-5-3-5-6V4z", heat: "M8 2l5 2v4c0 3-2 5-5 6-3-1-5-3-5-6V4z", hazard: "M8 2.5l6 11H2z M8 6.5v3 M8 11.5v.1",
+    other: "M3 8h2l1.5-4 3 8L11 8h2",
+  }).map(([kind, path]) => [kind, new Path2D(path)]));
+  let picked = null;
   let sectors = [], nodes = [], chosen = null, hover = null, frame = 0, color = {}, sparks = [], mood = "ok";
 
   function colors() {
@@ -31,7 +41,7 @@ const deck = (() => {
     for (const group of sectors) {
       const span = (Math.max(group.devices.length, 2) / total) * TAU;
       Object.assign(group, { from: at, to: at + span });
-      const rows = Math.max(1, Math.ceil(group.devices.length / Math.max(1, Math.floor(span * 9))));
+      const rows = Math.max(1, Math.ceil(group.devices.length / Math.max(1, Math.floor(span * 4.6))));
       group.devices.forEach((device, i) => {
         const row = i % rows, place = (Math.floor(i / rows) + .5) / Math.ceil(group.devices.length / rows);
         nodes.push({ ...device, group: group.title, angle: at + span * (.08 + .84 * place), depth: rows === 1 ? .5 : row / (rows - 1) });
@@ -55,6 +65,7 @@ const deck = (() => {
       if (group.presence === "occupied") name.append(make("em", "occupied"));
       row.append(name, make("span", `${on}/${group.devices.length}`, "num"), bar);
       row.addEventListener("click", () => {
+        picked = null;
         chosen = chosen === group.title ? null : group.title;
         list();
         draw();
@@ -62,10 +73,12 @@ const deck = (() => {
       return row;
     }));
     const group = sectors.find((item) => item.title === chosen);
-    const shown = group ? group.devices : nodes.filter((node) => node.state !== "off");
-    $("hud-detail-title").textContent = group ? group.title : "Active now";
+    if (picked && !nodes.some((node) => node.id === picked)) picked = null;
+    const only = picked && nodes.filter((node) => node.id === picked);
+    const shown = only || (group ? group.devices : nodes.filter((node) => node.state !== "off"));
+    $("hud-detail-title").textContent = only ? "Selected" : group ? group.title : "Active now";
     $("hud-detail").replaceChildren(...(shown.length ? shown.slice(0, 60).map((device) => {
-      const row = make("li", undefined, device.state), left = make("span", device.name);
+      const row = make("li", undefined, `${device.state}${only ? " full" : ""}`), left = make("span", device.name);
       const more = [device.text, device.area, device.age].filter(Boolean).join(" \u00b7 ");
       if (more) left.append(make("small", more));
       row.append(left, make("b", device.state === "unknown" ? "unknown" : device.says));
@@ -163,7 +176,8 @@ const deck = (() => {
 
   function layout(box) {
     const r = Math.min(box.w * .5 - 92, box.h * .5 - 44);
-    return { x: box.w / 2, y: box.h / 2, r, inner: r * .4, outer: r * .9 };
+    const mark = Math.max(9, Math.min(15, r / (nodes.length > 60 ? 30 : 22)));
+    return { x: box.w / 2, y: box.h / 2, r, inner: r * .4, outer: r * .9, mark, names: r > 210 && nodes.length <= 45 };
   }
 
   function tint(node) {
@@ -287,7 +301,8 @@ const deck = (() => {
         }
         g.globalAlpha = 1;
       }
-      const big = node.state === "alert" ? 6 : node.state === "off" || node.state === "unknown" ? 3 : 4.5;
+      const over = node === hover || node.id === picked;
+      const big = view.mark * (over ? 1.3 : node.state === "alert" ? 1.15 : 1);
       g.fillStyle = tint(node);
       g.strokeStyle = tint(node);
       g.lineWidth = 1.2;
@@ -296,40 +311,66 @@ const deck = (() => {
       if (face) {
         g.save();
         g.beginPath();
-        g.arc(spot.x, spot.y, 15, 0, TAU);
+        g.arc(spot.x, spot.y, big * 1.25, 0, TAU);
         g.clip();
         g.globalAlpha *= node.state === "on" ? 1 : .45;
-        g.drawImage(face, spot.x - 15, spot.y - 15, 30, 30);
+        g.drawImage(face, spot.x - big * 1.25, spot.y - big * 1.25, big * 2.5, big * 2.5);
         g.restore();
         g.beginPath();
-        g.arc(spot.x, spot.y, 15, 0, TAU);
-        g.lineWidth = 2;
+        g.arc(spot.x, spot.y, big * 1.25, 0, TAU);
+        g.lineWidth = over ? 3 : 2;
         g.stroke();
       }
       g.beginPath();
       g.arc(spot.x, spot.y, big, 0, TAU);
-      if (face) {
-        // the photo is the mark
-      } else if (node.state === "unknown") {
-        g.setLineDash([2, 2]);
-        g.stroke();
-        g.setLineDash([]);
-      } else {
+      if (!face) {
+        const solid = node.state !== "off" && node.state !== "unknown";
+        g.save();
+        g.globalAlpha = faded ? .15 : 1;
+        g.fillStyle = "rgb(2 8 18 / .92)";
+        g.fill();
+        g.fillStyle = tint(node);
+        g.globalAlpha = faded ? .06 : solid || over ? .32 : .1 + lit * .15;
         g.shadowColor = tint(node);
-        g.shadowBlur = 6 + lit * 14;
+        g.shadowBlur = over ? 22 : solid ? 12 : lit * 12;
         g.fill();
         g.shadowBlur = 0;
+        g.globalAlpha = faded ? .15 : solid || over ? 1 : .65 + lit * .35;
+        g.lineWidth = over ? 2.4 : 1.4;
+        if (node.state === "unknown") g.setLineDash([3, 3]);
+        g.stroke();
+        g.setLineDash([]);
+        const scale = (big * 1.2) / 16;
+        g.translate(spot.x - 8 * scale, spot.y - 8 * scale);
+        g.scale(scale, scale);
+        g.strokeStyle = solid || over ? color.text : tint(node);
+        g.lineWidth = 1.4;
+        g.lineCap = "round";
+        g.lineJoin = "round";
+        g.stroke(ICONS[node.kind] || ICONS.other);
+        g.restore();
       }
-      if (node === hover || node.state === "alert" || node.state === "warn" || (chosen && node.group === chosen && nodes.length < 60)) {
+      // A name under each mark, so it is plain what it is.
+      if (view.names && !over && node.state !== "alert" && node.state !== "warn") {
+        g.globalAlpha = faded ? .12 : .8;
+        g.fillStyle = color.text;
+        g.font = "500 10px system-ui, sans-serif";
+        g.textAlign = "center";
+        const short = node.name.length > 15 ? `${node.name.slice(0, 14)}\u2026` : node.name;
+        g.fillText(short, spot.x, spot.y + big * (face ? 1.25 : 1) + 9);
+      }
+      if (over || node.state === "alert" || node.state === "warn") {
         const label = [node.name, node.state === "unknown" ? "unknown" : node.says, node === hover && node.text, node === hover && node.age].filter(Boolean).join("  ");
         const right = spot.x >= x;
         g.globalAlpha = faded ? .15 : 1;
         g.font = "600 11px ui-monospace, Consolas, monospace";
         g.textAlign = right ? "left" : "right";
-        const lx = spot.x + (right ? 22 : -22), ly = spot.y - 14;
+        const lx = spot.x + (right ? big + 14 : -big - 14), ly = spot.y - big - 8;
+        g.strokeStyle = tint(node);
+        g.lineWidth = 1.2;
         g.beginPath();
-        g.moveTo(spot.x, spot.y);
-        g.lineTo(spot.x + (right ? 12 : -12), ly);
+        g.moveTo(spot.x + (right ? big * .7 : -big * .7), spot.y - big * .7);
+        g.lineTo(spot.x + (right ? big + 4 : -big - 4), ly);
         g.lineTo(lx, ly);
         g.stroke();
         const width = Math.min(g.measureText(label).width, 300) + 12;
@@ -352,7 +393,7 @@ const deck = (() => {
   function point(event) {
     const box = canvas().getBoundingClientRect(), view = layout({ w: box.width, h: box.height });
     const px = event.clientX - box.left, py = event.clientY - box.top;
-    let best = null, near = 16;
+    let best = null, near = view.mark * 1.6;
     for (const node of nodes) {
       const spot = place(node, view), far = Math.hypot(spot.x - px, spot.y - py);
       if (far < near) { near = far; best = node; }
@@ -362,11 +403,17 @@ const deck = (() => {
 
   function start() {
     colors();
-    canvas().addEventListener("pointermove", (event) => { hover = point(event); if (still.matches) draw(); });
+    canvas().addEventListener("pointermove", (event) => {
+      hover = point(event);
+      canvas().style.cursor = hover ? "pointer" : "default";
+      if (still.matches) draw();
+    });
     canvas().addEventListener("pointerleave", () => { hover = null; });
     canvas().addEventListener("click", (event) => {
+      // A device shows its details; empty space lets go.
       const node = point(event);
-      chosen = node ? node.group : null;
+      picked = node && node.id !== picked ? node.id : null;
+      if (!node) chosen = null;
       list();
       draw();
     });
