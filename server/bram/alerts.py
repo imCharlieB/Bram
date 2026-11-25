@@ -112,6 +112,8 @@ class Alerts:
                 for row in rows:
                     self._db.execute("UPDATE delivery SET next_at = NULL WHERE alert_id = ?",
                                      (row["id"],))
+        if rows and not text and self.findings is not None and not safety:
+            self.findings.note(house_id, f"monitors:{key}", "closed", "Over", "monitors", "low")
         if rows and text:
             self._log(house_id, key, "cleared", text, "ok")
             alert_id = secrets.token_hex(8)

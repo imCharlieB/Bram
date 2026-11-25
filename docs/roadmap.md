@@ -61,9 +61,9 @@ Today the server's database logs connections, sign-ins, monitors, what the serve
 | Learned hours copied here from Home Assistant, which keeps its own so suggestions work without the server | ✅ |
 | Size limit and total size on the page | ✅ |
 | Each thermostat compared with the room's other temperature sensors | ✅ |
-| Size by device and kind, and [cleaning up](#cleaning-up) by asking you or when you say so | ⬜ |
+| Size by device, and [cleaning up](#cleaning-up) by asking you or when you say so | ✅ |
 | Safe to copy while running, and a check at startup that it is not damaged | ✅ |
-| Delete what BRAM knows about a device, person, or home | ⬜ |
+| Delete a device's, person's, or home's history | ✅ |
 
 Done when: every message BRAM sends can be traced to a stored finding, a restart loses nothing, a copy taken while running opens cleanly, and BRAM can answer "how long did the AC run each day last week, and at what setting?" from its own data.
 

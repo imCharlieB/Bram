@@ -425,3 +425,15 @@ async def test_security_off_is_said(env):
     env.results["security"] = {"error": "off"}
     await env.chat.ask("k", "am I exposed?")
     assert "Security check of" in env.system and "turned off" in env.system
+
+
+async def test_asking_to_delete_only_makes_a_list(env, tmp_path):
+    from bram.cleanup import Cleanup
+    from bram.history import History
+    history = History(tmp_path / "h.db", lambda: True)
+    history.record(Event(env.house, "binary_sensor.d", "motion", "on", "Hall motion"), env.world)
+    env.chat._past, env.chat._cleanup = history, Cleanup(history, None)
+    reply = await env.chat.ask("k", "delete hall motion history")
+    assert history.summary()["counts"]["change"] == 1
+    assert "Waiting for you" in reply.facts[0] and "never say it is done" in env.system
+    history.close()

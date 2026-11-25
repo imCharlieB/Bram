@@ -21,6 +21,7 @@ from .alerts import Alerts, Outgoing
 from .audit import KINDS, Audit
 from .channels import TOKEN, ChannelError, Ntfy, Telegram, new_topic
 from .chat import MAX_TEXT, Busy, Chat
+from .cleanup import Cleanup, Plan
 from .findings import Findings
 from .history import History
 from .local_model import check_local, local_models, open_model
@@ -68,6 +69,7 @@ class ConfigPage:
                  history: History | None = None,
                  findings: Findings | None = None) -> None:
         self.history, self.findings = history, findings
+        self.cleanup = Cleanup(history, findings) if history is not None else None
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._fingerprint, self._connected = fingerprint, connected
         self._disconnect, self._clock = disconnect, clock
@@ -81,7 +83,8 @@ class ConfigPage:
         self.speech = Speech(settings)
         self._worlds = worlds or dict
         self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors,
-                         look_up=look_up, past=history, findings=findings)
+                         look_up=look_up, past=history, findings=findings,
+                         cleanup=self.cleanup)
         self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk,
                                  hear=self.speech.hear)
         self._sessions: dict[str, tuple[float, float, str]] = {}
@@ -113,6 +116,11 @@ class ConfigPage:
             web.get("/api/findings", self._private(self._findings)),
             web.get("/api/finding", self._private(self._finding)),
             web.post("/api/finding-ignore", self._private(self._ignore_finding)),
+            web.get("/api/cleanup", self._private(self._cleanup_list)),
+            web.post("/api/cleanup-plan", self._private(self._cleanup_plan)),
+            web.post("/api/cleanup-drop", self._private(self._cleanup_drop)),
+            web.post("/api/cleanup-apply", self._confirmed(self._cleanup_apply)),
+            web.post("/api/cleanup-later", self._private(self._cleanup_later)),
             web.get("/api/history", self._private(self._history)),
             web.post("/api/history", self._confirmed(self._save_history)),
             web.post("/api/history-delete", self._confirmed(self._delete_history)),
@@ -475,6 +483,52 @@ class ConfigPage:
                            ", ".join(sorted(values)), "ok", approver="owner")
         return _json({"ok": True, "settings": self._settings.all()})
 
+    # --- cleaning up ---
+
+    async def _cleanup_list(self, request: web.Request) -> web.Response:
+        if self.cleanup is None:
+            return _json({"devices": [], "plans": []})
+        return _json({"devices": self.cleanup.usage(),
+                      "plans": [_plan(p) for p in self.cleanup.waiting()]})
+
+    async def _cleanup_plan(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        devices, days = body.get("devices"), body.get("older_days")
+        if (self.cleanup is None or not isinstance(devices, list) or len(devices) > 500
+                or not all(type(d) is int and 0 < d < 2**62 for d in devices)
+                or not (days is None or type(days) is int and 0 < days < 10000)):
+            return _json({"error": "Choose at least one device"}, 400)
+        try:
+            plan = self.cleanup.plan(str(body.get("action")), devices,
+                                     None if days is None else wall() - days * 86400)
+        except ValueError as err:
+            return _json({"error": str(err)}, 400)
+        return _json(_plan(plan))
+
+    async def _cleanup_drop(self, request: web.Request) -> web.Response:
+        if self.cleanup is not None:
+            self.cleanup.drop((await _body(request)).get("id"))
+        return _json({"ok": True})
+
+    async def _cleanup_apply(self, body: dict) -> web.Response:
+        if self.cleanup is None:
+            return _json({"error": "No history"}, 400)
+        try:
+            plan = self.cleanup.apply(body.get("id"))
+        except ValueError as err:
+            return _json({"error": str(err)}, 400)
+        self._audit.record("server", "config page", "history cleaned", plan.text, "ok",
+                           approver="owner")
+        return _json({"ok": True})
+
+    async def _cleanup_later(self, request: web.Request) -> web.Response:
+        await _body(request)
+        if self.cleanup is not None:
+            self.cleanup.ask_later()
+        if self._alerts is not None:
+            self._alerts.clear("server", "storage", safety=False)
+        return _json({"ok": True})
+
     async def _findings(self, request: web.Request) -> web.Response:
         which = request.query.get("show", "open")
         try:
@@ -834,6 +888,10 @@ async def _valid(body: dict) -> dict:
 
 def _key(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+def _plan(plan: Plan) -> dict:
+    return {"id": plan.id, "action": plan.action, "text": plan.text, "bytes": plan.bytes}
 
 
 def _qr(text: str) -> web.Response:

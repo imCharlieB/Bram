@@ -62,7 +62,12 @@ class History:
         self._db.execute("PRAGMA journal_mode=WAL")
         self.healthy = self._db.execute("PRAGMA quick_check(1)").fetchone()[0] == "ok"
         self._db.executescript(_SCHEMA)
+        if "keep" not in [r[1] for r in self._db.execute("PRAGMA table_info(device)")]:
+            with self._db:
+                self._db.execute("ALTER TABLE device ADD COLUMN keep INTEGER NOT NULL DEFAULT 1")
         self._on, self._limit_mb, self._clock = on, limit_mb, clock
+        self._dropped: set[tuple[str, str, str]] = set()
+        self.reload()
         self._ids: dict[tuple[str, str, str], tuple[int, tuple]] = {}
         self._slots: dict[tuple[int, int], list[float]] = {}
         self._last: dict[int, str] = {}
@@ -76,6 +81,28 @@ class History:
     @property
     def on(self) -> bool:
         return self._on()
+
+    @property
+    def db(self) -> sqlite3.Connection:
+        return self._db
+
+    @property
+    def limit(self) -> int:
+        return self._limit_mb()
+
+    def meta(self, key: str) -> float | None:
+        row = self._db.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else None
+
+    def set_meta(self, key: str, value: float) -> None:
+        with self._db:
+            self._db.execute("INSERT OR REPLACE INTO meta VALUES (?, ?)", (key, value))
+
+    def reload(self) -> None:
+        """After something was removed, or what to keep was changed."""
+        self._dropped = {tuple(r) for r in self._db.execute(
+            "SELECT house_id, entity_id, metric FROM device WHERE keep = 0")}
+        self._last = {}
 
     # --- writing ---
 
@@ -98,7 +125,7 @@ class History:
 
     def record(self, event: Event, world: World) -> None:
         """Something changed, or was seen again after a reconnect."""
-        if not self.on:
+        if not self.on or (event.house_id, event.entity_id, "") in self._dropped:
             return
         if event.kind == "climate":
             self._climate(event, world)
@@ -187,12 +214,15 @@ class History:
                         continue
                     # A climate device's own row is for its runs.
                     name = metric or ("now" if event.kind == "climate" else "")
+                    if (event.house_id, event.entity_id, name) in self._dropped:
+                        continue
                     kept = self._slots.setdefault(
                         (self._device(event, name, unit), slot), [value, 0.0, value, 0])
                     kept[0], kept[2] = min(kept[0], value), max(kept[2], value)
                     kept[1] += value
                     kept[3] += 1
-                if event.kind == "climate":
+                if (event.kind == "climate"
+                        and (event.house_id, event.entity_id, "") not in self._dropped):
                     self._climate(event, world)
         self.flush(slot)
 
@@ -223,7 +253,7 @@ class History:
                 return
             with self._db:
                 self._db.execute("DELETE FROM reading WHERE at < ?",
-                                 (min(row[0] + 86400, hour - 24 * HOUR),))
+                                 (min(row[0] // HOUR * HOUR + 86400, hour - 24 * HOUR),))
             self.shortened = True
 
     # --- past readings from Home Assistant ---
@@ -322,7 +352,7 @@ class History:
                                  f"(SELECT id FROM device {where})", values)
             self._db.execute(f"DELETE FROM device {where}", values)  # noqa: S608
         self._ids.clear()
-        self._last.clear()
+        self.reload()
         self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
 
     def close(self) -> None:

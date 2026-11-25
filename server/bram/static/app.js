@@ -7,7 +7,7 @@ const STORY = {
   connected: "Home Assistant connected", disconnected: "Home Assistant disconnected", paired: "A home was paired",
   unpaired: "A home was removed", "signed in": "You signed in", "login refused": "Someone entered a wrong login",
   "setup refused": "A setup attempt was refused", "settings saved": "Settings changed", "login created": "Your login was created",
-  "code created": "A pairing code was made", "password changed": "Your password changed", "history saved": "History settings changed", "history deleted": "History was deleted", "database damaged": "The database failed its check", "second factor on": "Second factor turned on", "second factor off": "Second factor turned off", "username changed": "Your username changed",
+  "code created": "A pairing code was made", "password changed": "Your password changed", "history saved": "History settings changed", "history cleaned": "History was cleaned up", "history deleted": "History was deleted", "database damaged": "The database failed its check", "second factor on": "Second factor turned on", "second factor off": "Second factor turned off", "username changed": "Your username changed",
   "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "monitor removed": "A monitor was removed",
 };
 const ALARMING = new Set(["login refused", "setup refused", "disconnected", "alert", "send failed"]);
@@ -686,7 +686,38 @@ function cells(values) {
   return row;
 }
 
+async function loadCleanup() {
+  const { devices, plans } = await api("cleanup");
+  $("clean-plans").replaceChildren(...plans.map((plan) => {
+    const row = element("li"), side = element("span"), yes = element("button", "Confirm", "small"), no = element("button", "Cancel", "quiet small");
+    yes.addEventListener("click", () => busy(yes, "clean-message", async () => {
+      const confirm = await askPassword(`${plan.text}. This cannot be undone.`);
+      await api("cleanup-apply", { id: plan.id, confirm });
+      await loadHistory();
+      return "Done.";
+    }));
+    no.addEventListener("click", () => busy(no, "clean-message", async () => {
+      await api("cleanup-drop", { id: plan.id });
+      await loadCleanup();
+    }));
+    side.append(yes, no);
+    row.append(element("span", `${plan.text}. Frees about ${(plan.bytes / 1e6).toFixed(1)} MB.`), side);
+    return row;
+  }));
+  $("clean-devices").replaceChildren(...devices.map((device) => {
+    const row = cells(["", device.name + (device.keep ? "" : " (not kept)"), device.area || "", device.rows.toLocaleString(),
+      `${(device.bytes / 1e6).toFixed(1)} MB`, device.first ? new Date(device.first * 1000).toLocaleDateString() : ""]);
+    const box = element("input");
+    box.type = "checkbox";
+    box.value = device.id;
+    box.setAttribute("aria-label", device.name);
+    row.firstChild.append(box);
+    return row;
+  }));
+}
+
 async function loadHistory() {
+  await loadCleanup();
   const data = await api("history");
   $("history-on").checked = data.on;
   $("history-limit").value = data.limit_mb;
@@ -1014,6 +1045,18 @@ onSubmit("history-form", "history-save", "history-message", async () => {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
   await loadHistory();
   return $("history-on").checked ? "Saved." : "Saved. What was kept is still here until you delete it.";
+});
+
+onClick("clean-plan", "clean-message", async () => {
+  const devices = [...$("clean-devices").querySelectorAll("input:checked")].map((box) => Number(box.value));
+  await api("cleanup-plan", { action: $("clean-action").value, devices, older_days: $("clean-age").value ? Number($("clean-age").value) : null });
+  await loadCleanup();
+  return "Check the list above, then confirm it.";
+});
+
+onClick("clean-later", "clean-message", async () => {
+  await api("cleanup-later", {});
+  return "I will ask again in 30 days if it is still nearly full.";
 });
 
 onClick("history-delete", "history-message", async () => {

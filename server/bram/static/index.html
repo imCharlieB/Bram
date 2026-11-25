@@ -381,6 +381,32 @@
         <p class="message" id="history-message" role="status"></p>
       </div>
       <div class="card">
+        <h2>Clean up</h2>
+        <p class="note">Nothing is removed until you confirm the exact list. Or ask in chat, such as "delete hall motion readings older than 90 days".</p>
+        <ul id="clean-plans"></ul>
+        <div class="row">
+          <select id="clean-action" aria-label="What to do">
+            <option value="shorten">Shorten to hourly</option>
+            <option value="delete">Delete</option>
+            <option value="stop">Stop keeping</option>
+            <option value="keep">Keep again</option>
+          </select>
+          <select id="clean-age" aria-label="How old">
+            <option value="365">Older than a year</option>
+            <option value="90">Older than 90 days</option>
+            <option value="30">Older than 30 days</option>
+            <option value="">All of it</option>
+          </select>
+          <button id="clean-plan">Make the list</button>
+          <button id="clean-later" class="quiet">Ask me in 30 days</button>
+        </div>
+        <p class="message" id="clean-message" role="status"></p>
+        <div class="scroll"><table>
+          <thead><tr><th></th><th>Device</th><th>Room</th><th>Entries</th><th>Size</th><th>Since</th></tr></thead>
+          <tbody id="clean-devices"></tbody>
+        </table></div>
+      </div>
+      <div class="card">
         <h2>Heating and cooling, last 7 days</h2>
         <div class="scroll"><table>
           <thead><tr><th>Day</th><th>Device</th><th>Ran</th><th>Set to</th><th>Starts</th><th>Outside</th></tr></thead>

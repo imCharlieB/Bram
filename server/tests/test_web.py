@@ -65,6 +65,8 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("POST", "hear"), ("POST", "speak"),
            ("GET", "house"), ("GET", "history"), ("POST", "history"),
            ("GET", "findings"), ("GET", "finding"), ("POST", "finding-ignore"),
+           ("GET", "cleanup"), ("POST", "cleanup-plan"), ("POST", "cleanup-drop"),
+           ("POST", "cleanup-apply"), ("POST", "cleanup-later"),
            ("POST", "history-delete"),
            ("GET", "picture"), ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
            ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),
@@ -601,3 +603,28 @@ async def test_history_settings_need_the_password(page):
     assert (await page.post("history", {**good, "confirm": PASSWORD})).status == 200
     saved = page.settings.all()
     assert saved["keep_history"] and saved["timezone"] == "America/Chicago"
+
+
+async def test_cleaning_up_needs_the_password_and_the_exact_list(page, tmp_path):
+    from bram.cleanup import Cleanup
+    from bram.history import History
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    history = History(tmp_path / "h.db", lambda: True)
+    history.record(Event("h", "binary_sensor.d", "opening", "on", "Door"), World("h"))
+    config = page.app[CONFIG]
+    config.history, config.cleanup = history, Cleanup(history, None)
+    (device,) = (await (await page.get("/api/cleanup")).json())["devices"]
+    for bad in ({}, {"devices": [True]}, {"devices": ["1"]}, {"devices": [99]},
+                {"devices": [device["id"]], "older_days": -1}):
+        assert (await page.post("cleanup-plan", {"action": "delete", **bad})).status == 400
+    plan = await (await page.post("cleanup-plan", {
+        "action": "delete", "devices": [device["id"]]})).json()
+    assert (await page.post("cleanup-apply", {"id": plan["id"], "confirm": "no"})).status == 403
+    assert (await page.post("cleanup-apply", {"id": "x", "confirm": PASSWORD})).status == 400
+    assert history.summary()["counts"]["change"] == 1
+    assert (await page.post("cleanup-apply", {
+        "id": plan["id"], "confirm": PASSWORD})).status == 200
+    assert history.summary()["counts"]["change"] == 0
+    assert "history cleaned" in json.dumps(page.audit.recent(5))
+    history.close()

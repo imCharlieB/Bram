@@ -29,7 +29,22 @@ BRAM compares each thermostat's own sensor with other temperature sensors in the
 
 ## Space
 
-At the limit, the oldest 5-minute readings are removed; their hourly ones stay. The page shows the size.
+At 80% of the limit BRAM asks you what to remove, by Telegram or ntfy if set up, and in [Findings](findings.md). At the limit, if you have not answered, the oldest 5-minute readings are removed; their hourly ones stay, and you are told. Nothing else goes without you.
+
+## Clean up
+
+**History > Clean up** lists every device with its size, biggest first. Choose devices, what to do, and how old, and press **Make the list**. BRAM shows exactly how many entries would go. Nothing changes until you press **Confirm** and enter your password, within 10 minutes.
+
+| Choice | Does |
+|---|---|
+| Shorten to hourly | Removes 5-minute readings and keeps hourly ones |
+| Delete | Removes readings, hours, changes, and runs |
+| Stop keeping | Records nothing more for that device; keeps what is there |
+| Keep again | Undoes Stop keeping |
+
+Or ask in chat: "delete hall motion readings older than 90 days", "shorten attic readings older than a year", "stop keeping the garage sensor", "delete motion data before June". Chat only makes the list; you still confirm it on the page. If a device or date is unclear, no list is made. Sizes by device are close estimates.
+
+The log, findings, and Home Assistant's own history are not touched.
 
 ## Turn off or delete
 

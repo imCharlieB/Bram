@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.25.0
+
+- Clean up history: see what each device uses, then shorten, delete, or stop keeping it. Nothing goes until you confirm the exact list.
+- Ask in chat, such as "delete hall motion readings older than 90 days". Chat only makes the list.
+- BRAM asks when its history is 80% full.
+
 ## 0.24.0
 
 - Findings: one list of everything BRAM found, with how often, whether you were told, and when it ended. Covers phone messages, lock and door rules, safety, security, and monitors.

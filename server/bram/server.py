@@ -207,10 +207,25 @@ async def _keep(app: web.Application) -> None:
         await asyncio.sleep(60)
         try:
             app[HISTORY].sample([w for w, _ in app[HOUSES].values()])
+            mind_space(app)
             for house_id in list(app[SOCKETS]):
                 await bring_past(app, house_id, tries)
         except Exception as err:  # noqa: BLE001 - history must never stop the server
             print(f"History could not be kept: {type(err).__name__}", file=sys.stderr)
+
+
+def mind_space(app: web.Application) -> None:
+    """Ask once when history is nearly full. Say so if old detail had to give way."""
+    alerts, cleanup = app.get(ALERTS), app[CONFIG].cleanup
+    if alerts is None or cleanup is None:
+        return
+    text = cleanup.should_ask()
+    if text is not None and app[HISTORY].shortened:
+        text += " The limit was reached, so the oldest 5-minute readings are now hourly."
+    if text is not None:
+        alerts.raise_alert("server", "storage", text, safety=False)
+    else:
+        alerts.clear("server", "storage", safety=False)
 
 
 async def bring_past(app: web.Application, house_id: str, tries: dict[int, float]) -> None:

@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from zoneinfo import ZoneInfo
 
 from .audit import Audit
+from .cleanup import Cleanup, Plan
 from .findings import Findings
 from .history import History
 from .local_model import open_model
@@ -101,7 +102,9 @@ class Chat:
                  opener: Callable = open_model,
                  clock: Callable[[], float] = time.monotonic,
                  look_up: Callable | None = None, past: History | None = None,
-                 findings: Findings | None = None) -> None:
+                 findings: Findings | None = None,
+                 cleanup: Cleanup | None = None) -> None:
+        self._cleanup = cleanup
         self._past, self._findings = past, findings
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._worlds, self._monitors, self._open, self._clock = worlds, monitors, opener, clock
@@ -216,6 +219,16 @@ class Chat:
         """History or problems, only when the question is about them."""
         lines: list[str] = []
         facts: list[str] = []
+        if self._cleanup is not None and self._past.on:
+            asked = self._cleanup.request(text, self._zone(), house)
+            if isinstance(asked, Plan):
+                lines.append(f"You made a list for the owner to confirm: {asked.text}. Nothing is "
+                             "removed until they confirm it under History, Clean up, on BRAM's "
+                             "page within 10 minutes. Say that; never say it is done")
+                facts.append(f"Waiting for you under History, Clean up: {asked.text}")
+            elif asked is not None:
+                lines.append(f"The owner asked to change what is kept, but {asked}. Ask them to "
+                             "name the device and dates, or use History, Clean up, on the page")
         if self._past is not None and CLIMATE.search(text):
             for home, _ in self._pairing.houses():
                 if house not in (None, home):
