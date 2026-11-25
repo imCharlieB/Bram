@@ -44,6 +44,7 @@ body:not(.command) .command-only { display: none !important; }
 .sector[aria-pressed=true] { border-color: var(--hud); background: color-mix(in srgb, var(--hud) 16%, transparent); }
 .sector b { font-size: .8rem; font-weight: 600; }
 .sector .num { font: 600 .78rem ui-monospace, Consolas, monospace; color: var(--hud); }
+.sector em { margin-left: 6px; padding: 0 5px; font: 600 .62rem ui-monospace, Consolas, monospace; color: #02131a; background: var(--hud); }
 .sector b small { opacity: .6; font-weight: 400; }
 .segments { grid-column: 1 / -1; display: flex; gap: 2px; }
 .segments i { flex: 0 1 14px; height: 4px; background: var(--hud-dim); opacity: .5; }

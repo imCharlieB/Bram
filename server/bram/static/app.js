@@ -322,7 +322,7 @@ async function saveNtfy(extra = {}) {
 
 // --- home ---
 
-const world = { houses: [], monitors: [], urgent: 0, devices: 0, groups: [] };
+const world = { houses: [], monitors: [], urgent: 0, devices: 0, groups: [], rooms: new Map() };
 
 function dots(id, items) {
   $(id).replaceChildren(...(items.length ? items.map(([name, good, text]) => {
@@ -569,6 +569,7 @@ function arrange() {
     const floor = device.floor || "", room = device.area || (device.kind === "person" ? (device.state === "on" ? "Home" : "Away") : "No room");
     if (!rooms.has(room)) rooms.set(room, { title: room, floor, devices: [] });
     if (floor) rooms.get(room).floor = floor;
+    rooms.get(room).presence = world.rooms.get(room)?.state || "";
     rooms.get(room).devices.push(device);
   }
   // Rooms on the same floor sit together.
@@ -578,7 +579,8 @@ function arrange() {
 }
 
 async function loadHouse() {
-  const { homes, alerts } = await api("house");
+  const { homes, alerts, rooms: occupancy } = await api("house");
+  world.rooms = new Map(occupancy.map((room) => [room.room, room]));
   const groups = new Map(), urgent = [];
   let total = 0, unseen = 0;
   for (const home of homes) {

@@ -69,6 +69,31 @@ async def test_person_room_comes_from_their_tracker(hass):
         assert room_sensors(hass, bad) == []
 
 
+def put(hass, entity, value, name, **attrs):
+    hass.states.async_set(entity, value, {"friendly_name": name, **attrs})
+
+
+async def test_room_sensor_is_matched_by_name(hass):
+    ar.async_get(hass).async_create("Master Bedroom")
+    put(hass, "person.a", "home", "Alex Smith")
+    put(hass, "person.s", "home", "Sam")
+    put(hass, "sensor.alex_room", "Master Bedroom", "Alex Room")
+    put(hass, "sensor.alexs_phone_area", "unknown", "Alex's Phone Area",
+        device_class="bermuda__custom_device_class")
+    put(hass, "sensor.alex_distance", "4.2", "Alex Distance")
+    put(hass, "sensor.alexander_room", "Master Bedroom", "Alexander Room")
+    put(hass, "sensor.guest", "Master Bedroom", "Guest Room")
+    person = hass.states.get("person.a")
+    assert room_sensors(hass, person) == ["sensor.alex_room", "sensor.alexs_phone_area"]
+    assert detail(hass, person)["area"] == "Master Bedroom"
+    assert room_sensors(hass, hass.states.get("person.s")) == []
+    # The owner's own choice wins.
+    assert room_sensors(hass, person, {"person.a": "sensor.x"}) == ["sensor.x"]
+    # Two people with one name are never mixed up.
+    put(hass, "person.b", "home", "Alex Jones")
+    assert room_sensors(hass, person) == []
+
+
 async def test_chosen_room_sensor(hass):
     rooms = {"person.a": "sensor.my_room"}
     hass.states.async_set("sensor.my_room", "Master Bedroom")

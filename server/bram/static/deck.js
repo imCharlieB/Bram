@@ -52,6 +52,7 @@ const deck = (() => {
       const on = group.devices.filter((device) => device.state !== "off" && device.state !== "unknown").length;
       const name = make("b", group.title);
       if (group.floor) name.append(make("small", ` ${group.floor}`));
+      if (group.presence === "occupied") name.append(make("em", "occupied"));
       row.append(name, make("span", `${on}/${group.devices.length}`, "num"), bar);
       row.addEventListener("click", () => {
         chosen = chosen === group.title ? null : group.title;
@@ -246,8 +247,8 @@ const deck = (() => {
       g.moveTo(x + Math.cos(group.from) * view.inner, y + Math.sin(group.from) * view.inner);
       g.lineTo(x + Math.cos(group.from) * view.outer, y + Math.sin(group.from) * view.outer);
       g.stroke();
-      if (picked) {
-        g.globalAlpha = .12;
+      if (picked || group.presence === "occupied") {
+        g.globalAlpha = picked ? .12 : .07;
         g.fillStyle = base;
         g.beginPath();
         g.arc(x, y, view.outer, group.from, group.to);

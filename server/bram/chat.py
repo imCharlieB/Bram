@@ -158,6 +158,32 @@ class Chat:
 
     # --- what BRAM knows ---
 
+    def rooms(self, house: str | None = None) -> list[dict]:
+        """Whether each room is occupied, from its own motion and presence sensors."""
+        names, found = dict(self._pairing.houses()), []
+        for house_id, world in self._worlds().items():
+            if house_id not in names or house not in (None, house_id):
+                continue
+            seen: dict[str, list[Answer]] = {}
+            people: dict[str, list[str]] = {}
+            for event in world.all():
+                area = clean(event.detail.get("area", ""), 40)
+                if not area:
+                    continue
+                answer = world.check(event.entity_id)
+                if event.kind == "motion":
+                    seen.setdefault(area, []).append(answer)
+                elif event.kind == "person" and answer is Answer.YES:
+                    people.setdefault(area, []).append(clean(event.name, 40))
+            for area in sorted({*seen, *people}):
+                answers = seen.get(area, [])
+                # Clear only if every sensor there says so (B2).
+                state = ("occupied" if Answer.YES in answers or area in people
+                         else "unknown" if Answer.UNKNOWN in answers else "clear")
+                found.append({"home": names[house_id], "room": area, "state": state,
+                              "people": people.get(area, [])})
+        return found
+
     def house(self) -> list[dict]:
         """Everything BRAM can see, for the page."""
         homes = []
@@ -233,6 +259,11 @@ class Chat:
                   for home, name, text in ranked[:MAX_ENTITIES]]
         if len(ranked) > MAX_ENTITIES:
             lines.append(f"{len(ranked) - MAX_ENTITIES} more devices are not listed here")
+        for room in self.rooms(house):
+            who = f", {' and '.join(room['people'])} there" if room["people"] else ""
+            lines.append(f"Room {room['room']} ({clean(room['home'], 60)}): "
+                         + {"occupied": "occupied", "clear": "no motion or presence",
+                            "unknown": UNKNOWN}[room["state"]] + who)
         if self._monitors is not None and house is None:
             for item in self._monitors.all():
                 up = self._monitors.status.get(item["id"])

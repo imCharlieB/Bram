@@ -529,7 +529,7 @@ class ConfigPage:
         return web.Response(body=wav, content_type="audio/wav", headers=HEADERS)
 
     async def _house(self, request: web.Request) -> web.Response:
-        return _json({"homes": self.chat.house(),
+        return _json({"homes": self.chat.house(), "rooms": self.chat.rooms(),
                       "alerts": self._alerts.open() if self._alerts else []})
 
     async def _picture(self, request: web.Request) -> web.Response:

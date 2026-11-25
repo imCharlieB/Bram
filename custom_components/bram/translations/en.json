@@ -38,7 +38,7 @@
     "step": {
       "init": {
         "title": "BRAM",
-        "menu_options": {"basic": "Recommended setup", "suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "rooms": "Which room people are in", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors", "chat": "What chat may look up"}
+        "menu_options": {"basic": "Recommended setup", "suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "rooms": "Fix a person's room (rarely needed)", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors", "chat": "What chat may look up"}
       },
       "basic": {
         "title": "Recommended setup",
@@ -74,8 +74,8 @@
         }
       },
       "rooms": {
-        "title": "Which room people are in",
-        "description": "For each person, choose the sensor whose state is the room they are in, such as a Bermuda area sensor or one you made. Empty means BRAM says only home or away."
+        "title": "Fix a person's room",
+        "description": "You usually do not need this: BRAM finds these by itself. Change one only if a person shows the wrong room. Each is the sensor that says which room they are in."
       },
       "chat": {
         "title": "What chat may look up",

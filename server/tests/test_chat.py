@@ -179,6 +179,25 @@ async def test_details_reach_the_model_cleaned(env):
     assert reply.facts[0].startswith("Speakers: on (Song")
 
 
+async def test_rooms(env):
+    env.set("Den 1", "motion", "off", area="Den")
+    env.set("Den 2", "motion", "on", area="Den")
+    env.set("Hall", "motion", "off", area="Hall")
+    env.set("Attic 1", "motion", "off", area="Attic")
+    env.set("Attic 2", "motion", "unavailable", area="Attic")
+    env.set("Alex", "person", "home", area="Kitchen")
+    env.set("Sam", "person", "not_home", area="Garage")
+    env.set("Lamp", "light", "on", area="Porch")
+    assert {r["room"]: r["state"] for r in env.chat.rooms()} == {
+        "Den": "occupied", "Hall": "clear", "Attic": "unknown", "Kitchen": "occupied"}
+    await env.chat.ask("k", "which rooms are occupied")
+    assert "Room Kitchen (Home): occupied, Alex there" in env.system
+    assert "Room Attic (Home): unknown" in env.system
+    assert env.chat.rooms("other") == []
+    env.now = 500
+    assert {r["state"] for r in env.chat.rooms()} == {"unknown"}
+
+
 def test_house_view(env):
     for name, kind, state in (("A", "leak", "on"), ("B", "lock", "unlocked"), ("C", "light", "on"),
                               ("D", "lock", "unavailable"), ("E", "temperature", "71 F"),

@@ -45,7 +45,8 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 | What | Where it comes from |
 |---|---|
 | A device's room and floor | Its area in Home Assistant; set areas and floors there |
-| The room a person is in | The sensor you choose in **Configure > Which room people are in**; otherwise Bermuda or MQTT Room sensors on a device attached to that person |
+| Whether a room is occupied | The motion and presence sensors in that area. Clear only if all of them say so |
+| The room a person is in | Found by itself: room sensors on their devices, or a sensor with their name whose value is one of your areas, such as *Alex Room*. **Configure > Fix a person's room** overrides it |
 | A named place, such as Work | The person's zone in Home Assistant |
 
 Coordinates are never shared. If a room is not known, BRAM says only home or away. On the command deck, press **by type** to arrange the house by room.

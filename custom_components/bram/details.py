@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import re
 from typing import Any
 
 from homeassistant.core import HomeAssistant, State
@@ -44,7 +45,31 @@ def room_sensors(hass: HomeAssistant, person: State | None,
                   if e.domain == "sensor" and e.platform in _ROOMS
                   and (e.entity_id.endswith("_area") or str(e.unique_id).endswith("_area")
                        or e.platform != "bermuda")]
-    return found
+    return found or _named_after(hass, person)
+
+
+def _first(name: str) -> str:
+    return re.split(r"[^a-z]+", name.lower().strip())[0]
+
+
+def _named_after(hass: HomeAssistant, person: State | None) -> list[str]:
+    """Sensors with this person's name whose value is one of the home's rooms."""
+    first = _first(person.name) if person is not None else ""
+    others = [_first(p.name) for p in hass.states.async_all("person")
+              if person is not None and p.entity_id != person.entity_id]
+    # Two people called the same cannot be told apart by name.
+    if len(first) < 3 or first in others:
+        return []
+    rooms = {area.name.lower() for area in ar.async_get(hass).async_list_areas()}
+    found = []
+    for state in hass.states.async_all("sensor"):
+        if _first(state.name.replace("'", "")) not in (first, f"{first}s"):
+            continue
+        if (state.state.lower() in rooms
+                or state.attributes.get("device_class") == "bermuda__custom_device_class"
+                and state.entity_id.endswith("_area")):
+            found.append(state.entity_id)
+    return sorted(found)
 
 
 def detail(hass: HomeAssistant, state: State | None,

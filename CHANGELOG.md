@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.18.0
+
+- Rooms need no setup: BRAM reads each room's presence from its own sensors in Home Assistant, and finds a person's room sensor by name.
+
 ## 0.17.1
 
 - Choose the sensor that says which room each person is in.
