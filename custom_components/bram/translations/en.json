@@ -1,4 +1,14 @@
 {
+  "issues": {
+    "server_outdated": {
+      "title": "The BRAM Server is out of date",
+      "description": "The server is {server} and BRAM here is {here}. Update the server: in Portainer, recreate the bram container with Re-pull image turned on."
+    },
+    "integration_outdated": {
+      "title": "BRAM in Home Assistant is out of date",
+      "description": "BRAM here is {here} and the server is {server}. In HACS, update BRAM, then restart Home Assistant."
+    }
+  },
   "config": {
     "step": {
       "user": {
@@ -15,14 +25,25 @@
   "options": {
     "step": {
       "init": {
-        "title": "BRAM options",
-        "description": "BRAM only sees the entities you choose, and cannot control anything. Leak and smoke alerts come from Home Assistant itself and ignore quiet hours. They do not replace certified alarms.",
+        "title": "BRAM",
+        "menu_options": {"see": "What BRAM can see", "alerts": "Phone alerts and quiet hours"}
+      },
+      "see": {
+        "title": "What BRAM can see",
+        "description": "Only what you choose here is shared with BRAM. It cannot control any of it.",
         "data": {
-          "entities": "Entities BRAM may see",
+          "people": "People", "doors": "Locks and doors", "safety": "Leak and smoke sensors",
+          "motion": "Motion and presence", "lights": "Lights"
+        }
+      },
+      "alerts": {
+        "title": "Phone alerts and quiet hours",
+        "description": "Leak and smoke alerts come from Home Assistant itself and ignore quiet hours. They do not replace certified alarms.",
+        "data": {
           "phones": "Phones that get alerts",
-          "quiet_from": "Quiet hours from",
-          "quiet_to": "Quiet hours until",
-          "escalate": "After 5 minutes without an answer, also send leak and smoke alerts through Telegram and ntfy"
+          "quiet_from": "Quiet from",
+          "quiet_to": "Quiet until",
+          "escalate": "Also use Telegram and ntfy if nobody answers a leak or smoke alert in 5 minutes"
         }
       }
     }

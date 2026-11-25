@@ -4,21 +4,24 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from collections.abc import Callable, Iterable
 from typing import Any
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State, callback
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
 
 from . import gate
 from .client import connect
-from .const import CONF_ENTITIES, CONF_FINGERPRINT
+from .const import CONF_ENTITIES, CONF_FINGERPRINT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 HEARTBEAT = 30
+_VERSION = re.compile(r"\d{1,4}\.\d{1,4}\.\d{1,4}")
 RETRY_MAX = 300
 QUEUE_SIZE = 1000
 
@@ -40,6 +43,10 @@ def kind_of(entity_id: str, device_class: str | None) -> str | None:
     return None
 
 
+def _key(version: str) -> tuple[int, ...]:
+    return tuple(int(n) for n in re.findall(r"\d+", version))
+
+
 class Feed:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self._hass = hass
@@ -52,6 +59,7 @@ class Feed:
         self._queue: asyncio.Queue[dict] | None = None
         self.connected = False
         self.beliefs: dict[str, str] = {}
+        self.server_version: str | None = None
 
     @property
     def entities(self) -> list[str]:
@@ -85,7 +93,21 @@ class Feed:
     def _set_connected(self, connected: bool) -> None:
         self.connected = connected
         self.beliefs.clear()
+        self.server_version = None
         self._notify()
+
+    @callback
+    def _compare(self) -> None:
+        """Show a repair while the two halves of BRAM differ."""
+        if self.version is None or self.server_version == self.version:
+            ir.async_delete_issue(self._hass, DOMAIN, "version")
+            return
+        server = self.server_version
+        older = server is None or _key(server) < _key(self.version)
+        ir.async_create_issue(
+            self._hass, DOMAIN, "version", is_fixable=False, severity=ir.IssueSeverity.WARNING,
+            translation_key="server_outdated" if older else "integration_outdated",
+            translation_placeholders={"server": server or "older", "here": self.version})
 
     @callback
     def handle_message(self, raw: str) -> None:
@@ -94,10 +116,18 @@ class Feed:
             data = json.loads(raw)
         except ValueError:
             data = None
+        if (isinstance(data, dict) and data.keys() == {"type", "version"}
+                and data["type"] == "hello" and isinstance(data["version"], str)
+                and _VERSION.fullmatch(data["version"])):
+            self.server_version = data["version"]
+            self._compare()
+            return
         if (isinstance(data, dict) and data.keys() == {"type", "entity_id", "answer"}
                 and data["type"] == "belief" and data["entity_id"] in self._entities
                 and data["answer"] in ("yes", "no", "unknown")):
             self.beliefs[data["entity_id"]] = data["answer"]
+            if self.server_version is None:  # older servers never say
+                self._compare()
             self._notify()
             return
         _LOGGER.warning("Refused a server request: %s", gate.decide(data).reason)
@@ -113,7 +143,7 @@ class Feed:
                 "name": state.name[:100] if state is not None else ""}
 
     def _snapshot(self, entities: Iterable[str]) -> dict:
-        return {"type": "snapshot",
+        return {"type": "snapshot", "version": self.version or "",
                 "states": [self._state(e, self._hass.states.get(e)) for e in entities]}
 
     async def run(self) -> None:

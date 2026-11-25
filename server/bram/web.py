@@ -62,7 +62,8 @@ class ConfigPage:
         self.monitors = Monitors(settings, alerts) if alerts is not None else None
         self.ntfy = Ntfy(settings, self._answer)
         self.speech = Speech(settings)
-        self.chat = Chat(settings, pairing, audit, worlds or dict, self.monitors)
+        self._worlds = worlds or dict
+        self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors)
         self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk)
         self._sessions: dict[str, tuple[float, float, str]] = {}
         self._failures: dict[str, tuple[int, float]] = {}
@@ -260,7 +261,8 @@ class ConfigPage:
 
     async def _status(self, request: web.Request) -> web.Response:
         online = self._connected()
-        houses = [{"id": house_id, "name": name, "connected": house_id in online}
+        houses = [{"id": house_id, "name": name, "connected": house_id in online,
+                   "version": self._house_version(house_id)}
                   for house_id, name in self._pairing.houses()]
         return _json({"version": version("bram-core"), "houses": houses})
 
@@ -283,6 +285,10 @@ class ConfigPage:
         self._audit.record(house_id, "config page", "unpaired", "removed by owner", "ok",
                            approver="owner")
         return _json({"ok": True})
+
+    def _house_version(self, house_id: str) -> str:
+        world = self._worlds().get(house_id)
+        return world.version if world is not None else ""
 
     async def _log(self, request: web.Request) -> web.Response:
         try:

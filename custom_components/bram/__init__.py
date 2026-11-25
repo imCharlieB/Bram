@@ -5,6 +5,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import async_get_integration
 
 from .const import CONF_ENTITIES, DOMAIN
@@ -32,4 +33,5 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    ir.async_delete_issue(hass, DOMAIN, "version")
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

@@ -17,7 +17,7 @@ Home Assistant and each of Telegram and ntfy send at most 10 routine messages a 
 ## Home Assistant app
 
 1. Install the Home Assistant app on your phone and allow notifications.
-2. **Settings > Devices & services > BRAM > Configure**. Choose your phones.
+2. **Settings > Devices & services > BRAM > Configure > Phone alerts and quiet hours**. Choose your phones.
 3. Set quiet hours if you want them. They apply only to Home Assistant's messages and never to safety alerts.
 4. On BRAM's device page, press **Send test message**.
 

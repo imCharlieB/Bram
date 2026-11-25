@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.6.3
+
+- BRAM warns, on its page and in Home Assistant's Repairs, when the server and Home Assistant sides are different versions.
+- Home Assistant options are split into a short menu with grouped choices, and device page names are plain.
+- Device page names stay right after Home Assistant restarts.
+
 ## 0.6.2
 
 - Monitors show their type and why they are not answering, and the type must be chosen.

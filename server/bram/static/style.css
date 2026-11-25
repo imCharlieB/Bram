@@ -57,6 +57,7 @@ nav .brand, nav .brand:hover { background: none; box-shadow: none; }
 .facts li { padding: 1px 0; border: 0; color: var(--dim); font-size: .82rem; }
 .thinking .ring { animation-duration: 1.6s; }
 .thinking .core { animation-duration: .8s; }
+.warn { border-color: #b9812f; background: #2b2140; }
 .board { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; margin-bottom: 16px; }
 .board .card { margin: 0; }
 .mood { margin: 4px 0 10px; font-size: 1.3rem; font-weight: 700; overflow-wrap: anywhere; }

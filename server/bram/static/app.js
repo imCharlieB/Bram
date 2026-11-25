@@ -113,6 +113,13 @@ async function loadStatus() {
   paired = houses.length > 0;
   loadSteps();
   world.houses = houses;
+  const odd = houses.find((house) => house.connected && house.version !== version);
+  $("outdated").hidden = !odd;
+  if (odd) {
+    const old = !odd.version || odd.version.localeCompare(version, undefined, { numeric: true }) < 0;
+    $("outdated-text").textContent = `The BRAM Server is ${version}, but BRAM in Home Assistant (${odd.name}) is ${odd.version || "older"}. `
+      + (old ? "In HACS, update BRAM, then restart Home Assistant." : "In Portainer, recreate the bram container with Re-pull image turned on.");
+  }
   dots("home-houses", houses.map((house) => [house.name, house.connected, house.connected ? "Connected" : "Not connected"]));
   $("houses").replaceChildren(...(houses.length ? houses.map((house) => {
     const row = element("li"), side = element("span"), remove = element("button", "Remove", "quiet small");

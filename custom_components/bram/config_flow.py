@@ -24,6 +24,7 @@ from .const import (
     CONF_QUIET_TO,
     DEFAULT_PORT,
     DOMAIN,
+    GROUPS,
 )
 from .feed import kind_of
 from .notifier import PREFIX, phones
@@ -61,22 +62,42 @@ class BramConfigFlow(ConfigFlow, domain=DOMAIN):
 
 class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        return self.async_show_menu(step_id="init", menu_options=["see", "alerts"])
+
+    async def async_step_see(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        options = dict(self.config_entry.options)
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
-        options = self.config_entry.options
+            chosen = [e for group in GROUPS for e in user_input.get(group, [])]
+            return self.async_create_entry(data={**options, CONF_ENTITIES: chosen})
         chosen = options.get(CONF_ENTITIES, [])
-        allowed = {s.entity_id for s in self.hass.states.async_all()
-                   if kind_of(s.entity_id, s.attributes.get("device_class"))}
+        kinds = {s.entity_id: kind_of(s.entity_id, s.attributes.get("device_class"))
+                 for s in self.hass.states.async_all()}
+        fields = {}
+        for group, wanted in GROUPS.items():
+            # A chosen device that is missing right now must not be dropped by saving.
+            mine = [e for e in chosen if (kinds.get(e) or kind_of(e, None) or "leak") in wanted]
+            listed = sorted({e for e, k in kinds.items() if k in wanted} | set(mine))
+            # A default would come back after the owner empties the group.
+            fields[vol.Optional(group, description={"suggested_value": mine})] = (
+                selector.EntitySelector(
+                    selector.EntitySelectorConfig(include_entities=listed, multiple=True)))
+        return self.async_show_form(step_id="see", data_schema=vol.Schema(fields))
+
+    async def async_step_alerts(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        options = dict(self.config_entry.options)
+        if user_input is not None:
+            # Emptied quiet hours are turned off.
+            options.pop(CONF_QUIET_FROM, None)
+            options.pop(CONF_QUIET_TO, None)
+            return self.async_create_entry(data={**options, **user_input})
         # A phone that is missing right now stays chosen.
         saved = options.get(CONF_PHONES, [])
         listed = sorted({*phones(self.hass), *saved})
-        return self.async_show_form(step_id="init", data_schema=vol.Schema({
-            vol.Required(CONF_ENTITIES, default=chosen): selector.EntitySelector(
-                selector.EntitySelectorConfig(include_entities=sorted(allowed | set(chosen)),
-                                              multiple=True)),
+        return self.async_show_form(step_id="alerts", data_schema=vol.Schema({
             vol.Required(CONF_PHONES, default=saved): selector.SelectSelector(
                 selector.SelectSelectorConfig(multiple=True, options=[
-                    selector.SelectOptionDict(value=p, label=p.removeprefix(PREFIX))
+                    selector.SelectOptionDict(
+                        value=p, label=p.removeprefix(PREFIX).replace("_", " ").title())
                     for p in listed])),
             vol.Optional(CONF_QUIET_FROM, description={
                 "suggested_value": options.get(CONF_QUIET_FROM)}): selector.TimeSelector(),

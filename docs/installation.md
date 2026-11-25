@@ -46,8 +46,8 @@ Do this right away. Setup closes 15 minutes after the server starts, and until t
 
 1. On BRAM's page: **Settings > Connect a Home Assistant > Get code**.
 2. In Home Assistant: **Settings > Devices & services > Add integration > BRAM**. Enter the server's address, port 8765, and the code. It works once, for 10 minutes.
-3. Open BRAM's options (**Configure**) and choose the entities it may see. Nothing is shared until you do.
-4. Open BRAM's device page. **Server** should say **Connected**. Turn on a light you chose and watch its **Sees** line change.
+3. Open BRAM's options (**Configure > What BRAM can see**) and choose. Nothing is shared until you do.
+4. Open BRAM's device page. **BRAM Server** should say **Connected**. Turn on a light you chose and watch its line change.
 
 ## 5. Choose a model (optional)
 
@@ -61,10 +61,10 @@ See [Alerts and messages](messages.md).
 
 | Part | How |
 |---|---|
-| Server | Portainer: **Pull and redeploy** with **Re-pull image** on. Compose: `docker compose pull`, then `docker compose up -d` |
+| Server | Portainer: recreate the bram container with **Re-pull image** on; without it, Portainer keeps the old one. Compose: `docker compose pull`, then `docker compose up -d` |
 | Integration | HACS: update BRAM, then restart Home Assistant |
 
-Keep both on the same version. The server's is at the bottom of BRAM's home page; the integration's is on its device page. Your login, pairing, and settings are kept in the `bram-data` volume; do not delete it. See [Changes](../CHANGELOG.md).
+Keep both on the same version; BRAM warns on its page and in Home Assistant's Repairs when they differ. The server's is at the bottom of BRAM's home page; the integration's is on its device page. Your login, pairing, and settings are kept in the `bram-data` volume; do not delete it. See [Changes](../CHANGELOG.md).
 
 ## Problems
 
@@ -77,8 +77,8 @@ Keep both on the same version. The server's is at the bottom of BRAM's home page
 | Home Assistant cannot connect | Check the address and that Home Assistant can reach port 8765; get a new code |
 | Home shows Not connected | Wait up to 5 minutes; then search Home Assistant's log for `bram` |
 | Lights or motion sensors are missing from the list | Update the integration and restart Home Assistant |
-| A **Sees** line says Unknown | That device is not reporting to Home Assistant |
-| Every **Sees** line is Unavailable | The server is not connected |
+| A line on the device page says Unknown | That device is not reporting to Home Assistant |
+| Every line is Unavailable | The server is not connected |
 | Find models fails | The server must be able to reach Ollama on port 11434 |
 | Portainer fails to build | Update your copy; the image is now downloaded, not built |
 | Logo is missing | Refresh with Ctrl+F5. Needs Home Assistant 2026.3 or later |

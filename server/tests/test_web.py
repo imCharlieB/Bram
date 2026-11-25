@@ -363,9 +363,12 @@ async def test_pair_and_unpair_from_the_page(page):
     assert code not in json.dumps(page.audit.recent(20))
     headers = {"Authorization": f"Bearer {paired['token']}"}
     async with page.http.ws_connect(page.url + "/feed", ssl=page.pin, headers=headers) as ws:
-        await ws.send_json({"type": "snapshot", "states": []})
+        await ws.receive(timeout=3)  # hello
+        await ws.send_json({"type": "snapshot", "states": [], "version": "0.1.0"})
+        await asyncio.sleep(0.2)
         houses = (await (await page.get("/api/status")).json())["houses"]
-        assert houses == [{"id": paired["house_id"], "name": "Home", "connected": True}]
+        assert houses == [{"id": paired["house_id"], "name": "Home", "connected": True,
+                           "version": "0.1.0"}]
         done, closed = await asyncio.gather(
             page.post("unpair", {"house_id": paired["house_id"], "confirm": PASSWORD}),
             ws.receive(timeout=5))

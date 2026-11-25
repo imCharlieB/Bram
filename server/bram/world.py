@@ -44,6 +44,7 @@ class World:
         self._clock = clock
         self._last_heard: float | None = None
         self._events: dict[str, Event] = {}
+        self.version = ""  # of the Home Assistant side
 
     def heartbeat(self) -> None:
         self._last_heard = self._clock()

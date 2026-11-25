@@ -125,6 +125,7 @@ async def test_house_comes_from_token(srv):
 async def test_bad_message_closes_connection(srv, message):
     house = await paired(srv)
     async with feed(srv, house["token"]) as ws:
+        await ws.receive(timeout=3)  # hello
         await ws.send_str(message)
         reply = await asyncio.wait_for(ws.receive(), 3)
         assert reply.type is aiohttp.WSMsgType.CLOSE
@@ -133,6 +134,7 @@ async def test_bad_message_closes_connection(srv, message):
 async def test_new_connection_replaces_old(srv):
     house = await paired(srv)
     async with feed(srv, house["token"]) as old, feed(srv, house["token"]) as new:
+        await old.receive(timeout=3)  # hello
         assert (await asyncio.wait_for(old.receive(), 3)).type is aiohttp.WSMsgType.CLOSE
         await new.send_json({"type": "snapshot", "states": [STATE]})
         world = srv.app[HOUSES][house["house_id"]][0]
@@ -151,6 +153,7 @@ async def test_belief_is_returned_for_display(srv):
     async with feed(srv, house["token"]) as ws:
         light = {"entity_id": "light.x", "kind": "light", "state": "on"}
         await ws.send_json({"type": "snapshot", "states": [light]})
+        assert (await ws.receive_json(timeout=3))["type"] == "hello"
         assert await ws.receive_json(timeout=3) == {
             "type": "belief", "entity_id": "light.x", "answer": "yes"}
         await ws.send_json({"type": "state", "state": {**light, "state": "unavailable"}})

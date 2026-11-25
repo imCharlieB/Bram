@@ -9,6 +9,7 @@ import signal
 import sys
 import time
 from collections.abc import Callable
+from importlib.metadata import version
 from pathlib import Path
 
 from aiohttp import WSCloseCode, WSMsgType, web
@@ -73,6 +74,7 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
     world, watcher = request.app[HOUSES].setdefault(house_id, _new_house(house_id, audit))
     world.disconnected()
     audit.record(house_id, "feed", "connected", "valid token", "ok")
+    await ws.send_json({"type": "hello", "version": version("bram-core")})
     ready = False
     try:
         async for message in ws:
@@ -87,6 +89,8 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                 if kind == "snapshot":
                     world.disconnected()
                     world.heartbeat()
+                    theirs = data.get("version")
+                    world.version = theirs[:20] if isinstance(theirs, str) else ""
                     for event in [_event(house_id, s) for s in data["states"]]:
                         watcher.handle(event)
                         await _belief(ws, world, event)

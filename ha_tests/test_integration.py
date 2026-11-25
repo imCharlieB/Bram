@@ -1,12 +1,15 @@
 """Integration tests, including the real server over real TLS."""
 import asyncio
+import json
 import re
 from pathlib import Path
 
 import pytest
 from aiohttp import web
+from homeassistant.core import CoreState
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_mock_service
 
 from bram.alerts import Alerts
@@ -16,6 +19,7 @@ from bram.server import HOUSES, SOCKETS, make_app
 from bram.settings import Settings
 from custom_components.bram import gate
 from custom_components.bram.client import InvalidCode, parse_code
+from custom_components.bram.const import GROUPS
 from custom_components.bram.feed import Feed, kind_of
 
 ROOT = Path(__file__).parents[1]
@@ -58,12 +62,23 @@ async def reconnected(hass, entry):
     await until(lambda: entry.runtime_data.connected)
 
 
-async def choose(hass, entry, entities):
+async def options(hass, entry, step, values):
     flow = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"entities": entities, "phones": [], "escalate": False})
+    assert flow["type"] is FlowResultType.MENU
+    flow = await hass.config_entries.options.async_configure(
+        flow["flow_id"], {"next_step_id": step})
+    result = await hass.config_entries.options.async_configure(flow["flow_id"], values)
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await reconnected(hass, entry)
+
+
+async def choose(hass, entry, entities):
+    groups = {"people": [], "doors": [], "safety": [], "motion": [], "lights": []}
+    for entity in entities:
+        state = hass.states.get(entity)
+        kind = kind_of(entity, state and state.attributes.get("device_class"))
+        groups[next((g for g, kinds in GROUPS.items() if kind in kinds), "safety")].append(entity)
+    await options(hass, entry, "see", groups)
 
 
 LEAK, LOCK = "binary_sensor.leak", "lock.a"
@@ -114,7 +129,7 @@ async def test_device_page_shows_what_bram_believes(hass, server):
                      if s.attributes.get("device_class") == "connectivity")
     await choose(hass, entry, ["light.a", "binary_sensor.m"])
     await until(lambda: (s := named(hass, "light.a")) and s.state == "on")
-    assert named(hass, "light.a").name == "BRAM Sees Lamp"
+    assert named(hass, "light.a").name == "BRAM Lamp"
     await until(lambda: named(hass, "binary_sensor.m").state == "clear")
     assert hass.states.get(connected.entity_id).state == "on"
     hass.states.async_set("binary_sensor.m", "on", {"device_class": "motion"})
@@ -129,6 +144,73 @@ async def test_device_page_shows_what_bram_believes(hass, server):
 
     await choose(hass, entry, ["binary_sensor.m"])
     await until(lambda: named(hass, "light.a") is None)
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])
+
+
+async def test_option_pages_keep_each_other(hass, server):
+    async_mock_service(hass, "notify", "mobile_app_phone")
+    hass.states.async_set(LEAK, "off", {"device_class": "moisture"})
+    hass.states.async_set(LOCK, "locked")
+    entry = await start(hass, server)
+    await choose(hass, entry, [LOCK, LEAK])
+    alerts = {"phones": ["mobile_app_phone"], "escalate": True}
+    await options(hass, entry, "alerts", {
+        **alerts, "quiet_from": "22:00:00", "quiet_to": "07:00:00"})
+    assert entry.options["entities"] == [LOCK, LEAK] and entry.options["quiet_from"]
+    # A missing sensor is kept when the page is saved unchanged.
+    hass.states.async_remove(LEAK)
+    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    flow = await hass.config_entries.options.async_configure(
+        flow["flow_id"], {"next_step_id": "see"})
+    shown = {str(k): k.description["suggested_value"] for k in flow["data_schema"].schema}
+    assert shown["safety"] == [LEAK] and shown["doors"] == [LOCK]
+    hass.config_entries.options.async_abort(flow["flow_id"])
+    await options(hass, entry, "see", shown)
+    assert set(entry.options["entities"]) == {LOCK, LEAK}
+    # An emptied group arrives as a missing one, and must stop being shared.
+    await options(hass, entry, "see", {"safety": [LEAK]})
+    assert entry.options["entities"] == [LEAK]
+    assert entry.options["phones"] == ["mobile_app_phone"] and entry.options["escalate"]
+    await options(hass, entry, "alerts", alerts)
+    assert "quiet_from" not in entry.options
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])
+
+
+async def test_version_warning(hass):
+    feed = Feed(hass, MockConfigEntry(domain="bram", options={"entities": ["light.a"]}))
+    feed.version = "0.6.3"
+
+    def issue():
+        found = ir.async_get(hass).async_get_issue("bram", "version")
+        return found and found.translation_key
+
+    def hello(version):
+        feed.handle_message(json.dumps({"type": "hello", "version": version}))
+
+    feed.handle_message('{"type": "belief", "entity_id": "light.a", "answer": "yes"}')
+    assert issue() == "server_outdated"  # too old to say
+    for version, expected in (("0.6.3", None), ("0.6.2", "server_outdated"),
+                              ("0.10.0", "integration_outdated"), ("0.6.3", None)):
+        hello(version)
+        assert issue() == expected
+    for bad in ("<b>1</b>", "1.2", "", 5):
+        hello(bad)
+        assert feed.server_version == "0.6.3"
+
+
+async def test_names_wait_for_startup(hass, server):
+    entry = await start(hass, server)
+    hass.set_state(CoreState.starting)
+    await choose(hass, entry, ["light.a"])
+    assert named(hass, "light.a") is None
+    hass.states.async_set("light.a", "on", {"friendly_name": "Lamp"})
+    hass.set_state(CoreState.running)
+    hass.bus.async_fire("homeassistant_started")
+    await hass.async_block_till_done()
+    await until(lambda: named(hass, "light.a"))
+    assert named(hass, "light.a").name == "BRAM Lamp"
     await hass.config_entries.async_unload(entry.entry_id)
     await until(lambda: not server[0][SOCKETS])
 
@@ -161,11 +243,9 @@ async def test_escalation_reaches_the_server(hass, server):
 async def test_test_button(hass, server):
     calls = async_mock_service(hass, "notify", "mobile_app_phone")
     entry = await start(hass, server)
-    flow = await hass.config_entries.options.async_init(entry.entry_id)
-    await hass.config_entries.options.async_configure(flow["flow_id"], {
-        "entities": [], "phones": ["mobile_app_phone"], "escalate": False,
+    await options(hass, entry, "alerts", {
+        "phones": ["mobile_app_phone"], "escalate": False,
         "quiet_from": "22:00:00", "quiet_to": "07:00:00"})
-    await reconnected(hass, entry)
     button = "button.bram_send_test_message"
     await hass.services.async_call("button", "press", {"entity_id": button}, blocking=True)
     assert calls[0].data["message"] == "This is a test message."

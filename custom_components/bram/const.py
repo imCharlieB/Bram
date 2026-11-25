@@ -18,6 +18,11 @@ MEANING = {
     "motion": ("detected", "clear"),
     "light": ("on", "off"),
 }
+# How BRAM's options group what it may see.
+GROUPS = {
+    "people": ("person",), "doors": ("lock", "opening"), "safety": ("leak", "smoke"),
+    "motion": ("motion",), "lights": ("light",),
+}
 ICON = {
     "person": "mdi:account-eye", "lock": "mdi:lock", "leak": "mdi:water-alert",
     "smoke": "mdi:smoke-detector", "opening": "mdi:door", "motion": "mdi:motion-sensor",

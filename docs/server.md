@@ -52,9 +52,9 @@ People, locks, lights, and motion, occupancy, presence, leak, smoke, door, windo
 
 ## Device page
 
-**Settings > Devices & services > BRAM** shows whether the server is connected, plus one **Sees ...** sensor per chosen entity. Each shows what the server believes, so you can turn on a light and watch it change. *Unknown* means BRAM cannot tell; *unavailable* means it is not connected.
+**Settings > Devices & services > BRAM** shows whether the server is connected, plus one sensor per chosen entity. Each shows what the server believes, so you can turn on a light and watch it change. *Unknown* means BRAM cannot tell; *unavailable* means it is not connected.
 
-BRAM does not store light, motion, or presence activity. Home Assistant's own history records the **Sees** sensors like any other sensor.
+BRAM does not store light, motion, or presence activity. Home Assistant's own history records these sensors like any other sensor.
 
 ## Security
 
