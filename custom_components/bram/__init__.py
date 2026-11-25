@@ -16,6 +16,7 @@ from .home_alerts import HomeAlerts
 from .house_rules import HouseRules
 from .learning import Learner
 from .outbox import Outbox
+from .problem_watch import ProblemWatch
 from .security_watch import SecurityWatch
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CONVERSATION,
@@ -40,6 +41,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(Digest(hass, entry, feed).start())
     feed.rules = HouseRules(hass, entry, feed.note)
     entry.async_on_unload(await feed.rules.start())
+    feed.problems = ProblemWatch(hass, entry, feed.rules.is_night, feed.note)
+    entry.async_on_unload(await feed.problems.start())
     feed.learner = Learner(hass, entry, feed)
     entry.async_on_unload(await feed.learner.start())
     entry.async_on_unload(await SecurityWatch(hass, entry, feed.note).start())
@@ -55,5 +58,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Delete everything BRAM kept here."""
-    for part in ("", ".rules", ".security", ".learned", ".outbox"):
+    for part in ("", ".rules", ".security", ".learned", ".outbox", ".problems"):
         await Store(hass, 1, f"{DOMAIN}.{entry.entry_id}{part}").async_remove()

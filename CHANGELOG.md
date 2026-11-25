@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.26.0
+
+- BRAM finds problems with Home Assistant by itself: failed integrations, repeating errors, repairs, low batteries, offline devices, stuck sensors, broken automations, old backups, and a full disk. Told once, and again when fixed. Off until you turn it on.
+- Configure: "What chat may look up" is now "What BRAM may look into", and "Watch locks, doors, and security" is "What BRAM watches for".
+
 ## 0.25.1
 
 - The HACS page explains what BRAM does, how to install and use it, what to ask, and what to try when something is wrong, with pictures.

@@ -32,8 +32,8 @@ def history_lines(name: str, result: dict | None) -> list[str]:
     if result is None or result.get("error"):
         off = result is not None and result.get("error") == "off"
         return [f"History of {name}: " + (
-            "turned off; the owner can turn it on in Home Assistant, BRAM, Configure, What chat "
-            "may look up" if off else "could not be read")]
+            "turned off; the owner can turn it on in Home Assistant, BRAM, Configure, What BRAM "
+            "may look into" if off else "could not be read")]
     changes = _changes(result)
     days = _text(result.get("days"), 4)
     if not changes:
@@ -64,8 +64,8 @@ def problem_lines(name: str, result: dict | None) -> list[str]:
     if result is None or result.get("error"):
         off = result is not None and result.get("error") == "off"
         return [f"Home Assistant problems in {name}: " + (
-            "turned off; the owner can turn it on in Home Assistant, BRAM, Configure, What chat "
-            "may look up" if off else "could not be read")]
+            "turned off; the owner can turn it on in Home Assistant, BRAM, Configure, What BRAM "
+            "may look into" if off else "could not be read")]
     lines = [f"Home Assistant problems in {name}. Any cause you suggest is a guess; say so:"]
     for e in _list(result.get("errors"), 12):
         if isinstance(e, dict):
@@ -92,8 +92,8 @@ def security_lines(name: str, result: dict | None) -> list[str]:
     if result is None or result.get("error"):
         off = result is not None and result.get("error") == "off"
         return [f"Security check of {name}: " + (
-            "turned off; the owner can turn it on in Home Assistant, BRAM, Configure, What chat "
-            "may look up" if off else "could not be read")]
+            "turned off; the owner can turn it on in Home Assistant, BRAM, Configure, What BRAM "
+            "may look into" if off else "could not be read")]
     found = _findings(result)
     missed = ", ".join(_text(x, 60) for x in _list(result.get("not_checked"), 20))
     return [f"Security check of {name}, Home Assistant only. Never say it is secure or safe, even "

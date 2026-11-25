@@ -8,8 +8,8 @@ In **Settings > Devices & services > BRAM > Configure**:
 
 | Where | Setting | Does |
 |---|---|---|
-| What chat may look up | Security check of Home Assistant | Lets you ask "Is my home secure?" |
-| Watch locks, doors, and security | The security check finds something new | Checks every hour and messages your phones once |
+| What BRAM may look into | Security check of Home Assistant | Lets you ask "Is my home secure?" |
+| What BRAM watches for | The security check finds something new | Checks every hour and messages your phones once |
 
 Both are off by default. The hourly check first learns what is already there, so only later changes are messages. Quiet hours hold everything except new accounts, new tokens, and an unencrypted outside address.
 

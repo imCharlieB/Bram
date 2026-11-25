@@ -50,8 +50,8 @@ Any local Ollama chat model can be tried. Bigger models usually follow instructi
 | Add devices quickly | Share many at once, by type and **area** |
 | What BRAM can see | Add or remove one by one |
 | Phone alerts and quiet hours | Choose phones, quiet hours, daily summary, and the fallback |
-| Watch locks, doors, and security | Choose rules, night hours, left-open time, and the hourly security check |
-| What chat may look up | Allow history, problems, and the security check |
+| What BRAM watches for | [Home Assistant problems](problems.md), lock and door rules, night hours, left-open time, and the hourly security check |
+| What BRAM may look into | Let the server read history, problems, and the security check |
 | Learning | Let BRAM suggest better hours, undo, or delete |
 
 On the device page: **Mood**, **Visit**, **Send test message**, and **Allow stopped messages**.

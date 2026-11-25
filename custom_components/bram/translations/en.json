@@ -51,7 +51,7 @@
     "step": {
       "init": {
         "title": "BRAM",
-        "menu_options": {"basic": "Recommended setup", "suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "rooms": "Fix a person's room (rarely needed)", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors", "chat": "What chat may look up", "learn": "Learning"}
+        "menu_options": {"basic": "Recommended setup", "suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "rooms": "Fix a person's room (rarely needed)", "alerts": "Phone alerts and quiet hours", "watch": "What BRAM watches for", "chat": "What BRAM may look into", "learn": "Learning"}
       },
       "basic": {
         "title": "Recommended setup",
@@ -62,7 +62,8 @@
           "night": "Tell me if a lock is unlocked at night (10 PM to 6 AM)",
           "left_open": "Tell me if a door is left open (10 minutes)",
           "offline": "Tell me if a lock or door sensor goes offline",
-          "share_history": "Let chat look up history of what BRAM can see",
+          "problem_watch": "Tell me about problems with Home Assistant",
+          "share_history": "Let BRAM look into the history of what it can see",
           "summary": "Send a daily summary (8 AM)"
         }
       },
@@ -91,8 +92,8 @@
         "description": "You usually do not need this: BRAM finds these by itself. Change one only if a person shows the wrong room. Each is the sensor that says which room they are in."
       },
       "chat": {
-        "title": "What chat may look up",
-        "description": "History covers only devices BRAM can see. Problems sends short summaries of errors, repairs, low batteries, and updates, with passwords, tokens, and addresses removed. Removal cannot catch everything. The security check sends findings and device names, never account names.",
+        "title": "What BRAM may look into",
+        "description": "Lets the BRAM Server read more than the live state, to answer you and to fill its own history. BRAM finds problems by itself without these; see What BRAM watches for. History covers only devices BRAM can see. Problems sends short summaries of errors, repairs, low batteries, and updates, with passwords, tokens, and addresses removed. Removal cannot catch everything. The security check sends findings and device names, never account names.",
         "data": {
           "share_history": "History of the devices BRAM can see, 10 days",
           "share_problems": "Home Assistant problems",
@@ -109,9 +110,10 @@
         }
       },
       "watch": {
-        "title": "Watch locks, doors, and security",
-        "description": "Covers the locks and doors BRAM can see. Night and away messages ignore quiet hours. Away counts only the people BRAM can see, so add everyone who lives here first.",
+        "title": "What BRAM watches for",
+        "description": "Problems covers all of Home Assistant, and sends what it finds to the BRAM Server, with passwords, tokens, and addresses removed; removal cannot catch everything. Lock and door rules cover what BRAM can see. Night and away messages ignore quiet hours. Away counts only the people BRAM can see, so add everyone who lives here first.",
         "data": {
+          "problem_watch": "Problems with Home Assistant: integrations, errors, batteries, offline devices, automations, backups",
           "night": "A lock is unlocked at night",
           "away": "Something is open or unlocked while everyone is away",
           "left_open": "A door, window, or garage is left open",

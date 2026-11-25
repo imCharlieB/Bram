@@ -17,7 +17,7 @@ It can read the devices you chose, send messages, and talk. **It cannot control 
 | A malicious website | Requests from other sites are refused; only the page's own scripts run |
 | A stolen session cookie | Hidden from scripts and sent only over encryption; changing the password ends other sessions |
 | A fake server or house | Certificate pinning and a secret token in each direction |
-| A hijacked server | Can send the integration words and display values, and read shared devices' history or problem summaries if those are turned on. Nothing else |
+| A hijacked server | Can send the integration words and display values, see what it was sent, and read shared devices' history, problems, or the security check if those are turned on. Nothing else |
 | Secrets in logs | Only short, grouped summaries leave Home Assistant, with passwords, tokens, accounts, and addresses removed there. Removal cannot catch everything; it is off by default |
 | A tricked model | It has no tools, and device names and other text are marked as data |
 | Data leaving home | Models, speech, and monitors must be on the local network. Telegram is the exception and is off by default |

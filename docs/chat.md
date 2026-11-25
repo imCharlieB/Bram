@@ -8,7 +8,8 @@ Type to BRAM on its home page. It uses the model and personality from **Settings
 | Answer general questions from the model's own knowledge | Search the internet, see cameras, or set reminders |
 | Keep up with the current conversation | Remember it later |
 
-- **It can look things up if you let it.** In **BRAM > Configure > What chat may look up**:
+- BRAM [finds problems](problems.md) by itself; chat is for asking about them.
+- **It can look things up if you let it.** In **BRAM > Configure > What BRAM may look into**:
 
 | Turn on | Ask | It reads |
 |---|---|---|

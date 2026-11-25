@@ -41,7 +41,7 @@ In **Phone alerts and quiet hours**, set **Daily summary at**. Once a day it lis
 
 ## Watching locks and doors
 
-**BRAM > Configure > Watch locks, doors, and security.** All are off until you turn them on, and cover only the locks, doors, windows, and garage doors BRAM can see.
+**BRAM > Configure > What BRAM watches for.** For problems with Home Assistant, see [Problems](problems.md). The lock and door rules are off until you turn them on, and cover only the locks, doors, windows, and garage doors BRAM can see.
 
 | Choice | Tells you when | In quiet hours |
 |---|---|---|

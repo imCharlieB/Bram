@@ -17,6 +17,7 @@ CONF_LEARN = "learn"
 CONF_WEEKEND_FROM = "weekend_night_from"
 CONF_WEEKEND_TO = "weekend_night_to"
 CONF_SECURITY = "share_security"
+CONF_PROBLEM_WATCH = "problem_watch"
 CONF_SECURITY_WATCH = "security_watch"
 # What "yes" and "no" mean for each kind BRAM understands.
 MEANING = {

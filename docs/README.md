@@ -19,6 +19,7 @@
 ## How it works
 
 - [Architecture](architecture.md)
+- [Problems with Home Assistant](problems.md)
 - [Security check](security-check.md)
 - [Learning](learning.md)
 - [Findings](findings.md)

@@ -91,6 +91,7 @@ class Feed:
         self.rules: Any = None
         self.learner: Any = None
         self.outbox: Any = None
+        self.problems: Any = None
         self._queue: asyncio.Queue[dict] | None = None
         self._queries: set[asyncio.Task] = set()
         self._asked: dict[str, asyncio.Future[str]] = {}

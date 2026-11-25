@@ -106,14 +106,16 @@ BRAM looks by itself. Plain rules decide what is a problem. One finding per prob
 
 | Finds | Status |
 |---|---|
-| Integration failed to start or keeps retrying | ⬜ |
-| The same error repeating, or a new one appearing often | ⬜ |
-| New repairs | ⬜ |
-| Low batteries, and phone battery low at night | ⬜ |
-| Devices or whole integrations gone offline; sensors stuck on one value | ⬜ |
-| Automations that fail, are off, or name devices that do not exist | ⬜ |
-| Backups missing or old, disk, memory, database size | ⬜ |
-| Updates waiting | 🟡 Home Assistant itself; the rest when asked |
+| Integration failed to start or keeps retrying | ✅ [Problems](problems.md) |
+| The same error repeating | ✅ |
+| New repairs | ✅ |
+| Low batteries, and phone battery low at night | ✅ |
+| Devices or whole integrations gone offline; temperature and humidity sensors stuck on one value | ✅ |
+| Automations that could not be loaded or name devices that do not exist | ✅ |
+| Automations that fail when they run | 🟡 as a repeating error |
+| Backups old, disk almost full, database size | ✅ |
+| Memory | ⬜ |
+| Updates waiting | ✅ listed only |
 
 ### Home
 

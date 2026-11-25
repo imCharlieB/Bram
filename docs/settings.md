@@ -16,7 +16,8 @@
 | | Quiet from, quiet until | Off |
 | | Daily summary at | Off |
 | | Use Telegram and ntfy after 5 unanswered minutes | Off |
-| Watch locks, doors, and security | Unlocked at night | Off |
+| What BRAM watches for | Problems with Home Assistant | Off; on in Recommended setup |
+| | Unlocked at night | Off |
 | | Open or unlocked while away | Off |
 | | Left open | Off |
 | | Offline | Off |
@@ -24,7 +25,7 @@
 | | Night starts, night ends | 10 PM, 6 AM |
 | | Friday and Saturday night starts, ends | Same as other nights |
 | | Left open minutes | 10 |
-| What chat may look up | History of the devices BRAM can see | Off |
+| What BRAM may look into | History of the devices BRAM can see | Off |
 | | Home Assistant problems | Off |
 | | Security check of Home Assistant | Off |
 | Learning | Suggest better hours | Off |
