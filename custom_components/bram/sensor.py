@@ -6,7 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import MEANING
+from .const import ICON, MEANING
 from .entity import BramEntity
 
 
@@ -16,8 +16,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
 
 
 class Belief(BramEntity, SensorEntity):
-    _attr_icon = "mdi:eye-outline"
-
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, source: str) -> None:
         super().__init__(entry, source)
         self._source = source
@@ -28,6 +26,10 @@ class Belief(BramEntity, SensorEntity):
     @property
     def available(self) -> bool:
         return self._feed.connected and self._source in self._feed.beliefs
+
+    @property
+    def icon(self) -> str:
+        return ICON.get(self._feed.kind(self._source) or "", "mdi:eye-outline")
 
     @property
     def native_value(self) -> str | None:

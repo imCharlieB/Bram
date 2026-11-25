@@ -20,4 +20,6 @@ The integration tests need Python 3.14 and Linux (or CI):
     pip install -e server
     python -m pytest ha_tests -o asyncio_mode=auto
 
+To redraw the logo: `pip install pillow`, then `python scripts/make_brand.py BOLD_FONT.ttf`.
+
 `rule_coverage.py` reports hard rules without a tagged test and, with `--release`, fails if any remain. It cannot judge whether a test truly proves its rule; reviewers must. See [Safety rules](../HARD_RULES.md).

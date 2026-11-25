@@ -14,4 +14,9 @@ MEANING = {
     "motion": ("detected", "clear"),
     "light": ("on", "off"),
 }
+ICON = {
+    "person": "mdi:account-eye", "lock": "mdi:lock", "leak": "mdi:water-alert",
+    "smoke": "mdi:smoke-detector", "opening": "mdi:door", "motion": "mdi:motion-sensor",
+    "light": "mdi:lightbulb",
+}
 DEFAULT_PORT = 8765

@@ -66,6 +66,7 @@ One server image, two packages: an HA App (HA OS/Supervised) and Docker Compose 
 | Feature | BRAM design | Milestone |
 |---|---|---|
 | Proactive outreach | Section 5 | M2 |
+| Personality modes | Section 5, Personality modes; wording only | M3 |
 | Conversational control | Assist conversation agent; every action through the gate | M3 |
 | Streaming replies | Word-by-word where HA supports it; success is claimed only after confirmation | M3 |
 | Long-term memory (optional) | Section 6 | M4 |
@@ -97,6 +98,35 @@ candidate → policy (code) → compose (model, fixed-text fallback) → deliver
 - **Cost control:** rules decide before any model call; similar events are batched; daily model budget.
 
 Safety alerts use a separate path that skips policy and composition.
+
+### Settings
+
+| Where | What |
+|---|---|
+| Home Assistant, BRAM's options | Entities, tiers, HA phone and speaker delivery, and **quiet hours for Home Assistant delivery only** |
+| BRAM config page, on the server | Model, people, personality, memory, other connectors and their own quiet hours, audit log |
+
+Each connector owns its own quiet hours; they never affect another connector or any safety alert. The config page is off until the owner creates a password, is encrypted, locks out repeated failures, and cannot lower a tier or approve an action: those stay in Home Assistant.
+
+### Personality modes
+
+Chosen per person at setup and changeable at any time. A mode changes wording only.
+
+| Mode | Style |
+|---|---|
+| Professional (default) | Brief and polite |
+| Friendly | Warm and casual |
+| Dry | Deadpan and sarcastic |
+| Minimal | As few words as possible |
+| Unhinged | Full cussing, no holds barred |
+| Custom | The person's own description |
+
+- Modes never change permissions, approvals, facts, limits, or when BRAM speaks. Custom text is style only and is treated as data.
+- Safety alerts, approval requests, and PIN prompts always use their fixed text.
+- Unhinged is opt-in per adult and used only in that person's private channels. Shared speakers and displays, guests, children, and unidentified speakers get the room's mode, Professional by default. The owner can allow Unhinged for a room.
+- Unhinged may roast the person who chose it. It does not use slurs, threats, or sexual content about real people, and does not target anyone else in the home.
+- If BRAM is unsure who is listening, or a safety event is active, it uses Professional.
+- How far a mode goes depends on the chosen model. The setup screen shows a sample.
 
 ## 6. Memory
 
