@@ -7,7 +7,7 @@ const STORY = {
   connected: "Home Assistant connected", disconnected: "Home Assistant disconnected", paired: "A home was paired",
   unpaired: "A home was removed", "signed in": "You signed in", "login refused": "Someone entered a wrong login",
   "setup refused": "A setup attempt was refused", "settings saved": "Settings changed", "login created": "Your login was created",
-  "code created": "A pairing code was made", "password changed": "Your password changed", "username changed": "Your username changed",
+  "code created": "A pairing code was made", "password changed": "Your password changed", "second factor on": "Second factor turned on", "second factor off": "Second factor turned off", "username changed": "Your username changed",
   "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "monitor removed": "A monitor was removed",
 };
 const ALARMING = new Set(["login refused", "setup refused", "disconnected", "alert", "send failed"]);
@@ -225,7 +225,8 @@ async function loadSettings() {
 }
 
 async function loadProfile() {
-  const { user, sessions } = await api("profile");
+  const { user, sessions, factor } = await api("profile");
+  showFactor(factor);
   for (const id of ["nav-user", "profile-user"]) $(id).textContent = user;
   for (const id of ["avatar", "avatar-big"]) $(id).textContent = ([...user][0] || "?").toUpperCase();
   $("sessions").textContent = sessions === 1 ? "this device only" : `${sessions} devices`;
@@ -705,6 +706,8 @@ async function openPage() {
   $("sample").hidden = true;
   $("tg-link-box").hidden = true;
   $("change-form").reset();
+  $("factor-codes").hidden = true;
+  $("factor-recovery").textContent = "";
   for (const node of document.querySelectorAll("#pages .message")) say(node.id, "");
   scrollTo(0, 0);
   try {
@@ -737,9 +740,16 @@ onSubmit("setup-form", "create", "setup-message", async () => {
 });
 
 onSubmit("login-form", "signin", "login-message", async () => {
-  const password = $("password").value;
-  $("password").value = "";
-  await api("login", { user: $("user").value, password });
+  const { need_code } = await api("login", {
+    user: $("user").value, password: $("password").value, code: $("login-code").value,
+  });
+  if (need_code) {
+    $("login-code-box").hidden = false;
+    $("login-code").focus();
+    return "Enter your code";
+  }
+  $("login-form").reset();
+  $("login-code-box").hidden = true;
   await start();
 });
 
@@ -941,6 +951,47 @@ onSubmit("name-form", "rename", "name-message", async () => {
   $("name-form").reset();
   await loadProfile();
   return "Changed. Every other device has been signed out.";
+});
+
+let factorOn = false;
+
+function showFactor(on) {
+  factorOn = on;
+  $("factor-note").textContent = on
+    ? "On. Signing in needs a code from your phone. To turn it off, enter a code."
+    : "Off. Add a code from an authenticator app to signing in. BRAM will need this before it can control anything.";
+  $("factor-start").hidden = on;
+  $("factor-form").hidden = !on;
+  $("factor-go").textContent = on ? "Turn off" : "Turn on";
+  $("factor-setup").hidden = true;
+  $("factor-secret").textContent = "";
+  $("factor-qr").removeAttribute("src");
+  $("factor-form").reset();
+}
+
+onClick("factor-start", "factor-message", async () => {
+  const confirm = await askPassword("This adds a second step to signing in.");
+  const { secret } = await api("factor-start", { confirm });
+  $("factor-secret").textContent = secret;
+  $("factor-qr").src = "/api/factor-qr?" + Date.now();
+  $("factor-setup").hidden = $("factor-form").hidden = false;
+  $("factor-start").hidden = true;
+});
+
+onSubmit("factor-form", "factor-go", "factor-message", async () => {
+  const code = $("factor-code").value;
+  if (factorOn) {
+    const confirm = await askPassword("Turn off the second factor?");
+    await api("factor-off", { confirm, code });
+    $("factor-codes").hidden = true;
+    showFactor(false);
+    return "Turned off.";
+  }
+  const { recovery } = await api("factor-on", { code });
+  showFactor(true);
+  $("factor-recovery").textContent = recovery.join("\n");
+  $("factor-codes").hidden = false;
+  return "Turned on. Every other device has been signed out.";
 });
 
 onSubmit("change-form", "change", "change-message", async () => {

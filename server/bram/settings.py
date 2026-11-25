@@ -76,7 +76,14 @@ class Settings:
 
     def reset_login(self) -> None:
         with self._db:
-            self._db.execute("DELETE FROM setting WHERE key = '_login'")
+            self._db.execute("DELETE FROM setting WHERE key IN ('_login', '_factor')")
+
+    def factor(self) -> dict[str, Any] | None:
+        """The second factor. Never returned by the config page."""
+        return self._get("_factor")
+
+    def set_factor(self, record: dict[str, Any] | None) -> None:
+        self._set({"_factor": record})
 
     def close(self) -> None:
         self._db.close()

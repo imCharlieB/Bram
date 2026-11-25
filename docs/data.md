@@ -9,6 +9,7 @@ One SQLite file, plus a key and certificate, in the data folder.
 | Stored | Why | Protected by |
 |---|---|---|
 | Login | Sign in | Password is salted and hashed |
+| Second factor, if on | Sign in | Key is **plain**; recovery codes are hashed |
 | Paired homes | Recognize your Home Assistant | Tokens are hashed |
 | Settings, monitors | | |
 | Telegram token and account number | Send messages | **Plain**; protect the folder |

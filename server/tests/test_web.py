@@ -68,7 +68,9 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),
            ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
            ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),
-           ("POST", "unmute"), ("GET", "profile"), ("POST", "username"), ("POST", "logout-others"),
+           ("POST", "unmute"), ("GET", "profile"), ("POST", "factor-start"),
+           ("GET", "factor-qr"), ("POST", "factor-on"), ("POST", "factor-off"),
+           ("POST", "username"), ("POST", "logout-others"),
            ("POST", "pair"), ("POST", "password"),
            ("POST", "unpair")]
 
@@ -170,7 +172,7 @@ async def test_profile_username_and_other_devices(page):
 
         await other_signed_in()
         profile = await (await page.get("/api/profile")).json()
-        assert profile == {"user": "Owner", "sessions": 2}
+        assert profile == {"user": "Owner", "sessions": 2, "factor": False}
         assert (await page.post("logout-others", {})).status == 200
         assert await other_status() == 401 and (await page.get("/api/status")).status == 200
         await other_signed_in()

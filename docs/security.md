@@ -12,6 +12,7 @@ It can read the devices you chose, send messages, and talk. **It cannot control 
 |---|---|
 | Someone claims a new server | Setup closes after 15 minutes and works once. Until then, whoever opens the page first can claim it |
 | Password guessing | 5 tries per address and 20 in all, then 15 minutes locked. Passwords are salted and hashed with scrypt |
+| A stolen password | With the second factor on, signing in also needs a code from your phone. Each code works once, and wrong codes count toward the lockout |
 | An unattended browser | Sensitive changes ask for the password again; sessions end after 30 idle minutes or 12 hours |
 | A malicious website | Requests from other sites are refused; only the page's own scripts run |
 | A stolen session cookie | Hidden from scripts and sent only over encryption; changing the password ends other sessions |
@@ -31,7 +32,7 @@ It can read the devices you chose, send messages, and talk. **It cannot control 
 - Someone on your network can trigger the sign-in lockout. Open sessions keep working.
 - Whisper, Piper, ntfy, and Ollama have no encryption or login here. Keep their ports on your own network.
 - Anyone who can use a voice assistant set to BRAM can ask about that home.
-- There is no second factor yet. One is required before BRAM can control anything.
+- The second factor is off until you turn it on. Its key is stored unencrypted in the data folder, as every server that checks these codes must keep it.
 
 ## Reporting a problem
 

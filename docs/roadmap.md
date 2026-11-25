@@ -31,9 +31,10 @@ Network details are pseudonymized before any model sees them. No active scanning
 
 ## 3. Control
 
+The second factor for the config page is built. Control will require it to be on.
+
 | Feature | Notes |
 |---|---|
-| Second factor for the config page | Before any control |
 | Safety test for the chosen model | Before any control |
 | Allowlisted lights, then other comfort devices | Everything else is refused; results are confirmed |
 | Off switch in Home Assistant | Works without the server |

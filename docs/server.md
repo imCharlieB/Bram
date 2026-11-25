@@ -10,7 +10,7 @@ Everyday setup happens on the config page. These commands are for running the se
 |---|---|
 | `run` | Start the server |
 | `pair --name NAME` | Print a one-time code for a Home Assistant, valid 10 minutes |
-| `reset-login` | Remove a forgotten config page login. Restart the server, then set it up again |
+| `reset-login` | Remove a forgotten config page login and its second factor. Restart the server, then set it up again |
 | `houses` | List paired houses |
 | `unpair HOUSE_ID` | Remove a house |
 | `log [HOUSE_ID]` | Print the audit log, including what BRAM noticed and sent. The ID is optional with one house |
@@ -35,7 +35,7 @@ To set it up, see [Installing](installation.md) and [Alerts and messages](messag
 | Messages | Telegram, ntfy, and monitors |
 | Settings | Homes, model, personality, and [voice](voice.md) |
 | Log | Everything BRAM recorded, with filters |
-| Profile | Username, password, and signed-in devices |
+| Profile | Username, password, second factor, and signed-in devices |
 
 The page cannot control anything, change what BRAM may do, or approve actions. **Try it** sends your model one invented sentence and nothing about your home.
 
@@ -44,6 +44,8 @@ The page cannot control anything, change what BRAM may do, or approve actions. *
 - Pairing, removing a home, changing the model, and changing the username or password ask for the password again.
 - Sessions end after 30 minutes idle or 12 hours.
 - Five wrong passwords from one address, or 20 in all, lock sign-in for 15 minutes. Resetting the login signs everyone out.
+- **Second factor:** **Profile > Second factor > Set up**. Scan the code with any authenticator app, enter what it shows, and save the eight recovery codes. Signing in then needs your password and a code. It also signs out every other device. Your phone and the server must have the right time.
+- Lost your phone: sign in with a recovery code, turn the second factor off, and set it up again. Lost those too: use `reset-login`.
 - Alerts use fixed wording, so personality affects only chat and **Try it**.
 
 ## Security

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.22.0
+
+- Optional second factor for signing in to BRAM's page: authenticator app codes, with recovery codes.
+
 ## 0.21.0
 
 - BRAM can suggest better night hours and left-open time from your activity, for you to approve in Repairs. Off by default.

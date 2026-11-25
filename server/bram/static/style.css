@@ -112,7 +112,8 @@ input[type=checkbox] { width: auto; margin-right: 8px; accent-color: var(--cyan)
 .quiet-row label { margin: 0; }
 .quiet-row select { flex: 0 1 110px; min-width: 90px; }
 #ntfy-topic { margin: 4px 0; overflow-x: auto; }
-#ntfy-qr { flex: none; border-radius: 12px; }
+#ntfy-qr, #factor-qr { flex: none; border-radius: 12px; }
+#factor-secret { overflow-wrap: anywhere; }
 #ntfy-help { flex-wrap: wrap; margin-top: 16px; }
 #modes { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-top: 12px; }
 #modes label { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }

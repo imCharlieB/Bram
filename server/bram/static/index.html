@@ -47,6 +47,10 @@
       <input id="user" autocomplete="username" required>
       <label for="password">Password</label>
       <input id="password" type="password" autocomplete="current-password" required>
+      <div id="login-code-box" hidden>
+        <label for="login-code">Code from your authenticator app, or a recovery code</label>
+        <input id="login-code" autocomplete="one-time-code" maxlength="40">
+      </div>
       <button id="signin">Sign in</button>
     </form>
     <p class="message" id="login-message" role="alert"></p>
@@ -404,6 +408,28 @@
           <button id="change" class="quiet">Change password</button>
         </form>
         <p class="message" id="change-message" role="status"></p>
+      </div>
+      <div class="card">
+        <h2>Second factor</h2>
+        <p class="note" id="factor-note"></p>
+        <div id="factor-setup" hidden>
+          <p class="note">Scan this with an authenticator app such as Aegis or Google Authenticator, then enter the code it shows.</p>
+          <img id="factor-qr" alt="QR code for an authenticator app" width="190" height="190">
+          <p class="note">Or type this key: <code id="factor-secret"></code></p>
+        </div>
+        <div id="factor-codes" hidden>
+          <p class="note">Save these recovery codes somewhere safe. Each works once if you lose your phone. They are not shown again.</p>
+          <pre id="factor-recovery"></pre>
+        </div>
+        <form id="factor-form" hidden>
+          <label for="factor-code">Code</label>
+          <div class="row">
+            <input id="factor-code" autocomplete="one-time-code" maxlength="40" required>
+            <button id="factor-go" class="quiet">Continue</button>
+          </div>
+        </form>
+        <button id="factor-start" class="quiet" hidden>Set up</button>
+        <p class="message" id="factor-message" role="status"></p>
       </div>
       <div class="card">
         <h2>Signed-in devices</h2>

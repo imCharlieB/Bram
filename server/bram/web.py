@@ -16,6 +16,7 @@ from zoneinfo import available_timezones
 import segno
 from aiohttp import web
 
+from . import second_factor
 from .alerts import Alerts, Outgoing
 from .audit import KINDS, Audit
 from .channels import TOKEN, ChannelError, Ntfy, Telegram, new_topic
@@ -50,6 +51,10 @@ FILES = {"": "index.html", "app.js": "app.js", "style.css": "style.css", "icon.p
          "recorder.js": "recorder.js", "deck.js": "deck.js", "deck.css": "deck.css"}
 
 
+wall = time.time
+FACTOR_WINDOW = 600
+
+
 class ConfigPage:
     def __init__(self, settings: Settings, pairing: Pairing, audit: Audit,
                  fingerprint: str, connected: Callable[[], set[str]],
@@ -77,6 +82,7 @@ class ConfigPage:
         self._sessions: dict[str, tuple[float, float, str]] = {}
         self._failures: dict[str, tuple[int, float]] = {}
         self._login_lock = asyncio.Lock()
+        self._new_factor: tuple[str, float] | None = None
         self._sample_lock = asyncio.Lock()
 
     def routes(self) -> list[web.RouteDef]:
@@ -86,6 +92,10 @@ class ConfigPage:
             web.post("/api/setup", self._setup),
             web.get("/api/profile", self._private(self._profile)),
             web.post("/api/username", self._private(self._change_username)),
+            web.post("/api/factor-start", self._confirmed(self._factor_start)),
+            web.get("/api/factor-qr", self._private(self._factor_qr)),
+            web.post("/api/factor-on", self._private(self._factor_on)),
+            web.post("/api/factor-off", self._private(self._factor_off)),
             web.post("/api/logout-others", self._private(self._logout_others)),
             web.post("/api/password", self._private(self._change_password)),
             web.get("/api/speech", self._private(self._get_speech)),
@@ -156,14 +166,16 @@ class ConfigPage:
         if not _same_origin(request):
             return _json({"error": "Request refused"}, 403)
         body = await _body(request)
-        refused = await self._check(request, body.get("user"), body.get("password"))
+        refused = await self._check(request, body.get("user"), body.get("password"),
+                                    code=body.get("code"), both=True)
         if refused is not None:
             return refused
         self._audit.record("server", "config page", "signed in", "correct login", "ok")
         return self._start_session(self._settings.login_record() or "")
 
     async def _check(self, request: web.Request, user: object,
-                     password: object) -> web.Response | None:
+                     password: object, *, code: object = None,
+                     both: bool = False) -> web.Response | None:
         """Check a login. Returns the refusal, or None when it is right."""
         who = request.remote or ""
         # One at a time, so guesses cannot run in parallel.
@@ -181,7 +193,20 @@ class ConfigPage:
                 self._audit.record("server", "config page", "login refused", "wrong login",
                                    "refused")
                 return _json({"error": "Wrong username or password"}, 403)
-            self._failures.pop(who, None)
+            record = self._settings.factor() if both else None
+            if record is not None:
+                if not code:
+                    # Not a failure, but it does not clear earlier ones either.
+                    return _json({"need_code": True})
+                used = second_factor.check(record, code, wall())
+                if used is None:
+                    self._failures[who] = (count + 1, now)
+                    self._audit.record("server", "config page", "login refused", "wrong code",
+                                       "refused")
+                    return _json({"error": "Wrong code"}, 403)
+                self._settings.set_factor(used)
+            if both or self._settings.factor() is None:
+                self._failures.pop(who, None)
         return None
 
     def _confirmed(self, handler: Callable) -> Callable:
@@ -214,6 +239,63 @@ class ConfigPage:
         self._audit.record("server", "config page", "password changed", "by owner", "ok",
                            approver="owner")
         return self._start_session(self._settings.login_record() or "")
+
+    # --- second factor ---
+
+    async def _factor_start(self, body: dict) -> web.Response:
+        if self._settings.factor() is not None:
+            return _json({"error": "Already on"}, 400)
+        secret = second_factor.new_secret()
+        self._new_factor = (secret, self._clock() + FACTOR_WINDOW)
+        return _json({"secret": secret})
+
+    def _pending(self) -> str | None:
+        if self._new_factor is None or self._clock() > self._new_factor[1]:
+            self._new_factor = None
+            return None
+        return self._new_factor[0]
+
+    async def _factor_qr(self, request: web.Request) -> web.Response:
+        if (secret := self._pending()) is None:
+            raise web.HTTPNotFound
+        owner = owner_name(self._settings.login_record() or '[""]')
+        return _qr(second_factor.link(secret, owner))
+
+    async def _factor_on(self, request: web.Request) -> web.Response:
+        code = (await _body(request)).get("code")
+        async with self._login_lock:
+            if (secret := self._pending()) is None or self._settings.factor() is not None:
+                return _json({"error": "Start again"}, 400)
+            step = second_factor.matching_step(secret, code, wall(), 0)
+            if step is None:
+                return _json({"error": "Wrong code. Check that your phone's clock is right."},
+                             400)
+            codes = second_factor.new_recovery()
+            self._settings.set_factor({
+                "secret": secret, "last": step,
+                "recovery": [second_factor.recovery_hash(c) for c in codes]})
+            self._new_factor = None
+        # Every other session signed in without it.
+        key = _key(request.cookies.get(COOKIE, ""))
+        self._sessions = {k: v for k, v in self._sessions.items() if k == key}
+        self.chat.clear_others(f"web:{key}", "web:")
+        self._audit.record("server", "config page", "second factor on", "by owner", "ok",
+                           approver="owner")
+        return _json({"recovery": codes})
+
+    async def _factor_off(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        if not body.get("code"):
+            return _json({"error": "Enter a code from your authenticator app"}, 400)
+        owner = owner_name(self._settings.login_record() or '[""]')
+        refused = await self._check(request, owner, body.get("confirm"), code=body["code"],
+                                    both=True)
+        if refused is not None:
+            return refused
+        self._settings.set_factor(None)
+        self._audit.record("server", "config page", "second factor off", "by owner", "ok",
+                           approver="owner")
+        return _json({"ok": True})
 
     def _setup_open(self, request: web.Request) -> bool:
         try:
@@ -322,7 +404,8 @@ class ConfigPage:
     async def _profile(self, request: web.Request) -> web.Response:
         now, record = self._clock(), self._settings.login_record() or '[""]'
         count = sum(1 for v in self._sessions.values() if min(v[:2]) > now and v[2] == record)
-        return _json({"user": owner_name(record), "sessions": count})
+        return _json({"user": owner_name(record), "sessions": count,
+                      "factor": self._settings.factor() is not None})
 
     async def _logout_others(self, request: web.Request) -> web.Response:
         key = _key(request.cookies.get(COOKIE, ""))
@@ -405,10 +488,7 @@ class ConfigPage:
         link = self._ntfy_link()
         if not link:
             raise web.HTTPNotFound
-        out = io.BytesIO()
-        segno.make(link, error="m").save(out, kind="svg", scale=5, border=3, light="#ffffff",
-                                         dark="#000000")
-        return web.Response(body=out.getvalue(), content_type="image/svg+xml", headers=HEADERS)
+        return _qr(link)
 
     async def _save_ntfy(self, body: dict) -> web.Response:
         try:
@@ -681,6 +761,13 @@ async def _valid(body: dict) -> dict:
 
 def _key(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+def _qr(text: str) -> web.Response:
+    out = io.BytesIO()
+    segno.make(text, error="m").save(out, kind="svg", scale=5, border=3, light="#ffffff",
+                                     dark="#000000")
+    return web.Response(body=out.getvalue(), content_type="image/svg+xml", headers=HEADERS)
 
 
 def _same_origin(request: web.Request) -> bool:
