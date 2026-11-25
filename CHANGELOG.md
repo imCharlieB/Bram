@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.28.0
+
+- Choose which 3D printers BRAM watches: BRAM > Configure > 3D printers.
+- Fixed: emptying the list in Recommended setup or BRAM's suggestions shared everything in it anyway. Both pages now list what will be shared, with **Leave these out** for anything you do not want.
+
 ## 0.27.1
 
 - Clearer wording on the Learning page in Home Assistant, with what each choice does.

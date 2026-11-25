@@ -18,6 +18,7 @@
 | | Use Telegram and ntfy after 5 unanswered minutes | Off |
 | What BRAM watches for | Problems with Home Assistant | Off; on in Recommended setup |
 | | 3D printers | Off; on in Recommended setup if any are found |
+| 3D printers | One switch for each printer | On |
 | | Unlocked at night | Off |
 | | Open or unlocked while away | Off |
 | | Left open | Off |

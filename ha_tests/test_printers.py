@@ -221,3 +221,12 @@ async def test_sent_to_the_server_when_it_changes(env):
     assert len(env.items) == 1
     await env.run(status="printing")
     assert len(env.items) == 2 and env.items[-1][0]["state"] == "printing"
+
+
+async def test_a_printer_turned_off_is_not_watched(hass, freezer):
+    env = Env(hass, freezer)
+    (printer,) = find(hass)
+    env.watch._off = [printer.id]
+    await env.run(status="printing", progress=50)
+    await env.run(status="complete")
+    assert env.items == [[]] and env.texts() == []

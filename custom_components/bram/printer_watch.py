@@ -16,7 +16,14 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_PHONES, CONF_PRINTERS, CONF_QUIET_FROM, CONF_QUIET_TO, DOMAIN
+from .const import (
+    CONF_PHONES,
+    CONF_PRINTERS,
+    CONF_PRINTERS_OFF,
+    CONF_QUIET_FROM,
+    CONF_QUIET_TO,
+    DOMAIN,
+)
 from .home_alerts import within
 from .notifier import notify
 from .printers import Printer, find, read
@@ -46,6 +53,7 @@ class PrinterWatch:
         self._hass, self._send, self._note = hass, send, note
         self._on: bool = entry.options.get(CONF_PRINTERS, False)
         self._phones: list[str] = entry.options.get(CONF_PHONES, [])
+        self._off: list[str] = entry.options.get(CONF_PRINTERS_OFF, [])
         self._quiet = (entry.options.get(CONF_QUIET_FROM), entry.options.get(CONF_QUIET_TO))
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.printers")
         self._jobs: dict[str, dict[str, Any]] = {}
@@ -96,6 +104,8 @@ class PrinterWatch:
             now = dt_util.utcnow().timestamp()
             items = []
             for printer in find(self._hass):
+                if printer.id in self._off:
+                    continue
                 says = read(self._hass, printer)
                 self._job(printer, says, now)
                 self._conditions(printer, says, now)

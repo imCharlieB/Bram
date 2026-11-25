@@ -26,6 +26,7 @@ from .const import (
     CONF_LEARN,
     CONF_PHONES,
     CONF_PRINTERS,
+    CONF_PRINTERS_OFF,
     CONF_PROBLEM_WATCH,
     CONF_PROBLEMS,
     CONF_QUIET_FROM,
@@ -83,7 +84,8 @@ class BramConfigFlow(ConfigFlow, domain=DOMAIN):
 class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(step_id="init", menu_options=[
-            "basic", "suggest", "quick", "see", "rooms", "alerts", "watch", "chat", "learn"])
+            "basic", "suggest", "quick", "see", "rooms", "alerts", "watch", "printers", "chat",
+            "learn"])
 
     _found: list[str] = []
 
@@ -97,7 +99,8 @@ class BramOptionsFlow(OptionsFlowWithReload):
         known = phones(self.hass)
         saved = options.get(CONF_PHONES, [])
         if user_input is not None:
-            add = [e for e in user_input.pop("add", []) if e in offered]
+            skip = user_input.pop("skip", [])
+            add = [e for e in offered if e not in skip]
             if user_input.pop("summary"):
                 user_input[CONF_DIGEST] = options.get(CONF_DIGEST, DEFAULT_DIGEST)
             else:
@@ -109,16 +112,29 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 self._phone_list(sorted({*known, *saved})),
         }
         if offered:
-            schema[vol.Optional("add", description={"suggested_value": offered})] = (
-                selector.EntitySelector(selector.EntitySelectorConfig(
-                    include_entities=offered, multiple=True)))
+            schema[vol.Optional("skip")] = self._picker(offered)
         # Away stays off here: it is wrong until everyone who lives there is shared.
         schema |= {vol.Required(key, default=options.get(key, True)): bool
                    for key in ("night", "left_open", "offline", CONF_PROBLEM_WATCH, CONF_HISTORY)}
         if printers.find(self.hass):
             schema[vol.Required(CONF_PRINTERS, default=options.get(CONF_PRINTERS, True))] = bool
         schema[vol.Required("summary", default=True)] = bool
-        return self.async_show_form(step_id="basic", data_schema=vol.Schema(schema))
+        return self.async_show_form(step_id="basic", data_schema=vol.Schema(schema),
+                                    description_placeholders={"found": self._names(offered)})
+
+    # Picking what to leave out, because Home Assistant fills an emptied list of suggestions
+    # back in, which would share everything the owner removed.
+    @staticmethod
+    def _picker(offered: list[str]) -> selector.EntitySelector:
+        return selector.EntitySelector(selector.EntitySelectorConfig(
+            include_entities=offered, multiple=True))
+
+    def _names(self, offered: list[str]) -> str:
+        if not offered:
+            return "Nothing new to share."
+        names = sorted((s.name if (s := self.hass.states.get(e)) else e) for e in offered)
+        more = f"\n- and {len(names) - 40} more" if len(names) > 40 else ""
+        return "\n".join(f"- {n}" for n in names[:40]) + more
 
     @staticmethod
     def _phone_list(listed: list[str]) -> selector.SelectSelector:
@@ -162,15 +178,14 @@ class BramOptionsFlow(OptionsFlowWithReload):
         options = dict(self.config_entry.options)
         if user_input is not None:
             chosen = options.get(CONF_ENTITIES, [])
-            # Only what was offered, and only what the owner left in the list.
-            add = [e for e in user_input.get("add", []) if e in self._found]
+            # Only what was offered, less what the owner left out.
+            skip = user_input.get("skip", [])
+            add = [e for e in self._found if e not in skip]
             return self.async_create_entry(data={**options, CONF_ENTITIES: [*chosen, *add]})
         return self.async_show_form(
-            step_id="review", description_placeholders={"count": str(len(self._found))},
-            data_schema=vol.Schema({
-                vol.Optional("add", description={"suggested_value": self._found}): (
-                    selector.EntitySelector(selector.EntitySelectorConfig(
-                        include_entities=self._found, multiple=True)))}))
+            step_id="review", description_placeholders={
+                "count": str(len(self._found)), "found": self._names(self._found)},
+            data_schema=vol.Schema({vol.Optional("skip"): self._picker(self._found)}))
 
     async def async_step_see(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)
@@ -224,6 +239,26 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 "suggested_value": saved.get(person) or (auto[0] if auto else None)})] = (
                 selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")))
         return self.async_show_form(step_id="rooms", data_schema=vol.Schema(fields))
+
+    async def async_step_printers(
+        self, user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """A switch for each printer, so none is watched without the owner wanting it."""
+        options = dict(self.config_entry.options)
+        found = {p.name: p.id for p in printers.find(self.hass)}
+        if not found:
+            return self.async_abort(reason="no_printers")
+        off = options.get(CONF_PRINTERS_OFF, [])
+        if user_input is not None:
+            # A printer missing right now keeps its choice.
+            kept = [p for p in off if p not in found.values()]
+            return self.async_create_entry(data={
+                **options, CONF_PRINTERS: user_input.pop(CONF_PRINTERS),
+                CONF_PRINTERS_OFF: kept + [found[n] for n, on in user_input.items() if not on]})
+        return self.async_show_form(step_id="printers", data_schema=vol.Schema({
+            vol.Required(CONF_PRINTERS, default=options.get(CONF_PRINTERS, False)): bool,
+            **{vol.Required(name, default=device not in off): bool
+               for name, device in found.items()}}))
 
     async def async_step_learn(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)

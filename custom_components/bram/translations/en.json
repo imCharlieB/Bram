@@ -66,7 +66,8 @@
     },
     "abort": {
       "no_people": "Share a person with BRAM first.",
-      "nothing_to_suggest": "BRAM has no suggestions. It can see the important things."
+      "nothing_to_suggest": "BRAM has no suggestions. It can see the important things.",
+      "no_printers": "BRAM did not find any 3D printers in Home Assistant."
     },
     "step": {
       "init": {
@@ -79,23 +80,27 @@
           "rooms": "Fix a person's room (rarely needed)",
           "alerts": "Phone alerts and quiet hours",
           "watch": "What BRAM watches for",
+          "printers": "3D printers",
           "chat": "What BRAM may look into",
           "learn": "Learning"
         }
       },
       "basic": {
         "title": "Recommended setup",
-        "description": "Pick your phone, remove anything you do not want, and submit. You can change every part later. BRAM cannot control anything.",
+        "description": "Pick your phone and what BRAM should tell you, then submit. You can change every part later. BRAM cannot control anything.\n\nThese will be shared with BRAM:\n{found}",
         "data": {
           "phones": "Phones that get everything",
-          "add": "Share these with BRAM",
           "night": "Tell me if a lock is unlocked at night (10 PM to 6 AM)",
           "left_open": "Tell me if a door is left open (10 minutes)",
           "offline": "Tell me if a lock or door sensor goes offline",
           "problem_watch": "Tell me about problems with Home Assistant",
           "printers": "Tell me about 3D printers",
           "share_history": "Let BRAM look into the history of what it can see",
-          "summary": "Send a daily summary (8 AM)"
+          "summary": "Send a daily summary (8 AM)",
+          "skip": "Leave these out"
+        },
+        "data_description": {
+          "skip": "Anything you pick here is not shared. Leave it empty to share everything listed above."
         }
       },
       "quick": {
@@ -108,9 +113,12 @@
       },
       "review": {
         "title": "Choose what to share",
-        "description": "Found {count}. Remove any you do not want BRAM to see.",
+        "description": "Found {count}. All of these will be shared:\n{found}",
         "data": {
-          "add": "Devices to add"
+          "skip": "Leave these out"
+        },
+        "data_description": {
+          "skip": "Anything you pick here is not shared. Leave it empty to share everything listed above."
         }
       },
       "see": {
@@ -184,6 +192,13 @@
           "quiet_to": "Quiet until",
           "digest": "Daily summary at (empty means none)",
           "escalate": "Also use Telegram and ntfy if nobody answers a safety alert in 5 minutes"
+        }
+      },
+      "printers": {
+        "title": "3D printers",
+        "description": "BRAM found these printers in Home Assistant. Turn off any you do not want it to watch, show, or tell you about. A new printer starts on.",
+        "data": {
+          "printers": "Watch 3D printers"
         }
       }
     }

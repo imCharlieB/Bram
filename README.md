@@ -90,7 +90,7 @@ HACS > three dots > **Custom repositories** > add `https://github.com/imCharlieB
 
 ### 5. Choose what it sees
 
-**BRAM > Configure > Recommended setup**: pick your phone, remove anything you do not want to share, and submit. Nothing is shared until you do.
+**BRAM > Configure > Recommended setup**: pick your phone, put anything you do not want to share under **Leave these out**, and submit. Nothing is shared until you do.
 
 ### 6. Check it
 

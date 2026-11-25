@@ -1,6 +1,6 @@
 # 3D printers
 
-BRAM finds your printers by itself from the integration each one uses: Bambu Lab, Moonraker (Klipper), OctoPrint, PrusaLink, and others where they use the same names. Nothing to share or choose. Turn it on in **BRAM > Configure > What BRAM watches for**, or in **Recommended setup**.
+BRAM finds your printers by itself from the integration each one uses: Bambu Lab, Moonraker (Klipper), OctoPrint, PrusaLink, and others where they use the same names. Turn it on in **BRAM > Configure > 3D printers**, **What BRAM watches for**, or **Recommended setup**. **3D printers** has a switch for each printer found; turn off any you do not want watched. A new printer starts on.
 
 **BRAM only watches.** It cannot start, pause, stop, or heat anything. It is not a fire alarm.
 

@@ -288,8 +288,8 @@ async def test_suggestions_page(hass, server):
     assert entry.options["entities"] == []
     with pytest.raises(InvalidData):  # only what was offered
         await hass.config_entries.options.async_configure(
-            flow["flow_id"], {"add": [LOCK, "light.x"]})
-    await hass.config_entries.options.async_configure(flow["flow_id"], {"add": [LOCK]})
+            flow["flow_id"], {"skip": ["light.x"]})
+    await hass.config_entries.options.async_configure(flow["flow_id"], {})
     await reconnected(hass, entry)
     assert entry.options["entities"] == [LOCK]
     await hass.config_entries.async_unload(entry.entry_id)
@@ -314,10 +314,9 @@ async def test_quick_add(hass, server):
     assert flow["errors"] == {"base": "nothing_found"}
     hass.config_entries.options.async_abort(flow["flow_id"])
     flow = await begin(["lights", "doors"])
-    shown = {str(k): k.description["suggested_value"] for k in flow["data_schema"].schema}
-    assert set(shown["add"]) == {"light.b", LOCK}
+    assert flow["description_placeholders"]["found"] == "- a\n- b"
     assert entry.options["entities"] == ["light.a"]  # nothing is shared by looking
-    await hass.config_entries.options.async_configure(flow["flow_id"], {"add": [LOCK]})
+    await hass.config_entries.options.async_configure(flow["flow_id"], {"skip": ["light.b"]})
     await reconnected(hass, entry)
     assert entry.options["entities"] == ["light.a", LOCK]
     await hass.config_entries.async_unload(entry.entry_id)
@@ -349,10 +348,10 @@ async def test_recommended_setup(hass, server):
         flow["flow_id"], {"next_step_id": "basic"})
     fields = {str(k): k for k in flow["data_schema"].schema}
     assert fields["phones"].default() == ["mobile_app_phone"]  # the only one
-    assert set(fields["add"].description["suggested_value"]) == {LOCK, "person.alex"}
+    assert "skip" in fields and not fields["skip"].description  # nothing filled in for you
     assert "away" not in fields and entry.options["entities"] == []
     await hass.config_entries.options.async_configure(flow["flow_id"], {
-        "phones": ["mobile_app_phone"], "add": [LOCK], "night": True, "left_open": True,
+        "phones": ["mobile_app_phone"], "skip": ["person.alex"], "night": True, "left_open": True,
         "offline": False, "share_history": True, "summary": True})
     await reconnected(hass, entry)
     assert entry.options["entities"] == [LOCK] and entry.options["digest"] == "08:00:00"
@@ -364,8 +363,8 @@ async def test_recommended_setup(hass, server):
     flow = await hass.config_entries.options.async_configure(
         flow["flow_id"], {"next_step_id": "basic"})
     await hass.config_entries.options.async_configure(flow["flow_id"], {
-        "phones": ["mobile_app_phone"], "night": True, "left_open": True,
-        "offline": False, "share_history": True, "summary": False})
+        "phones": ["mobile_app_phone"], "skip": ["person.alex"], "night": True,
+        "left_open": True, "offline": False, "share_history": True, "summary": False})
     await reconnected(hass, entry)
     assert entry.options["entities"] == [LOCK] and "digest" not in entry.options
     assert entry.options["night_from"] == "23:30:00" and entry.options["away"]
@@ -648,3 +647,18 @@ async def test_printers_reach_the_server(hass, server):
     assert server[0][PRINTERS][house][0]["progress"] == 5
     await hass.config_entries.async_unload(entry.entry_id)
     await until(lambda: house not in server[0][PRINTERS])
+
+
+async def test_leaving_everything_out_shares_nothing(hass, server):
+    hass.states.async_set(LOCK, "locked")
+    hass.states.async_set("person.alex", "home")
+    entry = await start(hass, server)
+    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    flow = await hass.config_entries.options.async_configure(
+        flow["flow_id"], {"next_step_id": "suggest"})
+    await hass.config_entries.options.async_configure(
+        flow["flow_id"], {"skip": [LOCK, "person.alex"]})
+    await reconnected(hass, entry)
+    assert entry.options["entities"] == []
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])

@@ -52,6 +52,7 @@ Any local Ollama chat model can be tried. Bigger models usually follow instructi
 | Phone alerts and quiet hours | Choose phones, quiet hours, daily summary, and the fallback |
 | What BRAM watches for | [Home Assistant problems](problems.md), lock and door rules, night hours, left-open time, and the hourly security check |
 | What BRAM may look into | Let the server read history, problems, and the security check |
+| 3D printers | Choose which [printers](printers.md) BRAM watches |
 | Learning | Let BRAM suggest better hours, undo, or delete |
 
 On the device page: **Mood**, **Visit**, **Send test message**, and **Allow stopped messages**.
