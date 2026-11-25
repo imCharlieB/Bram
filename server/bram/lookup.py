@@ -94,7 +94,8 @@ def security_lines(name: str, result: dict | None) -> list[str]:
     found = _findings(result)
     missed = ", ".join(_text(x, 60) for x in _list(result.get("not_checked"), 20))
     return [f"Security check of {name}, Home Assistant only. Never say it is secure or safe, even "
-            "if nothing was found; say what was found and what was not checked.",
+            "if nothing was found. Answer with these findings first, most serious first, then "
+            "what was not checked.",
             *(f"{level}: {text}" for level, text in found),
             *([] if found else ["Nothing found by the checks that ran"]),
             f"Not checked: {missed or 'unknown'}"]

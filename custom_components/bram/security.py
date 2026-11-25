@@ -10,9 +10,12 @@ from typing import Any
 
 from homeassistant.auth.models import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
 from homeassistant.core import HomeAssistant, State
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 OLD_TOKEN_DAYS = 90
+# Cameras on 3D printers are off whenever the printer is.
+PRINTERS = {"bambu_lab", "moonraker", "octoprint", "prusalink", "elegoo_printer", "creality"}
 OFFLINE = datetime.timedelta(minutes=30)
 ASSISTANTS = {"conversation": "Assist", "cloud.alexa": "Alexa", "cloud.google_assistant": "Google"}
 NOT_CHECKED = ["Your router and network", "Remote access through Home Assistant Cloud",
@@ -46,8 +49,8 @@ async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None) 
             for token in user.refresh_tokens.values():
                 if token.token_type == TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN:
                     ids["tokens"].append(token.id)
-                    used = token.last_used_at or token.created_at
-                    old += (now - used).days >= OLD_TOKEN_DAYS
+                    # Home Assistant does not record when these are used, only when made.
+                    old += (now - token.created_at).days >= OLD_TOKEN_DAYS
         if known is not None:
             for kind, words in (("admins", "administrator account"), ("tokens", "access token")):
                 for item in set(ids[kind]) - set(known.get(kind, [])):
@@ -57,8 +60,9 @@ async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None) 
             found.append(_finding("many_admins", "low", f"{len(ids['admins'])} people are "
                                   "administrators; fewer is safer"))
         if old:
-            found.append(_finding("old_tokens", "low", f"{old} access token{'s' * (old != 1)} not "
-                                  f"used in {OLD_TOKEN_DAYS} days; delete any you do not need"))
+            found.append(_finding("old_tokens", "low", f"{old} access token{'s' * (old != 1)} "
+                                  f"more than {OLD_TOKEN_DAYS} days old. Home Assistant cannot say "
+                                  "if they are in use, so check before deleting"))
 
     def logins() -> None:
         from homeassistant.components.persistent_notification import (
@@ -112,9 +116,16 @@ async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None) 
 
     def offline() -> None:
         cutoff = dt_util.utcnow() - OFFLINE
-        names = sorted(s.name for s in hass.states.async_all()
-                       if (_sensitive(s) or s.entity_id.startswith("camera."))
-                       and s.state == "unavailable" and s.last_changed <= cutoff)
+        registry = er.async_get(hass)
+
+        def watched(state: State) -> bool:
+            if not state.entity_id.startswith("camera."):
+                return _sensitive(state)
+            entry = registry.async_get(state.entity_id)
+            return entry is None or entry.platform not in PRINTERS
+
+        names = sorted({s.name for s in hass.states.async_all() if watched(s)
+                        and s.state == "unavailable" and s.last_changed <= cutoff})
         if names:
             more = f" and {len(names) - 5} more" if len(names) > 5 else ""
             found.append(_finding("offline:" + ",".join(names), "medium",
@@ -134,8 +145,8 @@ async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None) 
 
     def upnp() -> None:
         if any(e.domain == "upnp" for e in hass.config_entries.async_entries()):
-            found.append(_finding("upnp", "low", "The router offers UPnP, which lets devices open "
-                                  "ports"))
+            found.append(_finding("upnp", "low", "The UPnP integration is set up; check whether "
+                                  "your router lets devices open ports"))
 
     def updates() -> None:
         names = [s.name for s in hass.states.async_all("update") if s.state == "on"

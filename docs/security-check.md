@@ -19,15 +19,15 @@ Both are off by default. The hourly check first learns what is already there, so
 |---|---|
 | New accounts and tokens | An administrator or long-lived token appears (hourly check only) |
 | Administrators | More than two |
-| Old tokens | Not used in 90 days |
+| Old tokens | Made more than 90 days ago. Home Assistant does not record whether they are used, so check before deleting |
 | Failed sign-ins | Home Assistant is showing a failed sign-in notice |
 | Sign-in bypass | Trusted networks skip the password |
 | Voice assistants | A lock, alarm, garage, door, or gate is exposed to Assist, Alexa, or Google |
 | Webhooks | An automation can be started from the internet |
-| Offline devices | A lock, alarm, garage, door, gate, or camera has been offline for 30 minutes |
+| Offline devices | A lock, alarm, garage, door, gate, or camera has been offline for 30 minutes. Cameras on 3D printers are left out |
 | Zigbee joining | A bridge's permit-join switch is on |
 | Outside address | Uses plain http |
-| UPnP | The UPnP integration is set up |
+| UPnP | The UPnP integration is set up, which does not prove the router allows it |
 | Updates | Home Assistant's own updates are waiting |
 
 ## What it does not check

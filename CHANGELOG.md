@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.22.1
+
+- Security check: a token is reported by age. It said "not used", which Home Assistant does not record.
+- Security check: UPnP wording no longer claims the router allows it, and cameras on 3D printers are left out.
+- Chat answers a security question with what was found first.
+- The chat scroll bar matches the page.
+
 ## 0.22.0
 
 - Optional second factor for signing in to BRAM's page: authenticator app codes, with recovery codes.

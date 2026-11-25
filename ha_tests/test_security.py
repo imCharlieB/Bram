@@ -1,7 +1,9 @@
+import datetime
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from homeassistant.auth.const import GROUP_ID_ADMIN
 from homeassistant.components.homeassistant.exposed_entities import async_expose_entity
 from homeassistant.components.persistent_notification import async_create
 from homeassistant.helpers import entity_registry as er
@@ -91,3 +93,21 @@ async def test_a_failed_first_look_learns_nothing(hass):
     await watch.run()
     await watch.run()
     assert calls == []
+
+
+async def test_old_tokens_are_judged_by_age_and_never_called_unused(hass, freezer):
+    user = await hass.auth.async_create_user("Someone", group_ids=[GROUP_ID_ADMIN])
+    await hass.auth.async_create_refresh_token(
+        user, client_name="x", token_type="long_lived_access_token")  # noqa: S106
+    freezer.tick(datetime.timedelta(days=91))
+    said = " ".join(texts(await check(hass)))
+    assert "1 access token more than 90 days old" in said and "not used" not in said
+
+
+async def test_printer_cameras_are_not_security_devices(hass, freezer):
+    registry = er.async_get(hass)
+    for platform in ("octoprint", "generic"):
+        entry = registry.async_get_or_create("camera", platform, "1", suggested_object_id=platform)
+        hass.states.async_set(entry.entity_id, "unavailable", {"friendly_name": platform.title()})
+    freezer.tick(datetime.timedelta(minutes=31))
+    assert texts(await check(hass)) == ["Offline: Generic"]
