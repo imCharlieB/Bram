@@ -40,6 +40,16 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 
  History covers everything here except thermostats and readings. Anything else, or a state it does not recognize, is *unknown*.
 
+## Location
+
+| What | Where it comes from |
+|---|---|
+| A device's room and floor | Its area in Home Assistant; set areas and floors there |
+| The room a person is in | Bermuda or MQTT Room sensors on a device that tracks that person; add that tracker to the person in Home Assistant |
+| A named place, such as Work | The person's zone in Home Assistant |
+
+Coordinates are never shared. If a room is not known, BRAM says only home or away. On the command deck, press **by type** to arrange the house by room.
+
 ## What to add first
 
 1. **Everyone who lives there.** Otherwise "away" is wrong.

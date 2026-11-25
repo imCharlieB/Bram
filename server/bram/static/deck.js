@@ -24,6 +24,7 @@ const deck = (() => {
 
   function update(groups) {
     sectors = groups.filter((group) => group.devices.length);
+    if (!sectors.some((group) => group.title === chosen)) chosen = null;
     nodes = [];
     const total = sectors.reduce((sum, group) => sum + Math.max(group.devices.length, 2), 0) || 1;
     let at = -Math.PI / 2;
@@ -49,7 +50,9 @@ const deck = (() => {
       row.setAttribute("aria-pressed", String(chosen === group.title));
       bar.append(...group.devices.slice(0, 24).map((device) => make("i", undefined, device.state)));
       const on = group.devices.filter((device) => device.state !== "off" && device.state !== "unknown").length;
-      row.append(make("b", group.title), make("span", `${on}/${group.devices.length}`, "num"), bar);
+      const name = make("b", group.title);
+      if (group.floor) name.append(make("small", ` ${group.floor}`));
+      row.append(name, make("span", `${on}/${group.devices.length}`, "num"), bar);
       row.addEventListener("click", () => {
         chosen = chosen === group.title ? null : group.title;
         list();
@@ -96,7 +99,7 @@ const deck = (() => {
       } else {
         card.append(make("i", [...person.name][0]));
       }
-      card.append(make("b", person.name), make("span", person.state === "unknown" ? "unknown" : person.says), make("small", person.age));
+      card.append(make("b", person.name), make("span", person.state === "unknown" ? "unknown" : person.area || (person.text || person.says).replace(/^at /, "")), make("small", person.age));
       return card;
     }));
   }

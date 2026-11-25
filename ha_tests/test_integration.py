@@ -399,6 +399,30 @@ def test_a_known_sensor_is_never_downgraded(hass):
     assert feed._state(LEAK, None)["kind"] == "leak"
 
 
+async def test_room_changes_reach_the_server(hass, server):
+    MockConfigEntry(domain="bermuda", entry_id="b").add_to_hass(hass)
+    phone = dr.async_get(hass).async_get_or_create(
+        config_entry_id="b", identifiers={("bermuda", "phone")})
+    for domain, name in (("device_tracker", "phone"), ("sensor", "phone_area")):
+        er.async_get(hass).async_get_or_create(
+            domain, "bermuda", name, suggested_object_id=name, device_id=phone.id)
+    hass.states.async_set("sensor.phone_area", "Den")
+    hass.states.async_set("person.alex", "home", {"device_trackers": ["device_tracker.phone"]})
+    entry = await start(hass, server)
+    await choose(hass, entry, ["person.alex"])
+    world = server[0][HOUSES][entry.data["house_id"]][0]
+
+    def room():
+        event = world.event("person.alex")
+        return event and event.detail.get("area")
+
+    await until(lambda: room() == "Den")
+    hass.states.async_set("sensor.phone_area", "Kitchen")
+    await until(lambda: room() == "Kitchen")
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])
+
+
 async def test_watch_page(hass, server):
     entry = await start(hass, server)
     watch = {"night": True, "away": False, "left_open": True, "offline": False,

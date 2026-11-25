@@ -322,7 +322,7 @@ async function saveNtfy(extra = {}) {
 
 // --- home ---
 
-const world = { houses: [], monitors: [], urgent: 0, devices: 0 };
+const world = { houses: [], monitors: [], urgent: 0, devices: 0, groups: [] };
 
 function dots(id, items) {
   $(id).replaceChildren(...(items.length ? items.map(([name, good, text]) => {
@@ -558,6 +558,25 @@ const TITLES = {
 };
 const ORDER = ["Safety", "Locks and doors", "People", "Motion", "Climate", "Lights", "Switches and fans", "Media", "Voice", "Other"];
 
+let byRoom = false;
+
+function arrange() {
+  $("hud-by").textContent = byRoom ? "by room" : "by type";
+  $("hud-by").title = byRoom ? "Show by type" : "Show by room";
+  if (!byRoom) return deck.update(world.groups);
+  const rooms = new Map();
+  for (const device of world.groups.flatMap((group) => group.devices)) {
+    const floor = device.floor || "", room = device.area || (device.kind === "person" ? (device.state === "on" ? "Home" : "Away") : "No room");
+    if (!rooms.has(room)) rooms.set(room, { title: room, floor, devices: [] });
+    if (floor) rooms.get(room).floor = floor;
+    rooms.get(room).devices.push(device);
+  }
+  // Rooms on the same floor sit together.
+  const last = ["Home", "Away", "No room"];
+  return deck.update([...rooms.values()].sort((a, b) => last.indexOf(a.title) - last.indexOf(b.title)
+    || a.floor.localeCompare(b.floor) || a.title.localeCompare(b.title)));
+}
+
 async function loadHouse() {
   const { homes, alerts } = await api("house");
   const groups = new Map(), urgent = [];
@@ -574,7 +593,8 @@ async function loadHouse() {
     }
   }
   const devices = [...groups.values()].flat();
-  deck.update(ORDER.filter((title) => groups.has(title)).map((title) => ({ title, devices: groups.get(title) })));
+  world.groups = ORDER.filter((title) => groups.has(title)).map((title) => ({ title, devices: groups.get(title) }));
+  arrange();
   deck.people(devices.filter((device) => device.kind === "person"));
   deck.gauge("g-seen", total - unseen, total, "Seen");
   const shut = devices.filter((device) => device.kind === "lock" || device.kind === "opening");
@@ -817,6 +837,13 @@ for (const chip of document.querySelectorAll("#hues button")) {
     try { localStorage.setItem("hue", chip.dataset.hue); } catch { /* not remembered */ }
   });
 }
+$("hud-by").addEventListener("click", () => {
+  byRoom = !byRoom;
+  arrange();
+  try { localStorage.setItem("by", byRoom ? "room" : "type"); } catch { /* not remembered */ }
+});
+try { byRoom = localStorage.getItem("by") === "room"; } catch { /* by type */ }
+arrange();
 try { setHue(localStorage.getItem("hue") || "cyan"); } catch { setHue("cyan"); }
 try { setLook(localStorage.getItem("look") || "command"); } catch { setLook("command"); }
 tick();

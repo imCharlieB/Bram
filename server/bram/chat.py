@@ -166,6 +166,7 @@ class Chat:
             devices = [{"name": clean(e.name or e.entity_id, 60), "kind": e.kind,
                         "says": _say(world, e), "state": _look(world, e), "id": e.entity_id,
                         "area": clean(e.detail.get("area", ""), 40),
+                        "floor": clean(e.detail.get("floor", ""), 40),
                         "text": _more(world, e), "since": e.detail.get("since"),
                         "picture": e.detail.get("picture", "")}
                        for e in (world.all() if world else [])
@@ -290,6 +291,8 @@ def _full(world: World, event: Event) -> str:
         says += f" ({more})"
     if area := clean(event.detail.get("area", ""), 40):
         says += f", in {area}"
+        if floor := clean(event.detail.get("floor", ""), 40):
+            says += f" ({floor})"
     since = event.detail.get("since")
     # Lengths are worked out here, because models are bad at it.
     if since is not None and event.kind not in READINGS:

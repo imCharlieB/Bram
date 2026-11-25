@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.17.0
+
+- Location: floors, the room a person is in, and named places such as Work. The command deck can be arranged by type or by room.
+
 ## 0.16.0
 
 - Richer devices: people's photos, what is playing, brightness, battery, room, and how long, on the deck and in chat.

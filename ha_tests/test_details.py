@@ -3,10 +3,20 @@ import base64
 import pytest
 from homeassistant.core import State
 from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import floor_registry as fr
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.bram import details
-from custom_components.bram.details import _text, detail, image_kind, picture, picture_path
+from custom_components.bram.details import (
+    _text,
+    detail,
+    image_kind,
+    picture,
+    picture_path,
+    room_sensors,
+)
 
 
 @pytest.mark.parametrize(("entity", "state", "attrs", "text"), [
@@ -19,19 +29,54 @@ from custom_components.bram.details import _text, detail, image_kind, picture, p
     ("cover.a", "open", {"current_position": 40}, "40%"),
     ("lock.a", "locked", {"battery_level": 80}, "battery 80%"),
     ("weather.a", "rainy", {"temperature": 68, "temperature_unit": "F"}, "68F"),
+    ("person.a", "Work", {}, "at Work"), ("person.a", "not_home", {}, ""),
     ("person.a", "home", {"latitude": 1.5, "longitude": 2.5, "gps_accuracy": 3}, "")])
 def test_text(entity, state, attrs, text):
     assert _text(State(entity, state, attrs)) == text
 
 
-async def test_detail_has_room_and_never_location(hass):
+async def test_floor(hass):
+    up = fr.async_get(hass).async_create("Upstairs")
+    den = ar.async_get(hass).async_create("Den", floor_id=up.floor_id)
+    er.async_get(hass).async_get_or_create("light", "test", "1", suggested_object_id="a")
+    er.async_get(hass).async_update_entity("light.a", area_id=den.id)
+    hass.states.async_set("light.a", "on")
+    found = detail(hass, hass.states.get("light.a"))
+    assert (found["area"], found["floor"]) == ("Den", "Upstairs")
+
+
+async def test_person_room_comes_from_their_tracker(hass):
+    MockConfigEntry(domain="bermuda", entry_id="b").add_to_hass(hass)
+    phone, other = (dr.async_get(hass).async_get_or_create(
+        config_entry_id="b", identifiers={("bermuda", n)}) for n in ("phone", "other"))
+    registry = er.async_get(hass)
+    for domain, name, device in (("device_tracker", "phone", phone),
+                                 ("sensor", "phone_area", phone),
+                                 ("sensor", "phone_distance", phone),
+                                 ("sensor", "other_area", other)):
+        registry.async_get_or_create(domain, "bermuda", name, suggested_object_id=name,
+                                     device_id=device.id)
+    hass.states.async_set("sensor.other_area", "Attic")
+    person = {"device_trackers": ["device_tracker.phone"]}
+    for state, room, expected in (("home", "Kitchen", "Kitchen"), ("home", "unknown", None),
+                                  ("not_home", "Kitchen", None), ("Work", "Kitchen", None)):
+        hass.states.async_set("person.a", state, person)
+        hass.states.async_set("sensor.phone_area", room)
+        assert detail(hass, hass.states.get("person.a")).get("area") == expected
+    assert room_sensors(hass, hass.states.get("person.a")) == ["sensor.phone_area"]
+    for bad in (None, State("person.a", "home", {"device_trackers": "x"}),
+                State("person.a", "home", {"device_trackers": ["device_tracker.gone"]})):
+        assert room_sensors(hass, bad) == []
+
+
+async def test_detail_never_has_coordinates(hass):
     den = ar.async_get(hass).async_create("Den")
     er.async_get(hass).async_get_or_create("person", "test", "1", suggested_object_id="a")
     er.async_get(hass).async_update_entity("person.a", area_id=den.id)
     hass.states.async_set("person.a", "home", {
         "latitude": 40.5, "longitude": -70.5, "entity_picture": "/api/image/serve/x/512x512"})
     found = detail(hass, hass.states.get("person.a"))
-    assert found["area"] == "Den" and len(found["picture"]) == 16 and found["since"] > 0
+    assert "area" not in found and len(found["picture"]) == 16 and found["since"] > 0
     assert "40.5" not in str(found) and "serve" not in str(found)
     assert detail(hass, None) == {}
     hass.states.async_set("light.x", "unavailable", {"brightness": 9})

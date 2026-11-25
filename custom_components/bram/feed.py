@@ -19,7 +19,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 from . import gate
 from .client import connect
 from .const import CONF_ENTITIES, CONF_FINGERPRINT, DOMAIN, MOODS
-from .details import detail
+from .details import detail, room_sensors
 from .queries import answer
 
 _LOGGER = logging.getLogger(__name__)
@@ -271,6 +271,19 @@ class Feed:
 
         # Nothing can change between these two lines: neither one awaits.
         unsubscribe = async_track_state_change_event(self._hass, self._entities, changed)
+        # A person's room changes without the person changing.
+        rooms: dict[str, list[str]] = {}
+        for person in (e for e in self._entities if e.startswith("person.")):
+            for sensor in room_sensors(self._hass, self._hass.states.get(person)):
+                rooms.setdefault(sensor, []).append(person)
+
+        @callback
+        def moved(event: Event[EventStateChangedData]) -> None:
+            for person in rooms.get(event.data["entity_id"], []):
+                self.send({"type": "state", "state": self._state(
+                    person, self._hass.states.get(person))})
+
+        stop_rooms = async_track_state_change_event(self._hass, list(rooms), moved)
         snapshot = self._snapshot(self._entities)
         self._queue = queue
 
@@ -297,6 +310,7 @@ class Feed:
         finally:
             self._queue = None
             unsubscribe()
+            stop_rooms()
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)

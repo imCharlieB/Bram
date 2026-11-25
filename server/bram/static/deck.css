@@ -38,11 +38,13 @@ body:not(.command) .command-only { display: none !important; }
 .gauge.bad .lit { stroke: var(--hud-bad); }
 .gauge b { position: absolute; top: 0; left: 0; right: 0; display: grid; place-items: center; aspect-ratio: 1; max-height: 104px; margin: 0 auto; font: 600 .86rem ui-monospace, Consolas, monospace; }
 .gauge span { display: block; font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+#hud .by { margin: 0; padding: 1px 8px; border: 1px solid var(--hud-line); border-radius: 0; font: 600 .66rem ui-monospace, Consolas, monospace; letter-spacing: .08em; color: var(--hud); background: none; }
 .sector { display: grid; width: 100%; grid-template-columns: 1fr auto; gap: 2px 8px; margin: 0 0 4px; padding: 5px 8px; border: 1px solid transparent; border-left: 2px solid var(--hud-dim); border-radius: 0; text-align: left; color: var(--hud-text); background: none; }
 .sector:hover { background: var(--hud-fill); }
 .sector[aria-pressed=true] { border-color: var(--hud); background: color-mix(in srgb, var(--hud) 16%, transparent); }
 .sector b { font-size: .8rem; font-weight: 600; }
 .sector .num { font: 600 .78rem ui-monospace, Consolas, monospace; color: var(--hud); }
+.sector b small { opacity: .6; font-weight: 400; }
 .segments { grid-column: 1 / -1; display: flex; gap: 2px; }
 .segments i { flex: 0 1 14px; height: 4px; background: var(--hud-dim); opacity: .5; }
 .segments .on { background: var(--hud); opacity: 1; box-shadow: 0 0 5px var(--hud); }

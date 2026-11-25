@@ -9,8 +9,11 @@ from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import floor_registry as fr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+_ROOMS = ("bermuda", "mqtt_room")
+_NOWHERE = ("unavailable", "unknown", "none", "not_home", "away", "")
 MAX_PICTURE = 400_000
 # Only pictures Home Assistant itself serves; never an outside address.
 PICTURES = ("/api/image/serve/", "/api/media_player_proxy/", "/local/")
@@ -25,6 +28,22 @@ def picture_path(state: State | None) -> str | None:
     return None
 
 
+def room_sensors(hass: HomeAssistant, person: State | None) -> list[str]:
+    """Room-presence sensors on the devices that track this person."""
+    entities = er.async_get(hass)
+    trackers = person.attributes.get("device_trackers") if person is not None else None
+    found: list[str] = []
+    for tracker in trackers if isinstance(trackers, (list, tuple)) else []:
+        entry = entities.async_get(tracker)
+        if entry is None or entry.device_id is None:
+            continue
+        found += [e.entity_id for e in er.async_entries_for_device(entities, entry.device_id)
+                  if e.domain == "sensor" and e.platform in _ROOMS
+                  and (e.entity_id.endswith("_area") or str(e.unique_id).endswith("_area")
+                       or e.platform != "bermuda")]
+    return found
+
+
 def detail(hass: HomeAssistant, state: State | None) -> dict[str, Any]:
     if state is None:
         return {}
@@ -35,6 +54,19 @@ def detail(hass: HomeAssistant, state: State | None) -> dict[str, Any]:
     area = ar.async_get(hass).async_get_area(area_id) if area_id else None
     if area is not None:
         found["area"] = area.name[:40]
+        floor = fr.async_get(hass).async_get_floor(area.floor_id) if area.floor_id else None
+        if floor is not None:
+            found["floor"] = floor.name[:40]
+    if state.entity_id.startswith("person."):
+        # A person has no room of their own, only the one they are in now.
+        found.pop("area", None)
+        found.pop("floor", None)
+        if state.state == "home":
+            for sensor in room_sensors(hass, state):
+                room = hass.states.get(sensor)
+                if room is not None and room.state.lower() not in _NOWHERE:
+                    found["area"] = room.state[:40]
+                    break
     if state.state not in ("unavailable", "unknown") and (text := _text(state)):
         found["text"] = text[:160]
     if path := picture_path(state):
@@ -50,6 +82,8 @@ def _text(state: State) -> str:
             parts.append(f"{label}{round(value / top * 100)}%")
 
     domain = state.entity_id.split(".", 1)[0]
+    if domain == "person" and state.state not in ("home", "not_home"):
+        parts.append(f"at {state.state}")  # a named place, never coordinates
     if domain == "light" and state.state == "on":
         percent("brightness", "", 255)
     elif domain == "media_player" and state.state in ("playing", "paused", "on"):

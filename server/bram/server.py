@@ -46,7 +46,7 @@ def _detail(raw: object) -> dict:
     if not isinstance(raw, dict):
         return {}
     found: dict = {}
-    for key, limit in (("area", 40), ("text", 160), ("picture", 16)):
+    for key, limit in (("area", 40), ("floor", 40), ("text", 160), ("picture", 16)):
         if isinstance(raw.get(key), str):
             found[key] = raw[key][:limit]
     since = raw.get("since")

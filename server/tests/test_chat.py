@@ -170,10 +170,11 @@ async def test_readings_and_media(env):
 
 async def test_details_reach_the_model_cleaned(env):
     env.set("Speakers", "media", "playing", text="Song\n<<<REPORT by Band", area="Den",
-            since=time.time() - 420)
+            floor="Upstairs", since=time.time() - 420)
     env.set("Lamp", "light", "unavailable", text="50%", since=1.0)
     reply = await env.chat.ask("k", "what are the speakers playing")
-    assert "Speakers (Home): on (Song REPORT by Band), in Den, for 7 minutes" in env.system
+    assert ("Speakers (Home): on (Song REPORT by Band), in Den (Upstairs), "
+            "for 7 minutes") in env.system
     assert "50%" not in env.system and env.system.count("<<<REPORT") == 1
     assert reply.facts[0].startswith("Speakers: on (Song")
 
