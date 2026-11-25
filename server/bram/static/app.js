@@ -2,7 +2,7 @@
 const $ = (id) => document.getElementById(id);
 const PAGES = ["overview", "messages", "settings", "log", "profile"];
 // Places inside a page.
-const PLACES = { homes: "settings", model: "settings", personality: "settings", monitors: "messages" };
+const PLACES = { homes: "settings", model: "settings", personality: "settings", voice: "settings", monitors: "messages" };
 const STORY = {
   connected: "Home Assistant connected", disconnected: "Home Assistant disconnected", paired: "A home was paired",
   unpaired: "A home was removed", "signed in": "You signed in", "login refused": "Someone entered a wrong login",
@@ -281,7 +281,11 @@ async function loadMessages() {
   $("ntfy-phone").value = ntfy.phone_url || `http://${location.hostname}:2586`;
   $("ntfy-server").textContent = ntfy.phone_url;
   $("ntfy-topic").textContent = ntfy.topic;
-  $("ntfy-topic").hidden = $("ntfy-help").hidden = !ntfy.topic;
+  $("ntfy-help").hidden = !ntfy.link;
+  if (ntfy.link) {
+    $("ntfy-link").href = ntfy.link;
+    $("ntfy-qr").src = "/api/ntfy-qr?" + encodeURIComponent(ntfy.topic);
+  }
   quietRow("telegram", telegram.quiet, "tg-message");
   quietRow("ntfy", ntfy.quiet, "ntfy-message");
   $("muted").replaceChildren(...(muted.length ? muted.map((item) => {
@@ -350,6 +354,119 @@ function bubble(role, text, facts = []) {
   return box;
 }
 
+// --- voice ---
+
+const MAX_TALK = 30000;
+let player = null, playing = null, recording = null;
+
+async function loadVoice() {
+  const voice = await api("speech");
+  $("voice-hear").value = voice.hear;
+  $("voice-speak").value = voice.speak;
+  $("voice-name").value = voice.voice;
+  $("talk").hidden = !voice.hear;
+  $("aloud-box").hidden = !voice.speak;
+}
+
+function hush() {
+  if (playing) playing.stop();
+  playing = null;
+}
+
+async function speak(text) {
+  const response = await fetch("/api/speak", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text.slice(0, 1500) }),
+  });
+  if (!response.ok) throw new Error((await response.json()).error || "BRAM could not speak");
+  player ??= new AudioContext();
+  await player.resume();
+  const sound = await player.decodeAudioData(await response.arrayBuffer());
+  hush();
+  playing = player.createBufferSource();
+  playing.buffer = sound;
+  playing.connect(player.destination);
+  playing.start();
+}
+
+async function openMicrophone() {
+  if (!navigator.mediaDevices) throw new Error("This browser only allows the microphone over https");
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } });
+  } catch {
+    throw new Error("The microphone was not allowed");
+  }
+  const context = new AudioContext(), parts = [];
+  const stop = async () => {
+    for (const track of stream.getTracks()) track.stop();
+    await context.close();
+    return toPcm(parts, context.sampleRate);
+  };
+  try {
+    await context.audioWorklet.addModule("recorder.js");
+    const node = new AudioWorkletNode(context, "recorder");
+    node.port.onmessage = (event) => parts.push(event.data);
+    context.createMediaStreamSource(stream).connect(node);
+  } catch (error) {
+    await stop();
+    throw error;
+  }
+  return stop;
+}
+
+// To 16 kHz, 16-bit, mono.
+function toPcm(parts, rate) {
+  const all = new Float32Array(parts.reduce((sum, part) => sum + part.length, 0));
+  let at = 0;
+  for (const part of parts) { all.set(part, at); at += part.length; }
+  const step = rate / 16000, out = new Int16Array(Math.min(Math.floor(all.length / step), 480000));
+  for (let i = 0; i < out.length; i += 1) {
+    const from = Math.floor(i * step), to = Math.max(from + 1, Math.floor((i + 1) * step));
+    let sum = 0;
+    for (let j = from; j < to; j += 1) sum += all[j];
+    out[i] = Math.max(-1, Math.min(1, sum / (to - from))) * 32767;
+  }
+  return out;
+}
+
+function talkStart() {
+  if (recording || $("chat-send").disabled) return;
+  hush();
+  player ??= new AudioContext();  // created by a press, so the browser lets it play later
+  player.resume();
+  $("talk").classList.add("live");
+  say("chat-message", "Listening. Let go when you are done.");
+  const opening = openMicrophone();
+  opening.catch(() => {});
+  recording = { opening, timer: setTimeout(talkStop, MAX_TALK) };
+}
+
+async function talkStop() {
+  if (!recording) return;
+  const { opening, timer } = recording;
+  recording = null;
+  clearTimeout(timer);
+  $("talk").classList.remove("live");
+  $("talk").disabled = true;
+  try {
+    const pcm = await (await opening)();
+    if (pcm.length < 4000) throw new Error("Hold the button while you speak");
+    say("chat-message", "Working out what you said...");
+    const response = await fetch("/api/hear", { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: pcm });
+    const data = await response.json();
+    if (response.status === 401) show("login");
+    if (!response.ok) throw new Error(data.error || "Something went wrong");
+    if (!data.text) throw new Error("I didn't catch that");
+    say("chat-message", "");
+    $("chat-text").value = data.text;
+    $("chat-form").requestSubmit();
+  } catch (error) {
+    say("chat-message", error.message, "bad");
+  } finally {
+    $("talk").disabled = false;
+  }
+}
+
 async function loadChat() {
   const { messages } = await api("chat");
   $("chat-log").replaceChildren();
@@ -374,8 +491,8 @@ setInterval(() => {
 // --- pages ---
 
 const LOADERS = {
-  overview: () => Promise.all([loadChat(), loadHome()]),
-  settings: () => Promise.all([loadStatus(), loadSettings()]),
+  overview: () => Promise.all([loadChat(), loadVoice(), loadHome()]),
+  settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice()]),
   messages: () => Promise.all([loadMonitors(), loadMessages()]),
   log: async () => say("log-message", await loadLog()), profile: loadProfile,
 };
@@ -464,6 +581,7 @@ onSubmit("chat-form", "chat-send", "chat-message", async () => {
   try {
     const reply = await api("chat", { text, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
     bubble("assistant", reply.text, reply.facts);
+    if ($("aloud").checked && !$("aloud-box").hidden) speak(reply.text).catch((error) => say("chat-message", error.message, "bad"));
   } catch (error) {
     mine.remove();
     if (!$("chat-text").value) $("chat-text").value = text;
@@ -472,6 +590,37 @@ onSubmit("chat-form", "chat-send", "chat-message", async () => {
     $("hero").classList.remove("thinking");
     $("chat-text").focus();
   }
+});
+$("talk").addEventListener("pointerdown", (event) => {
+  if (event.button !== 0) return;
+  $("talk").setPointerCapture(event.pointerId);
+  talkStart();
+});
+for (const name of ["pointerup", "pointercancel"]) $("talk").addEventListener(name, talkStop);
+$("talk").addEventListener("keydown", (event) => {
+  if (event.key !== " " && event.key !== "Enter") return;
+  event.preventDefault();
+  if (!event.repeat) talkStart();
+});
+$("talk").addEventListener("keyup", (event) => {
+  if (event.key === " " || event.key === "Enter") talkStop();
+});
+$("talk").addEventListener("contextmenu", (event) => event.preventDefault());
+addEventListener("blur", talkStop);
+try { $("aloud").checked = localStorage.getItem("aloud") === "yes"; } catch { /* not remembered */ }
+$("aloud").addEventListener("change", () => {
+  if (!$("aloud").checked) hush();
+  try { localStorage.setItem("aloud", $("aloud").checked ? "yes" : "no"); } catch { /* not remembered */ }
+});
+onClick("voice-save", "voice-message", async () => {
+  const confirm = await askPassword("Your voice will be sent to these addresses.");
+  await api("speech", { confirm, hear: $("voice-hear").value, speak: $("voice-speak").value, voice: $("voice-name").value });
+  await loadVoice();
+  return "Saved";
+});
+onClick("voice-test", "voice-message", async () => {
+  await speak("Good evening. This is BRAM.");
+  return "You should hear BRAM now";
 });
 onClick("chat-clear", "chat-message", async () => {
   await api("chat-clear", {});
@@ -493,8 +642,9 @@ onClick("save-model", "model-message", async () => {
 });
 
 $("monitor-kind").addEventListener("change", () => {
-  const port = { ollama: 11434, frigate: 5000, device: 80 }[$("monitor-kind").value];
-  $("monitor-url").placeholder = `http://HOST:${port}`;
+  $("monitor-url").placeholder = {
+    ollama: "http://HOST:11434", frigate: "https://HOST:8971", device: "HOST:80",
+  }[$("monitor-kind").value];
 });
 onSubmit("monitor-form", "monitor-add", "monitor-message", async () => {
   await api("monitors", {
@@ -527,6 +677,10 @@ for (const [button, channel] of [["tg-test", "telegram"], ["ntfy-test", "ntfy"]]
     return "Sent";
   });
 }
+onClick("ntfy-copy", "ntfy-message", async () => {
+  await navigator.clipboard.writeText($("ntfy-topic").textContent);
+  return "Copied";
+});
 onClick("ntfy-save", "ntfy-message", async () => { await saveNtfy(); return "Saved"; });
 onClick("ntfy-new", "ntfy-message", async () => {
   await saveNtfy({ new_topic: true });
@@ -572,6 +726,7 @@ onSubmit("change-form", "change", "change-message", async () => {
 });
 
 $("logout").addEventListener("click", async () => {
+  hush();
   $("chat-log").replaceChildren();
   try { await api("logout", {}); } finally { location.assign("/ui/"); }
 });

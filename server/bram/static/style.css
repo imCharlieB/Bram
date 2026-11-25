@@ -51,6 +51,8 @@ nav .brand, nav .brand:hover { background: none; box-shadow: none; }
 .bubble p { margin: 0; }
 .bubble.user { align-self: flex-end; color: #08091a; background: linear-gradient(90deg, var(--cyan), #b98cff); border-bottom-right-radius: 4px; }
 .bubble.assistant { align-self: flex-start; background: #221f4a; border-bottom-left-radius: 4px; }
+#talk { touch-action: none; user-select: none; }
+#talk.live { border-color: var(--bad); color: var(--bad); }
 .facts { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--line); white-space: normal; }
 .facts li { padding: 1px 0; border: 0; color: var(--dim); font-size: .82rem; }
 .thinking .ring { animation-duration: 1.6s; }
@@ -99,7 +101,9 @@ input[type=checkbox] { width: auto; margin-right: 8px; accent-color: var(--cyan)
 .quiet-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .quiet-row label { margin: 0; }
 .quiet-row select { flex: 0 1 110px; min-width: 90px; }
-#ntfy-topic { overflow-x: auto; }
+#ntfy-topic { margin: 4px 0; overflow-x: auto; }
+#ntfy-qr { flex: none; border-radius: 12px; }
+#ntfy-help { flex-wrap: wrap; margin-top: 16px; }
 #modes { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-top: 12px; }
 #modes label { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
 #modes label:has(:checked) { border-color: var(--cyan); background: #1d1b45; }

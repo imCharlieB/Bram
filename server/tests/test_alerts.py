@@ -360,4 +360,4 @@ def test_ntfy_accepts_only_button_presses(settings):
 
 
 def test_topics_are_unguessable():
-    assert len({new_topic() for _ in range(50)}) == 50 and len(new_topic()) == 37
+    assert len({new_topic() for _ in range(50)}) == 50 and len(new_topic()) == 15

@@ -33,7 +33,7 @@ To set it up, see [Installing](installation.md) and [Alerts and messages](messag
 |---|---|
 | Home | How everything is right now, and [chat](chat.md) |
 | Messages | Telegram, ntfy, and monitors |
-| Settings | Homes, model, and personality |
+| Settings | Homes, model, personality, and [voice](voice.md) |
 | Log | Everything BRAM recorded, with filters |
 | Profile | Username, password, and signed-in devices |
 

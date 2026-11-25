@@ -86,7 +86,9 @@
         <form id="chat-form" class="row">
           <input id="chat-text" maxlength="2000" autocomplete="off" placeholder="Ask about your home, or anything" aria-label="Message" required>
           <button id="chat-send">Send</button>
+          <button type="button" id="talk" class="quiet" hidden>Hold to talk</button>
         </form>
+        <label id="aloud-box" hidden><input type="checkbox" id="aloud"> Speak answers</label>
         <p class="message" id="chat-message" role="status"></p>
         <p class="note">Talk only: it cannot control anything, and nothing is saved. It can be wrong, so check the sensor readings shown under its answers.</p>
       </div>
@@ -208,8 +210,15 @@
           <button id="ntfy-test" class="quiet">Send test</button>
           <button id="ntfy-new" class="quiet">New secret topic</button>
         </div>
-        <p class="note" id="ntfy-help" hidden>In the ntfy app: add a subscription, choose another server, enter <b id="ntfy-server"></b>, and this topic:</p>
-        <pre id="ntfy-topic" hidden></pre>
+        <div id="ntfy-help" class="person" hidden>
+          <img id="ntfy-qr" alt="QR code for the ntfy app" width="170" height="170">
+          <div>
+            <p class="note"><b>On your phone:</b> install ntfy, then scan this, or open this page there and <a id="ntfy-link">tap here</a>.</p>
+            <p class="note">Or type it in: another server <b id="ntfy-server"></b>, topic</p>
+            <pre id="ntfy-topic"></pre>
+            <button id="ntfy-copy" class="quiet small">Copy topic</button>
+          </div>
+        </div>
         <p class="message" id="ntfy-message" role="status"></p>
         <div class="row quiet-row" data-channel="ntfy"></div>
       </div>
@@ -235,6 +244,24 @@
         </div>
         <p class="message" id="personality-message" role="status"></p>
         <blockquote id="sample" hidden></blockquote>
+      </div>
+    </section>
+
+    <section id="at-voice" data-page="settings" hidden>
+      <h1>Voice</h1>
+      <div class="card">
+        <p class="note">Optional. Uses Whisper and Piper (Wyoming) on your own network. Leave either one empty to turn it off.</p>
+        <label for="voice-hear">Hearing (Whisper)</label>
+        <input id="voice-hear" placeholder="whisper:10300">
+        <label for="voice-speak">Speaking (Piper)</label>
+        <input id="voice-speak" placeholder="piper:10200">
+        <label for="voice-name">Voice name, or empty for the default</label>
+        <input id="voice-name" maxlength="80" placeholder="en_US-lessac-medium">
+        <div class="row">
+          <button id="voice-save">Save voice</button>
+          <button id="voice-test" class="quiet">Test voice</button>
+        </div>
+        <p class="message" id="voice-message" role="status"></p>
       </div>
     </section>
 

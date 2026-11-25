@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import io
 import ipaddress
 import secrets
 import time
@@ -11,6 +12,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zoneinfo import available_timezones
 
+import segno
 from aiohttp import web
 
 from .alerts import Alerts, Outgoing
@@ -23,6 +25,7 @@ from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing
 from .personality import CUSTOM_LIMIT, MODES, messages
 from .settings import Settings, login_matches, owner_name
+from .speech import MAX_AUDIO, MAX_SPEAK, Speech, SpeechError
 from .world import World
 
 STATIC = Path(__file__).parent / "static"
@@ -41,7 +44,8 @@ HEADERS = {
     "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer",
     "Cache-Control": "no-store",
 }
-FILES = {"": "index.html", "app.js": "app.js", "style.css": "style.css", "icon.png": "icon.png"}
+FILES = {"": "index.html", "app.js": "app.js", "style.css": "style.css", "icon.png": "icon.png",
+         "recorder.js": "recorder.js"}
 
 
 class ConfigPage:
@@ -57,6 +61,7 @@ class ConfigPage:
         self._alerts = alerts
         self.monitors = Monitors(settings, alerts) if alerts is not None else None
         self.ntfy = Ntfy(settings, self._answer)
+        self.speech = Speech(settings)
         self.chat = Chat(settings, pairing, audit, worlds or dict, self.monitors)
         self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk)
         self._sessions: dict[str, tuple[float, float, str]] = {}
@@ -73,6 +78,10 @@ class ConfigPage:
             web.post("/api/username", self._private(self._change_username)),
             web.post("/api/logout-others", self._private(self._logout_others)),
             web.post("/api/password", self._private(self._change_password)),
+            web.get("/api/speech", self._private(self._get_speech)),
+            web.post("/api/speech", self._confirmed(self._save_speech)),
+            web.post("/api/hear", self._private(self._hear)),
+            web.post("/api/speak", self._private(self._speak)),
             web.get("/api/chat", self._private(self._chat_history)),
             web.post("/api/chat", self._private(self._chat_ask)),
             web.post("/api/chat-clear", self._private(self._chat_clear)),
@@ -80,6 +89,7 @@ class ConfigPage:
             web.post("/api/monitors", self._private(self._add_monitor)),
             web.post("/api/monitor-remove", self._private(self._remove_monitor)),
             web.get("/api/messages", self._private(self._messages)),
+            web.get("/api/ntfy-qr", self._private(self._ntfy_qr)),
             web.post("/api/ntfy", self._confirmed(self._save_ntfy)),
             web.post("/api/telegram", self._confirmed(self._save_telegram)),
             web.post("/api/telegram-link", self._confirmed(self._telegram_link)),
@@ -352,6 +362,7 @@ class ConfigPage:
         return _json({
             "ntfy": {"on": bool(n.get("on")), "url": n.get("url", "http://ntfy:80"),
                      "phone_url": n.get("phone_url", ""), "topic": n.get("topic", ""),
+                     "link": self._ntfy_link(),
                      "quiet": n.get("quiet", {})},
             # The token itself is never sent back.
             "telegram": {"on": bool(t.get("on")), "token_saved": bool(t.get("token")),
@@ -359,6 +370,23 @@ class ConfigPage:
                          "chat": bool(t.get("chat")),
                          "quiet": t.get("quiet", {})},
             "muted": [{**m, "house": names.get(m["house_id"], m["house_id"])} for m in muted]})
+
+    def _ntfy_link(self) -> str:
+        """Opens the ntfy app on the right server and topic."""
+        c = self._settings.channel("ntfy")
+        if not c.get("phone_url") or not c.get("topic"):
+            return ""
+        scheme, _, host = c["phone_url"].partition("://")
+        return f"ntfy://{host}/{c['topic']}" + ("" if scheme == "https" else "?secure=false")
+
+    async def _ntfy_qr(self, request: web.Request) -> web.Response:
+        link = self._ntfy_link()
+        if not link:
+            raise web.HTTPNotFound
+        out = io.BytesIO()
+        segno.make(link, error="m").save(out, kind="svg", scale=5, border=3, light="#ffffff",
+                                         dark="#000000")
+        return web.Response(body=out.getvalue(), content_type="image/svg+xml", headers=HEADERS)
 
     async def _save_ntfy(self, body: dict) -> web.Response:
         try:
@@ -425,6 +453,36 @@ class ConfigPage:
         except ChannelError as err:
             return _json({"error": str(err)}, 400)
         return _json({"ok": True})
+
+    async def _get_speech(self, request: web.Request) -> web.Response:
+        return _json(self.speech.config())
+
+    async def _save_speech(self, body: dict) -> web.Response:
+        try:
+            await self.speech.save(body)
+        except SpeechError as err:
+            return _json({"error": str(err)}, 400)
+        self._audit.record("server", "config page", "voice saved", "by owner", "ok",
+                           approver="owner")
+        return _json({"ok": True})
+
+    async def _hear(self, request: web.Request) -> web.Response:
+        # Only this request may be this large.
+        pcm = await request.clone(client_max_size=MAX_AUDIO + 1024).read()
+        try:
+            return _json({"text": await self.speech.hear(pcm)})
+        except SpeechError as err:
+            return _json({"error": str(err)}, 400)
+
+    async def _speak(self, request: web.Request) -> web.Response:
+        text = (await _body(request)).get("text")
+        if not isinstance(text, str):
+            return _json({"error": "There is nothing to say"}, 400)
+        try:
+            wav = await self.speech.speak(text[:MAX_SPEAK])
+        except SpeechError as err:
+            return _json({"error": str(err)}, 400)
+        return web.Response(body=wav, content_type="audio/wav", headers=HEADERS)
 
     @staticmethod
     def _chat_key(request: web.Request) -> str:

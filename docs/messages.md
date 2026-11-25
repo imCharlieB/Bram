@@ -42,7 +42,7 @@ Optional, and not needed if you use Telegram. It runs beside BRAM and works at h
 
 1. On BRAM's **Messages** page, check **Turned on**. Leave **Address BRAM uses** as `http://ntfy:80`. Set **Address your phone uses** to `http://SERVER:2586`. **Save**.
 2. Install the free **ntfy** app (Play Store or F-Droid; no account needed) and allow notifications and instant delivery. If messages arrive late, set its battery use to Unrestricted.
-3. In the app, add a subscription, choose another server, and enter that phone address and the topic shown on the page.
+3. Scan the QR code on BRAM's page, or open the page on your phone and tap the link. If neither opens ntfy, add a subscription in the app, choose another server, and enter the address and topic shown.
 4. Press **Send test**.
 
 Treat the topic like a password: anyone on your network who knows it can read your alerts. **New secret topic** replaces it. The server refuses everything except BRAM's randomly named topics. iPhones need extra ntfy setup for instant alerts.
@@ -54,7 +54,7 @@ On the **Messages** page, add things on your own network.
 | Kind | Address | Counts as up when |
 |---|---|---|
 | Ollama | `http://HOST:11434` | It answers |
-| Frigate | `http://HOST:5000` | It answers without a login |
+| Frigate | `https://HOST:8971` or `http://HOST:5000` | It answers, or asks for a login |
 | Computer or device | `HOST:PORT` | It accepts or refuses a connection |
 
 Each is checked every minute. You are told after three failures in a row, and again when it is back. Websites and Docker containers are not supported.

@@ -28,10 +28,13 @@ async def probe(kind: str, url: str, transport: httpx.AsyncBaseTransport | None 
         if kind == "device":
             host, _, port = url.removeprefix("http://").removeprefix("https://").rpartition(":")
             return await _reachable(host.strip("[]"), int(port))
+        # Frigate's login port has a self-made certificate. Nothing is sent to it, and
+        # being asked to sign in means Frigate itself answered.
+        frigate = kind == "frigate"
         async with httpx.AsyncClient(timeout=10, transport=transport, trust_env=False,
-                                     follow_redirects=False) as client:
+                                     verify=not frigate, follow_redirects=False) as client:
             response = await client.get(f"{url}/api/version")
-            return response.status_code == 200
+            return response.status_code in ((200, 401, 403) if frigate else (200,))
     except (ModelError, httpx.HTTPError):
         return False
 

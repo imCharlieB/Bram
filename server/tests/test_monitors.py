@@ -112,6 +112,8 @@ async def test_probe_http():
 
     assert await probe("ollama", "http://127.0.0.1", answering(200))
     assert not await probe("frigate", "http://127.0.0.1", answering(502))
+    assert await probe("frigate", "https://127.0.0.1:8971", answering(401))
+    assert not await probe("ollama", "http://127.0.0.1", answering(401))
     assert not await probe("frigate", "http://8.8.8.8", answering(200))
 
 

@@ -1,0 +1,59 @@
+# BRAM, ntfy, Whisper, and Piper in one stack. See docs/voice.md.
+services:
+  bram:
+    image: ghcr.io/imcharlieb/bram-server:edge
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - bram-data:/data
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  # Optional phone alerts. Delete this service and the ntfy-data volume if unwanted.
+  ntfy:
+    image: binwiederhier/ntfy:v2.38.2
+    command: serve
+    restart: unless-stopped
+    ports:
+      - "2586:80"
+    environment:
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
+      # Everything is refused except BRAM's own topics, whose names are secret.
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_AUTH_ACCESS: "*:bram-*:rw"
+      NTFY_ENABLE_SIGNUP: "false"
+      NTFY_ENABLE_LOGIN: "false"
+      NTFY_WEB_ROOT: disable
+    volumes:
+      - ntfy-data:/var/lib/ntfy
+    security_opt: ["no-new-privileges:true"]
+
+  whisper:
+    image: rhasspy/wyoming-whisper:3.9.1
+    command: ["--model", "${BRAM_WHISPER_MODEL:-base-int8}", "--language", "${BRAM_WHISPER_LANGUAGE:-en}"]
+    restart: unless-stopped
+    ports:
+      - "10300:10300"
+    volumes:
+      - whisper-data:/data
+    security_opt: ["no-new-privileges:true"]
+
+  piper:
+    image: rhasspy/wyoming-piper:2.5.4
+    command: ["--voice", "${BRAM_PIPER_VOICE:-en_US-lessac-medium}"]
+    restart: unless-stopped
+    ports:
+      - "10200:10200"
+    volumes:
+      - piper-data:/data
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  bram-data:
+  ntfy-data:
+  whisper-data:
+  piper-data:

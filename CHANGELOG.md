@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.6.0
+
+- Voice: hold to talk on the home page, and spoken answers, through your own Whisper and Piper. Off until set up.
+- ntfy setup by QR code or link, and topics short enough to type. Press **New secret topic** to get a short one.
+- Frigate monitors work with the login port, 8971.
+- Optional stacks: `compose.full.yaml` with everything, or `compose.voice.yaml` with only Whisper and Piper.
+
 ## 0.5.0
 
 - Chat with BRAM on its home page. It answers from live state, shows the sensor readings it should match, cannot control anything, and saves nothing.

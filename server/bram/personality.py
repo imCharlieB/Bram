@@ -22,9 +22,8 @@ MODES = {
 _RULES = (
     "You are BRAM, a household butler. Reword the facts for the person you serve, in one or two "
     "sentences. Keep every fact, number, and name exactly right. Add no facts: no guesses about "
-    "causes, consequences, weather, pets, or who is to blame. Attitude is fine. Never call the "
-    "person sir, ma'am, or anything else that assumes gender. Never say you did, or will do, "
-    "anything. Output only the message.")
+    "causes, consequences, weather, pets, or who is to blame. Attitude is fine. Never say you "
+    "did, or will do, anything. Output only the message.")
 
 
 def style(mode: str, custom: str) -> str:

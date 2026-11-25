@@ -29,7 +29,7 @@ No database is needed. The HA App version is not built yet.
     cd Bram
     docker compose up -d
 
-This starts BRAM on port 8765 and ntfy on port 2586. If you do not want ntfy, remove that service. Never forward either port on your router.
+This starts BRAM on port 8765 and ntfy on port 2586. If you do not want ntfy, remove that service. To add hearing and speaking, see [Voice](voice.md). Never forward either port on your router.
 
 ## 2. Create your login
 

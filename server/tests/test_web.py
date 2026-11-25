@@ -58,9 +58,10 @@ async def page(tmp_path):
 
 PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "settings"),
            ("POST", "models"), ("POST", "sample"), ("POST", "logout"),
+           ("GET", "speech"), ("POST", "speech"), ("POST", "hear"), ("POST", "speak"),
            ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
            ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),
-           ("GET", "messages"), ("POST", "ntfy"), ("POST", "telegram"),
+           ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
            ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),
            ("POST", "unmute"), ("GET", "profile"), ("POST", "username"), ("POST", "logout-others"),
            ("POST", "pair"), ("POST", "password"),
@@ -205,6 +206,7 @@ async def test_messages_settings(page, monkeypatch):
     await page.login()
     token = "123456789:" + "A" * 35
     ntfy = {"on": True, "url": "http://127.0.0.1", "phone_url": "http://127.0.0.1:2586"}
+    assert (await page.get("/api/ntfy-qr")).status == 404
     for path, body in (("ntfy", ntfy), ("telegram", {"on": True, "token": token}),
                        ("telegram-link", {})):
         assert (await page.post(path, body)).status == 403  # needs the password again
@@ -230,6 +232,9 @@ async def test_messages_settings(page, monkeypatch):
     assert data["telegram"] == {"on": True, "token_saved": True, "bot": "example_bot",
                                 "linked": False, "chat": False, "quiet": {}}
     topic = data["ntfy"]["topic"]
+    assert data["ntfy"]["link"] == f"ntfy://127.0.0.1:2586/{topic}?secure=false"
+    qr = await page.get("/api/ntfy-qr")
+    assert qr.content_type == "image/svg+xml" and b"<svg" in await qr.read()
     await page.post("ntfy", {**ntfy, **ok})
     assert page.settings.channel("ntfy")["topic"] == topic
     await page.post("ntfy", {**ntfy, **ok, "new_topic": True})
@@ -272,6 +277,42 @@ async def test_chat_on_the_page(page, monkeypatch):
     await page.post("chat", {"text": "hi"})
     await page.post("chat-clear", {})
     assert (await (await page.get("/api/chat")).json())["messages"] == []
+
+
+async def test_voice_on_the_page(page, monkeypatch):
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    good = {"hear": "127.0.0.1", "speak": "127.0.0.1:10200", "voice": "", "confirm": PASSWORD}
+    assert (await page.post("speech", {**good, "confirm": ""})).status == 403
+    assert (await page.post("speech", {**good, "hear": "8.8.8.8"})).status == 400
+    assert (await page.post("speech", good)).status == 200
+    saved = await (await page.get("/api/speech")).json()
+    assert saved == {"hear": "127.0.0.1:10300", "speak": "127.0.0.1:10200", "voice": ""}
+    heard = []
+
+    async def transcribe(address, pcm):
+        heard.append(len(pcm))
+        return "hello"
+
+    async def synthesize(address, text, voice):
+        return b"RIFF" + text.encode()
+
+    monkeypatch.setattr("bram.speech.transcribe", transcribe)
+    monkeypatch.setattr("bram.speech.synthesize", synthesize)
+
+    async def hear(size, origin=None):
+        return await page.http.post(page.url + "/api/hear", data=b"\x00" * size, ssl=page.pin,
+                                    headers={"Origin": origin or page.url})
+
+    assert await (await hear(900_000)).json() == {"text": "hello"}
+    assert (await hear(2_000_000)).status == 413
+    assert (await hear(10, "https://evil.example")).status == 403
+    assert heard == [900_000]
+    reply = await page.post("speak", {"text": "hi"})
+    assert reply.content_type == "audio/wav" and await reply.read() == b"RIFFhi"
+    assert (await page.post("speak", {"text": 5})).status == 400
+    # Everything else keeps the small limit.
+    assert (await page.post("speak", {"text": "x" * 5000})).status == 413
 
 
 async def test_monitors_page(page):
@@ -401,7 +442,7 @@ async def test_password_not_stored_or_returned(page, tmp_path):
 
 
 async def test_static_files_and_headers(page):
-    for path in ("/ui/", "/ui/app.js", "/ui/style.css", "/ui/icon.png"):
+    for path in ("/ui/", "/ui/app.js", "/ui/style.css", "/ui/recorder.js", "/ui/icon.png"):
         response = await page.get(path)
         assert response.status == 200
         for key, value in HEADERS.items():

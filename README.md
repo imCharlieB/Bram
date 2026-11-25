@@ -26,6 +26,7 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 - Leak, smoke, and silent-sensor alerts through the Home Assistant app, even if the server is down
 - Optional Telegram and ntfy messages when Home Assistant or a monitored device is lost
 - Chat with BRAM on its page, and in Telegram if you turn it on; it saves nothing and controls nothing
+- Optional hold-to-talk and spoken answers with your own Whisper and Piper
 - A config page for setup, messages, model, personality, and the log
 
 ## Status
@@ -49,6 +50,7 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 - [Installing](docs/installation.md)
 - [Alerts and messages](docs/messages.md)
 - [Chat](docs/chat.md)
+- [Voice](docs/voice.md)
 - [BRAM Server](docs/server.md)
 - [Testing your model](docs/benchmark.md)
 - [Safety rules](HARD_RULES.md)

@@ -1,0 +1,25 @@
+# Optional: Whisper (hearing) and Piper (speaking). See docs/voice.md.
+services:
+  whisper:
+    image: rhasspy/wyoming-whisper:3.9.1
+    command: ["--model", "${BRAM_WHISPER_MODEL:-base-int8}", "--language", "${BRAM_WHISPER_LANGUAGE:-en}"]
+    restart: unless-stopped
+    ports:
+      - "10300:10300"
+    volumes:
+      - whisper-data:/data
+    security_opt: ["no-new-privileges:true"]
+
+  piper:
+    image: rhasspy/wyoming-piper:2.5.4
+    command: ["--voice", "${BRAM_PIPER_VOICE:-en_US-lessac-medium}"]
+    restart: unless-stopped
+    ports:
+      - "10200:10200"
+    volumes:
+      - piper-data:/data
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  whisper-data:
+  piper-data:

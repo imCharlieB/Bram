@@ -58,6 +58,19 @@ jobs:
           docker logs bram | grep listening
           docker stop -t 10 bram
           test "$(docker inspect -f '{{.State.ExitCode}}' bram)" = 0
+  voice:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: pip install -e server
+      - run: docker compose -f compose.full.yaml config -q
+      - run: docker compose -f compose.voice.yaml up -d
+      - run: python scripts/voice_check.py 127.0.0.1:10300 127.0.0.1:10200
+      - if: failure()
+        run: docker compose -f compose.voice.yaml logs --tail 60
   publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test, home-assistant, image]

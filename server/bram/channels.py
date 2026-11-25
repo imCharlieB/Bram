@@ -29,7 +29,8 @@ class ChannelError(Exception):
 
 
 def new_topic() -> str:
-    return f"bram-{secrets.token_hex(16)}"
+    """Short enough to type, with about 48 bits to guess. No look-alike characters."""
+    return "bram-" + "".join(secrets.choice("abcdefghjkmnpqrstuvwxyz23456789") for _ in range(10))
 
 
 async def _pause(failures: int) -> None:
