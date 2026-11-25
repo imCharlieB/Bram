@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from zoneinfo import ZoneInfo
 
 from .audit import Audit
+from .findings import Findings
 from .history import History
 from .local_model import open_model
 from .lookup import (
@@ -99,8 +100,9 @@ class Chat:
                  worlds: Callable[[], dict[str, World]], monitors: Monitors | None,
                  opener: Callable = open_model,
                  clock: Callable[[], float] = time.monotonic,
-                 look_up: Callable | None = None, past: History | None = None) -> None:
-        self._past = past
+                 look_up: Callable | None = None, past: History | None = None,
+                 findings: Findings | None = None) -> None:
+        self._past, self._findings = past, findings
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._worlds, self._monitors, self._open, self._clock = worlds, monitors, opener, clock
         self._look_up = look_up
@@ -302,6 +304,11 @@ class Chat:
         for row in events:
             at = datetime.datetime.fromtimestamp(row["at"], zone).strftime("%a %H:%M")
             lines.append(f"Event {at}: {clean(row['reason'], 160)}")
+        if self._findings is not None:
+            for row in self._findings.list("open", house_id=house, limit=15):
+                lines.append(f"Open finding ({row['severity']}), for "
+                             f"{length(time.time() - row['first'])}, seen {row['times']} times: "
+                             f"{clean(row['text'], 200)}")
         lines += extra
         # The markers cannot be forged from inside the report.
         body = "\n".join(lines).replace("<<<", "").replace(">>>", "")

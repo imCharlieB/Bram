@@ -19,6 +19,12 @@ MOTION, DOOR = "binary_sensor.hall", "binary_sensor.back"
 class Feed:
     learner = None
 
+    def __init__(self):
+        self.notes = []
+
+    def note(self, *a):
+        self.notes.append(a)
+
     def kind(self, entity_id):
         return {MOTION: "motion", DOOR: "opening"}.get(entity_id)
 

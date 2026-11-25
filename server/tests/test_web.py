@@ -64,6 +64,7 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("POST", "speech-voices"), ("POST", "speech-preview"),
            ("POST", "hear"), ("POST", "speak"),
            ("GET", "house"), ("GET", "history"), ("POST", "history"),
+           ("GET", "findings"), ("GET", "finding"), ("POST", "finding-ignore"),
            ("POST", "history-delete"),
            ("GET", "picture"), ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
            ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),

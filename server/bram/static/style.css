@@ -113,6 +113,11 @@ input[type=checkbox] { width: auto; margin-right: 8px; accent-color: var(--cyan)
 .quiet-row select { flex: 0 1 110px; min-width: 90px; }
 #ntfy-topic { margin: 4px 0; overflow-x: auto; }
 #ntfy-qr, #factor-qr { flex: none; border-radius: 12px; }
+#findings li { display: block; padding: 12px 0; }
+#findings .head { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+#findings .head b { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+#findings .high b { color: var(--bad); }
+#findings ol { margin: 8px 0 0; padding-left: 18px; font-size: .85rem; overflow-wrap: anywhere; }
 #factor-secret { overflow-wrap: anywhere; }
 #ntfy-help { flex-wrap: wrap; margin-top: 16px; }
 #modes { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-top: 12px; }

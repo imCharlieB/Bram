@@ -15,6 +15,7 @@ from .feed import Feed
 from .home_alerts import HomeAlerts
 from .house_rules import HouseRules
 from .learning import Learner
+from .outbox import Outbox
 from .security_watch import SecurityWatch
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CONVERSATION,
@@ -32,14 +33,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     for item in er.async_entries_for_config_entry(registry, entry.entry_id):
         if item.unique_id not in wanted:
             registry.async_remove(item.entity_id)
+    feed.outbox = Outbox(hass, entry, feed.send, feed.takes_notes)
+    entry.async_on_unload(await feed.outbox.start())
     feed.alerts = HomeAlerts(hass, entry, feed)
     entry.async_on_unload(await feed.alerts.start())
     entry.async_on_unload(Digest(hass, entry, feed).start())
-    feed.rules = HouseRules(hass, entry)
+    feed.rules = HouseRules(hass, entry, feed.note)
     entry.async_on_unload(await feed.rules.start())
     feed.learner = Learner(hass, entry, feed)
     entry.async_on_unload(await feed.learner.start())
-    entry.async_on_unload(await SecurityWatch(hass, entry).start())
+    entry.async_on_unload(await SecurityWatch(hass, entry, feed.note).start())
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_create_background_task(hass, feed.run(), "bram feed")
     return True
@@ -52,5 +55,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Delete everything BRAM kept here."""
-    for part in ("", ".rules", ".security", ".learned"):
+    for part in ("", ".rules", ".security", ".learned", ".outbox"):
         await Store(hass, 1, f"{DOMAIN}.{entry.entry_id}{part}").async_remove()

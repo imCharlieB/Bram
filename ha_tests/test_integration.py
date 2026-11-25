@@ -20,8 +20,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 from bram.alerts import Alerts
 from bram.audit import Audit
 from bram.chat import Reply
+from bram.findings import Findings
 from bram.pairing import Pairing, ensure_certificate
-from bram.server import CHAT, HOUSES, SOCKETS, make_app
+from bram.server import CHAT, FINDINGS, HOUSES, SOCKETS, make_app
 from bram.settings import Settings
 from custom_components.bram import gate
 from custom_components.bram.client import InvalidCode, parse_code
@@ -38,7 +39,8 @@ ROOT = Path(__file__).parents[1]
 async def server(tmp_path, socket_enabled):
     context, fingerprint = ensure_certificate(tmp_path)
     audit, settings = Audit(":memory:"), Settings(":memory:")
-    app = make_app(Pairing(":memory:"), audit, settings, fingerprint, Alerts(":memory:", audit))
+    app = make_app(Pairing(":memory:"), audit, settings, fingerprint, Alerts(":memory:", audit),
+                   findings=Findings(":memory:"))
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, "127.0.0.1", 0, ssl_context=context).start()
@@ -617,3 +619,19 @@ def test_say(entity, state, attrs, text):
 def test_code_format():
     with pytest.raises(InvalidCode):
         parse_code("bram1-x-y")
+
+
+async def test_what_home_assistant_found_reaches_the_server(hass, server):
+    hass.states.async_set(LEAK, "off", {"device_class": "moisture"})
+    entry = await start(hass, server)
+    await choose(hass, entry, [LEAK])
+    found = server[0][FINDINGS]
+    hass.states.async_set(LEAK, "on", {"device_class": "moisture"})
+    await until(lambda: found.list("open"))
+    (row,) = found.list("open")
+    assert row["source"] == "safety" and row["house_id"] == entry.data["house_id"]
+    hass.states.async_set(LEAK, "off", {"device_class": "moisture"})
+    await until(lambda: found.list("closed"))
+    await until(lambda: not entry.runtime_data.outbox._waiting)  # confirmed
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])

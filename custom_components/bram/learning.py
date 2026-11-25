@@ -5,6 +5,7 @@ Code does all the arithmetic. Nothing here uses a model or the server. Off by de
 from __future__ import annotations
 
 import datetime
+import json
 from collections.abc import Callable
 from statistics import median
 from typing import Any
@@ -207,9 +208,18 @@ class Learner:
         pending, self.data["pending"] = self.data["pending"], {}
         if pending.get("seen", 0) >= MIN_SEEN and (gap := quiet_gap(pending["active"])):
             self.data["nights"][pending["night"]] = gap
+            self._keep("night", pending["night"], gap)
+        yesterday = (dt_util.now().date() - datetime.timedelta(days=1)).isoformat()
+        if pending and yesterday in self.data["opens"]:
+            self._keep("open", yesterday, self.data["opens"][yesterday])
         oldest = (dt_util.now().date() - datetime.timedelta(days=KEEP_DAYS)).isoformat()
         for key in ("nights", "opens"):
             self.data[key] = {d: v for d, v in self.data[key].items() if d >= oldest}
+
+    @callback
+    def _keep(self, kind: str, day: str, value: list[int]) -> None:
+        """A copy for the server's database."""
+        self._feed.note(f"{kind}:{day}", "learned", json.dumps(value), "learning")
 
     # --- suggesting ---
 
@@ -280,5 +290,6 @@ class Learner:
     async def forget(self) -> None:
         self.data = empty()
         self._opened = {}
+        self._feed.note("learned", "forgot", "Forgotten", "learning")
         ir.async_delete_issue(self._hass, DOMAIN, ISSUE)
         await self._store.async_remove()

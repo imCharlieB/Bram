@@ -118,6 +118,8 @@ class HomeAlerts:
             self._raise(entity_id, f"{TEXT[kind]}: {name}")
         elif value == "off":
             self._heard(entity_id, f"{name} {CLEAR.get(kind, 'is clear')}")
+            self._feed.note(f"safety:{entity_id}", "closed",
+                            f"{name} {CLEAR.get(kind, 'is clear')}", "safety", "high")
             if entity_id in self._alerts:
                 self._alerts[entity_id]["cleared"] = True
                 if self._alerts[entity_id]["acked"]:
@@ -135,10 +137,12 @@ class HomeAlerts:
     def _heard(self, entity_id: str, now_text: str) -> None:
         self._silent.pop(entity_id, None)
         if self._told_silent.pop(entity_id, None):
+            self._feed.note(f"silent:{entity_id}", "closed", now_text, "silent", "high")
             self._notice(f"{entity_id} back", f"Reporting again: {now_text}", entity_id, False)
 
     @callback
     def _raise(self, entity_id: str, text: str) -> None:
+        self._feed.note(f"safety:{entity_id}", "open", text, "safety", "high")
         old = self._alerts.get(entity_id)
         if old is not None and not old["cleared"]:
             return
@@ -167,6 +171,8 @@ class HomeAlerts:
         for entity_id, alert in list(self._alerts.items()):
             if action == ACK + alert["id"]:
                 alert["acked"], alert["next"] = True, None
+                self._feed.note(f"safety:{entity_id}", "acked", "Acknowledged on a phone",
+                                "safety", "high")
                 dismiss(self._hass, f"bram_{alert['id']}")
                 self._deescalate(entity_id, alert)
                 if alert["cleared"]:
@@ -177,6 +183,8 @@ class HomeAlerts:
             entity_id = action[len(MUTE):]
             if entity_id not in self._muted:
                 self._muted.append(entity_id)
+                self._feed.note(f"silent:{entity_id}", "stopped", "Stopped from a phone",
+                                "silent", "high")
                 self._save()
 
     @callback
@@ -223,6 +231,9 @@ class HomeAlerts:
             sent = await notify(
                 self._hass, self._safety_phones, title, text, f"bram_{alert['id']}", safety=True,
                 actions=[{"action": ACK + alert["id"], "title": "Acknowledge"}])
+            if sent or alert["sends"] == 0:
+                self._feed.note(f"safety:{entity_id}", "sent" if sent else "not sent",
+                                f"Phone: {text}", "safety", "high")
             if alert["acked"] or self._alerts.get(entity_id) is not alert:
                 dismiss(self._hass, f"bram_{alert['id']}")
                 continue  # answered or replaced while it was being sent
@@ -243,9 +254,10 @@ class HomeAlerts:
                 del self._silent[entity_id]
                 name = self._name(entity_id, self._hass.states.get(entity_id))
                 self._told_silent[entity_id] = name
-                self._notice(f"{entity_id} silent", (
-                    f"{name} stopped reporting, so I cannot check for "
-                    f"{SILENT[self._kinds[entity_id]]}."), entity_id, True)
+                text = (f"{name} stopped reporting, so I cannot check for "
+                        f"{SILENT[self._kinds[entity_id]]}.")
+                self._feed.note(f"silent:{entity_id}", "open", text, "silent", "high")
+                self._notice(f"{entity_id} silent", text, entity_id, True)
         if (self._server_lost is not None and now - self._server_lost >= SERVER_AFTER
                 and not self._told_server):
             self._told_server = True
@@ -268,6 +280,10 @@ class HomeAlerts:
                             "\n".join(item["text"] for item in batch),
                             f"bram_{first['key']}", safety=False, actions=actions):
                 self._sent_notices.append(now)
+                for item in batch:
+                    if item["key"].endswith(" silent"):
+                        self._feed.note(f"silent:{item['entity_id']}", "sent",
+                                        f"Phone: {item['text']}", "silent", "high")
                 continue
             for item in batch:
                 if item["tries"] < 30:

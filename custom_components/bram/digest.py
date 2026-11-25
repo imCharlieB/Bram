@@ -31,8 +31,10 @@ class Digest:
             self._hass, self._send, hour=self._at.hour, minute=self._at.minute, second=0)
 
     async def _send(self, now: datetime.datetime) -> None:
-        await notify(self._hass, self._phones, "BRAM daily summary", self.text(), "bram_digest",
-                     safety=False, actions=[])
+        sent = await notify(self._hass, self._phones, "BRAM daily summary", self.text(),
+                            "bram_digest", safety=False, actions=[])
+        self._feed.note("message:digest", "sent" if sent else "not sent",
+                        "Phone: daily summary", "message")
 
     @callback
     def text(self) -> str:

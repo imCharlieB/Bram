@@ -46,19 +46,19 @@ BRAM's job: **notice** what is happening, **remember** it, **explain** what is w
 
 ## 1. One record
 
-Today the server's database logs connections, sign-ins, monitors, what the server noticed, and Telegram and ntfy messages. Phone messages, lock and door rules, security findings, and learned hours stay in Home Assistant, and errors are not kept at all.
+Today the server's database logs connections, sign-ins, monitors, what the server noticed, and Telegram and ntfy messages. Since 0.24 it also holds findings, phone messages, and learned hours. Home Assistant errors are not kept yet; that is phase 2.
 
 | Feature | Status |
 |---|---|
 | Server database and append-only log | ✅ |
-| Every finding in one list: what, where, first seen, last seen, how often, told, acknowledged, fixed | ⬜ |
-| Home Assistant sends its findings and phone messages to that list, and catches up after a disconnect | ⬜ |
-| Findings page: open, fixed, and ignored, with the story of each | ⬜ |
+| Every finding in one list: what, where, first seen, last seen, how often, told, acknowledged, fixed | ✅ [Findings](findings.md) |
+| Home Assistant sends its findings and phone messages to that list, and catches up after a disconnect | ✅ |
+| Findings page: open, fixed, and ignored, with the story of each | ✅ |
 | History of shared devices, off until you turn it on (rule E10) | ✅ [History](history.md) |
 | Climate: every run of heating, cooling, and fan, with start, end, target, mode, preset, inside and outside temperature | ✅ |
 | Readings: temperature, humidity, air quality, power, energy, and water | ✅ |
 | Past readings brought in from Home Assistant's own statistics, so trends do not start from nothing | ✅ |
-| Learned hours moved here from Home Assistant | ⬜ |
+| Learned hours copied here from Home Assistant, which keeps its own so suggestions work without the server | ✅ |
 | Size limit and total size on the page | ✅ |
 | Each thermostat compared with the room's other temperature sensors | ✅ |
 | Size by device and kind, and [cleaning up](#cleaning-up) by asking you or when you say so | ⬜ |

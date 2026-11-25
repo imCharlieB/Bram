@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.24.0
+
+- Findings: one list of everything BRAM found, with how often, whether you were told, and when it ended. Covers phone messages, lock and door rules, safety, security, and monitors.
+- Home Assistant catches the server up after a disconnect.
+- Chat knows what is open.
+- Learned nights are copied into the server's database.
+
 ## 0.23.0
 
 - BRAM can keep history in its own database: readings, every heating and cooling run with its settings, and device changes. Off until you turn it on under History.

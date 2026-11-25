@@ -90,6 +90,7 @@ class Feed:
         self.alerts: Any = None  # set during setup
         self.rules: Any = None
         self.learner: Any = None
+        self.outbox: Any = None
         self._queue: asyncio.Queue[dict] | None = None
         self._queries: set[asyncio.Task] = set()
         self._asked: dict[str, asyncio.Future[str]] = {}
@@ -125,6 +126,17 @@ class Feed:
         except asyncio.QueueFull:
             return False
         return True
+
+    @callback
+    def note(self, key: str, what: str, text: str, source: str, severity: str = "low") -> None:
+        """For the server's record. Never needed for an alert to work."""
+        if self.outbox is not None:
+            self.outbox.note(key, what, text, source, severity)
+
+    @callback
+    def takes_notes(self) -> bool:
+        return (self.connected and self.server_version is not None
+                and _key(self.server_version) >= (0, 24))
 
     async def ask(self, text: str, conversation: str) -> str:
         """Ask the server. The answer is only ever words to say."""
@@ -198,6 +210,11 @@ class Feed:
             if not self._asked[data["id"]].done():
                 self._asked[data["id"]].set_result(data["text"][:4000])
             return
+        if (isinstance(data, dict) and data.keys() == {"type", "id"}
+                and data["type"] == "noted" and isinstance(data["id"], str)):
+            if self.outbox is not None:
+                self.outbox.confirmed(data["id"])
+            return
         if (isinstance(data, dict) and data.keys() == {"type", "mode"}
                 and data["type"] == "mood" and data["mode"] in tuple(MOODS)):
             self.mood = data["mode"]
@@ -208,6 +225,8 @@ class Feed:
                 and _VERSION.fullmatch(data["version"])):
             self.server_version = data["version"]
             self._compare()
+            if self.outbox is not None:
+                self.outbox.reconnected()
             return
         if (isinstance(data, dict) and data.keys() == {"type", "entity_id", "answer"}
                 and data["type"] == "belief" and data["entity_id"] in self._entities

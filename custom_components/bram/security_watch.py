@@ -20,7 +20,9 @@ from .security import check
 class SecurityWatch:
     """Checks every hour and tells once about anything new. Off by default."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry,
+                 note: Callable[..., None] = lambda *a: None) -> None:
+        self._note = note
         self._hass = hass
         self._on: bool = entry.options.get(CONF_SECURITY_WATCH, False)
         self._phones: list[str] = entry.options.get(CONF_PHONES, [])
@@ -44,6 +46,10 @@ class SecurityWatch:
         first = self._known is None
         new = [f for f in result["findings"] if f["key"] not in self._told]
         current = {f["key"] for f in result["findings"]}
+        for item in result["findings"]:
+            self._note(f"security:{item['key']}", "open", item["text"], "security", item["level"])
+        for key in self._told - current:
+            self._note(f"security:{key}", "closed", "Over", "security", "low")
         high = any(f["level"] == "high" for f in new)
         # What was there at the start is listed when asked, not announced.
         if new and not first:
@@ -54,6 +60,9 @@ class SecurityWatch:
             if not await notify(self._hass, self._phones, "BRAM security check", text,
                                 "bram_security", safety=False, actions=[]):
                 return  # tried again next hour, with nothing forgotten
+            for item in new:
+                self._note(f"security:{item['key']}", "sent", f"Phone: {item['text']}",
+                           "security", item["level"])
         if "Accounts and tokens" in result["not_checked"] and first:
             return  # learning from an empty list would call every account new
         self._told = current

@@ -21,6 +21,7 @@
 - [Architecture](architecture.md)
 - [Security check](security-check.md)
 - [Learning](learning.md)
+- [Findings](findings.md)
 - [History and trends](history.md)
 - [Security](security.md)
 - [What BRAM stores](data.md)

@@ -33,4 +33,4 @@ An unanswered suggestion goes away after 30 days. A suggestion can change only t
 
 On the same **Learning** page: **Undo the last approved change**, or **Delete everything learned**, which also clears your Never answers. Turning learning off stops notes but keeps them until you delete them.
 
-Summaries stay in Home Assistant for 60 days. Nothing is sent to the BRAM Server. Removing BRAM deletes them.
+Summaries stay in Home Assistant for 60 days. A copy of each summary is kept in the BRAM Server's database until you delete everything learned or remove the home. Removing BRAM deletes Home Assistant's.

@@ -34,6 +34,7 @@ To set it up, see [Installing](installation.md) and [Alerts and messages](messag
 | Home | How everything is right now, and [chat](chat.md) |
 | Messages | Telegram, ntfy, and monitors |
 | Settings | Homes, model, personality, and [voice](voice.md) |
+| Findings | [What BRAM found](findings.md) and its story |
 | History | [What devices did](history.md), heating and cooling, and space used |
 | Log | Everything BRAM recorded, with filters |
 | Profile | Username, password, second factor, and signed-in devices |

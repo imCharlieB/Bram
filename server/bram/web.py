@@ -21,6 +21,7 @@ from .alerts import Alerts, Outgoing
 from .audit import KINDS, Audit
 from .channels import TOKEN, ChannelError, Ntfy, Telegram, new_topic
 from .chat import MAX_TEXT, Busy, Chat
+from .findings import Findings
 from .history import History
 from .local_model import check_local, local_models, open_model
 from .models.base import ModelError
@@ -64,8 +65,9 @@ class ConfigPage:
                  clock: Callable[[], float] = time.monotonic,
                  look_up: Callable | None = None,
                  mood_changed: Callable[[], Awaitable[None]] | None = None,
-                 history: History | None = None) -> None:
-        self.history = history
+                 history: History | None = None,
+                 findings: Findings | None = None) -> None:
+        self.history, self.findings = history, findings
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._fingerprint, self._connected = fingerprint, connected
         self._disconnect, self._clock = disconnect, clock
@@ -79,7 +81,7 @@ class ConfigPage:
         self.speech = Speech(settings)
         self._worlds = worlds or dict
         self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors,
-                         look_up=look_up, past=history)
+                         look_up=look_up, past=history, findings=findings)
         self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk,
                                  hear=self.speech.hear)
         self._sessions: dict[str, tuple[float, float, str]] = {}
@@ -108,6 +110,9 @@ class ConfigPage:
             web.post("/api/speech-preview", self._private(self._preview)),
             web.post("/api/hear", self._private(self._hear)),
             web.post("/api/speak", self._private(self._speak)),
+            web.get("/api/findings", self._private(self._findings)),
+            web.get("/api/finding", self._private(self._finding)),
+            web.post("/api/finding-ignore", self._private(self._ignore_finding)),
             web.get("/api/history", self._private(self._history)),
             web.post("/api/history", self._confirmed(self._save_history)),
             web.post("/api/history-delete", self._confirmed(self._delete_history)),
@@ -384,6 +389,8 @@ class ConfigPage:
         await self._disconnect(house_id)
         if self.history is not None:
             self.history.forget(house_id)
+        if self.findings is not None:
+            self.findings.forget_house(house_id)
         if self._alerts is not None:
             self._alerts.forget_house(house_id)
         self._audit.record(house_id, "config page", "unpaired", "removed by owner", "ok",
@@ -467,6 +474,35 @@ class ConfigPage:
         self._audit.record("server", "config page", "settings saved",
                            ", ".join(sorted(values)), "ok", approver="owner")
         return _json({"ok": True, "settings": self._settings.all()})
+
+    async def _findings(self, request: web.Request) -> web.Response:
+        which = request.query.get("show", "open")
+        try:
+            before = float(request.query["before"]) if "before" in request.query else None
+        except ValueError:
+            return _json({"error": "Invalid number"}, 400)
+        if which not in ("open", "closed", "ignored"):
+            return _json({"error": "Invalid filter"}, 400)
+        names = dict(self._pairing.houses())
+        rows = self.findings.list(which, before) if self.findings is not None else []
+        return _json({"findings": [
+            {k: r[k] for k in ("id", "source", "severity", "text", "is_open", "ignored", "first",
+                               "last", "times", "told", "acked", "stopped", "closed")}
+            | {"home": names.get(r["house_id"], "")} for r in rows]})
+
+    async def _finding(self, request: web.Request) -> web.Response:
+        number = request.query.get("id", "")
+        if self.findings is None or not number.isascii() or not number.isdigit():
+            return _json({"error": "No such finding"}, 400)
+        return _json({"story": self.findings.story(min(int(number), 2**62))})
+
+    async def _ignore_finding(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        on = body.get("on")
+        if (self.findings is None or not isinstance(on, bool)
+                or not self.findings.ignore(body.get("id"), on)):
+            return _json({"error": "No such finding"}, 400)
+        return _json({"ok": True})
 
     async def _history(self, request: web.Request) -> web.Response:
         if self.history is None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+import re
 import secrets
 import sqlite3
 import time
@@ -14,6 +15,7 @@ from typing import Protocol
 from zoneinfo import ZoneInfo
 
 from .audit import Audit
+from .findings import Findings
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +28,8 @@ SNOOZE = 4 * 3600
 DAILY_NOTICES = 10
 HOUSE_DOWN_AFTER = 180
 HOUSE_KEY = "home assistant"
+NOTED = {"alert": "open", "notice": "open", "cleared": "closed", "sent": "sent",
+         "send failed": "not sent", "ack": "acked", "mute": "stopped", "snooze": "snoozed"}
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS alert (
@@ -66,6 +70,18 @@ class Alerts:
         self._quiet = quiet or (lambda channel: {})
         self.channels: list[Channel] = []
         self._down: dict[str, tuple[float, str]] = {}
+        self.findings: Findings | None = None
+
+    def _log(self, house_id: str, key: str, decision: str, text: str, result: str,
+             approver: str | None = None) -> None:
+        self._audit.record(house_id, key, decision, text, result, approver)
+        what = NOTED.get(decision)
+        if self.findings is None or what is None:
+            return
+        source = ("connection" if key == HOUSE_KEY else "monitors" if house_id == "server"
+                  or not re.fullmatch(r"[a-z_]+\.[a-z0-9_]+", key) else "safety")
+        self.findings.note(house_id, f"{source}:{key}", what, text, source,
+                           "medium" if source == "monitors" else "high")
 
     # --- raising and clearing ---
 
@@ -76,13 +92,13 @@ class Alerts:
             return None
         if not safety and self._db.execute("SELECT 1 FROM mute WHERE house_id = ? AND key = ?",
                                            (house_id, key)).fetchone():
-            self._audit.record(house_id, key, "muted", text, "not sent")
+            self._log(house_id, key, "muted", text, "not sent")
             return None
         alert_id, now = secrets.token_hex(8), self._clock()
         with self._db:
             self._db.execute("INSERT INTO alert VALUES (?, ?, ?, ?, ?, ?, NULL, NULL)",
                              (alert_id, house_id, key, text, safety, now))
-        self._audit.record(house_id, key, "alert" if safety else "notice", text, "raised")
+        self._log(house_id, key, "alert" if safety else "notice", text, "raised")
         return alert_id
 
     def clear(self, house_id: str, key: str, text: str | None = None, *, safety: bool) -> None:
@@ -97,7 +113,7 @@ class Alerts:
                     self._db.execute("UPDATE delivery SET next_at = NULL WHERE alert_id = ?",
                                      (row["id"],))
         if rows and text:
-            self._audit.record(house_id, key, "cleared", text, "ok")
+            self._log(house_id, key, "cleared", text, "ok")
             alert_id = secrets.token_hex(8)
             with self._db:
                 self._db.execute("INSERT INTO alert VALUES (?, ?, ?, ?, 0, ?, NULL, ?)",
@@ -165,7 +181,7 @@ class Alerts:
                                  (row["house_id"], row["key"]))
         done = {"ack": "Acknowledged", "snooze": "Snoozed for 4 hours",
                 "mute": "Stopped. You can undo this on the Messages page"}[verb]
-        self._audit.record(row["house_id"], row["key"], verb, row["text"], "ok", approver=by)
+        self._log(row["house_id"], row["key"], verb, row["text"], "ok", approver=by)
         return f"{done}."
 
     def open(self) -> list[dict]:
@@ -226,7 +242,7 @@ class Alerts:
                 (channel.name, now - 86400)).fetchone()[0]
             if sent >= DAILY_NOTICES:
                 self._schedule(row["id"], channel.name, None)
-                self._audit.record(row["house_id"], row["key"], "daily limit", channel.name,
+                self._log(row["house_id"], row["key"], "daily limit", channel.name,
                                    "not sent")
                 return
         buttons = [("Acknowledge", f"ack:{row['id']}")]
@@ -253,7 +269,7 @@ class Alerts:
                     (failures, None if give_up else self._clock() + RETRY, row["id"],
                      channel.name))
             if failures == 1 or give_up:
-                self._audit.record(row["house_id"], row["key"], "send failed", channel.name,
+                self._log(row["house_id"], row["key"], "send failed", channel.name,
                                    type(err).__name__)
             return
         sends = row["sends"] + 1
@@ -263,7 +279,7 @@ class Alerts:
                 "UPDATE delivery SET sends = ?, failures = 0, last_sent = ?, next_at = CASE WHEN"
                 " next_at IS NULL THEN NULL ELSE ? END WHERE alert_id = ? AND channel = ?",
                 (sends, self._clock(), again, row["id"], channel.name))
-        self._audit.record(row["house_id"], row["key"], "sent", f"{channel.name}: {row['text']}",
+        self._log(row["house_id"], row["key"], "sent", f"{channel.name}: {row['text']}",
                            "ok")
 
     def _schedule(self, alert_id: str, channel: str, at: float | None) -> None:

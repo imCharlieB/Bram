@@ -1,6 +1,6 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
-const PAGES = ["overview", "messages", "settings", "history", "log", "profile"];
+const PAGES = ["overview", "messages", "settings", "findings", "history", "log", "profile"];
 // Places inside a page.
 const PLACES = { homes: "settings", model: "settings", personality: "settings", voice: "settings", monitors: "messages" };
 const STORY = {
@@ -707,18 +707,55 @@ async function loadHistory() {
   if (!pairs.length) $("history-compare").append(cells(["Share a thermostat and a temperature sensor in the same room"]));
 }
 
+const WHAT = { open: "Found", closed: "Over", sent: "Told", "not sent": "Could not be sent", acked: "Acknowledged", stopped: "Stopped", snoozed: "Snoozed" };
+const FROM = { safety: "Safety", silent: "Silent sensor", rules: "Locks and doors", security: "Security", monitors: "Monitor", connection: "Connection", message: "Message", learning: "Learning", problems: "Problem", printers: "Printer" };
+let lastFinding = null;
+
+function findingRow(item) {
+  const row = element("li", undefined, item.severity), head = element("div", undefined, "head"), side = element("span");
+  const told = item.told ? `told ${ago(item.told)}` : "not told", over = item.closed && !item.is_open ? `, over ${ago(item.closed)}` : "";
+  const story = element("button", "Story", "quiet small"), hide = element("button", item.ignored ? "Stop ignoring" : "Ignore", "quiet small");
+  const list = element("ol");
+  list.hidden = true;
+  story.addEventListener("click", () => busy(story, "findings-message", async () => {
+    list.hidden = !list.hidden;
+    if (list.hidden) return;
+    const data = await api("finding?id=" + item.id);
+    list.replaceChildren(...data.story.map((part) => element("li", `${new Date(part.at * 1000).toLocaleString()}: ${WHAT[part.what] || part.what}. ${part.text}`)));
+  }));
+  hide.addEventListener("click", () => busy(hide, "findings-message", async () => {
+    await api("finding-ignore", { id: item.id, on: !item.ignored });
+    return loadFindings();
+  }));
+  side.append(story, hide);
+  head.append(element("b", item.text), side);
+  row.append(head, element("span", `${FROM[item.source] || item.source}${item.home ? ", " + item.home : ""}: ${item.times === 1 ? "once" : item.times + " times"}, first ${ago(item.first)}, last ${ago(item.last)}, ${told}${item.acked ? ", acknowledged" : ""}${item.stopped ? ", messages stopped" : ""}${over}`, "note"), list);
+  return row;
+}
+
+async function loadFindings(more = false) {
+  const show = $("findings-show").value, query = new URLSearchParams({ show });
+  if (more && lastFinding !== null) query.set("before", lastFinding);
+  const { findings } = await api("findings?" + query);
+  if (more) $("findings").append(...findings.map(findingRow));
+  else $("findings").replaceChildren(...findings.map(findingRow));
+  if (findings.length) lastFinding = findings.at(-1).last;
+  $("findings-older").hidden = findings.length < 50;
+  return $("findings").children.length ? "" : show === "open" ? "Nothing open that BRAM checks for." : "Nothing here.";
+}
+
 // --- pages ---
 
 const LOADERS = {
   overview: () => Promise.all([loadChat(), loadVoice(), loadHome()]),
   settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice()]),
   messages: () => Promise.all([loadMonitors(), loadMessages()]),
-  history: loadHistory,
+  findings: async () => say("findings-message", await loadFindings()), history: loadHistory,
   log: async () => say("log-message", await loadLog()), profile: loadProfile,
 };
 const MESSAGES = {
   overview: "overview-message", settings: "pair-message", messages: "messages-message",
-  history: "history-message", log: "log-message", profile: "session-message",
+  findings: "findings-message", history: "history-message", log: "log-message", profile: "session-message",
 };
 
 async function openPage() {
@@ -986,6 +1023,9 @@ onClick("history-delete", "history-message", async () => {
   return "Deleted.";
 });
 
+onClick("findings-refresh", "findings-message", () => loadFindings());
+onClick("findings-older", "findings-message", () => loadFindings(true));
+$("findings-show").addEventListener("change", () => busy($("findings-refresh"), "findings-message", () => loadFindings()));
 onClick("refresh", "log-message", () => loadLog());
 onClick("older", "log-message", () => loadLog(true));
 $("log-kind").addEventListener("change", () => busy($("refresh"), "log-message", () => loadLog()));

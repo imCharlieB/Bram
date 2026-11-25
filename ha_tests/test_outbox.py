@@ -1,0 +1,120 @@
+import datetime
+from unittest.mock import patch
+
+import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_mock_service
+
+from custom_components.bram.feed import Feed
+from custom_components.bram.house_rules import HouseRules
+from custom_components.bram.outbox import MAX_WAITING, RESEND, SETTLED, Outbox
+
+pytestmark = pytest.mark.usefixtures("custom")
+NOTE = ("Front lock is unlocked", "rules", "low")
+
+
+class Env:
+    def __init__(self, hass):
+        self.hass, self.sent, self.ready = hass, [], True
+        self.now = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
+        self.entry = MockConfigEntry(domain="bram")
+
+    async def start(self):
+        self.box = Outbox(self.hass, self.entry, lambda m: self.sent.append(m) or True,
+                          lambda: self.ready)
+        self.stop = await self.box.start()
+
+    def whats(self):
+        return [m["what"] for m in self.sent]
+
+    def wait(self, seconds):
+        self.now += datetime.timedelta(seconds=seconds)
+        self.box.tick()
+
+
+@pytest.fixture
+async def env(hass):
+    e = Env(hass)
+    with patch("homeassistant.util.dt.utcnow", side_effect=lambda: e.now):
+        await e.start()
+        yield e
+        e.stop()
+        await hass.async_block_till_done()
+
+
+async def test_kept_until_confirmed(env):
+    env.ready = False
+    env.box.note("k", "open", *NOTE)
+    assert env.sent == []
+    env.ready = True
+    env.box.reconnected()
+    env.wait(5)
+    assert env.whats() == ["open"]
+    env.wait(RESEND)
+    assert env.whats() == ["open", "open"] and env.sent[0]["id"] == env.sent[1]["id"]
+    env.box.confirmed(env.sent[0]["id"])
+    env.wait(RESEND)
+    assert len(env.sent) == 2
+
+
+async def test_open_is_said_once_and_closed_only_if_open(env):
+    env.box.note("k", "closed", *NOTE)
+    for _ in range(3):
+        env.box.note("k", "open", *NOTE)
+    env.box.note("k", "closed", *NOTE)
+    assert env.whats() == ["open", "closed"]
+
+
+async def test_survives_a_restart_and_closes_what_nobody_sees(env, hass_storage):
+    env.box.note("gone", "open", *NOTE)
+    env.box.note("still", "open", *NOTE)
+    await env.box._store.async_save({"waiting": env.box._waiting, "open": env.box._open})
+    env.stop()
+    env.sent.clear()
+    await env.start()
+    env.box.note("still", "open", *NOTE)
+    env.box.tick()
+    assert [m["key"] for m in env.sent] == ["gone", "still"]
+    env.wait(SETTLED)
+    closed = [m["key"] for m in env.sent if m["what"] == "closed"]
+    assert closed == ["gone"]
+
+
+async def test_limited(env):
+    env.ready = False
+    for i in range(MAX_WAITING + 50):
+        env.box.note(f"k{i}", "sent", *NOTE)
+    assert len(env.box._waiting) == MAX_WAITING
+
+
+@pytest.mark.parametrize(("version", "takes"), [
+    (None, False), ("0.23.9", False), ("0.24.0", True), ("1.0.0", True)])
+async def test_older_servers_are_not_sent_notes(hass, version, takes):
+    feed = Feed(hass, MockConfigEntry(domain="bram"))
+    feed.connected, feed.server_version = True, version
+    assert feed.takes_notes() is takes
+    feed.note("k", "open", *NOTE)  # nothing to keep it in, and nothing breaks
+
+
+async def test_rules_note_found_told_and_over(hass):
+    async_mock_service(hass, "notify", "mobile_app_phone")
+    notes = []
+    now = [datetime.datetime(2026, 1, 1, 12, tzinfo=datetime.UTC)]
+    rules = HouseRules(hass, MockConfigEntry(domain="bram", options={
+        "entities": ["lock.a"], "phones": ["mobile_app_phone"], "offline": True}),
+        lambda *a: notes.append(a[:2]))
+    with patch("homeassistant.util.dt.utcnow", side_effect=lambda: now[0]):
+        stop = await rules.start()
+        hass.states.async_set("lock.a", "locked")
+        await rules.run()
+        hass.states.async_set("lock.a", "unavailable")
+        await rules.run()
+        assert notes == []
+        now[0] += datetime.timedelta(minutes=10)
+        await rules.run()
+        hass.states.async_set("lock.a", "locked")
+        await rules.run()
+        stop()
+        await hass.async_block_till_done()
+    key = "rules:offline:lock.a"
+    assert [n for n in notes if n[1] != "open"] == [(key, "sent"), (key, "closed")]
+    assert notes[0] == (key, "open")

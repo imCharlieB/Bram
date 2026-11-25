@@ -18,6 +18,7 @@ from aiohttp import WSCloseCode, WSMsgType, web
 from .alerts import Alerts
 from .audit import Audit
 from .chat import MAX_TEXT, Busy, Chat
+from .findings import Findings
 from .history import History, number
 from .models.base import ModelError
 from .monitors import Monitors
@@ -41,6 +42,7 @@ ASKED = web.AppKey("asked", dict)
 SETTINGS = web.AppKey("settings", Settings)
 ASK_TIMEOUT = 12
 HISTORY = web.AppKey("history", History)
+FINDINGS = web.AppKey("findings", Findings)
 NUMBERS = ("now", "humidity", "target", "low", "high")
 WORDS = ("unit", "action", "mode", "preset", "fan")
 MAX_PAGES = 60
@@ -160,6 +162,15 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                     task = asyncio.create_task(_answer(request.app, ws, house_id, data))
                     questions.add(task)
                     task.add_done_callback(questions.discard)
+                elif kind == "note" and ready:
+                    uid = data.get("id")
+                    if request.app.get(FINDINGS) is not None:
+                        try:
+                            request.app[FINDINGS].from_home(house_id, data)
+                        except ValueError:
+                            pass  # confirmed below, or it would come back forever
+                    if isinstance(uid, str):
+                        await ws.send_json({"type": "noted", "id": uid[:32]})
                 elif kind == "heartbeat" and ready:
                     world.heartbeat()
                 else:
@@ -331,12 +342,17 @@ async def _shutdown(app: web.Application) -> None:
 def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
              fingerprint: str = "", alerts: Alerts | None = None,
              clock: Callable[[], float] = time.monotonic,
-             history: History | None = None) -> web.Application:
+             history: History | None = None,
+             findings: Findings | None = None) -> web.Application:
     app = web.Application(client_max_size=4096)
     app[PAIRING], app[AUDIT], app[HOUSES], app[SOCKETS] = pairing, audit, {}, {}
     app[ASKED] = {}
     if history is not None:
         app[HISTORY] = history
+    if findings is not None:
+        app[FINDINGS] = findings
+        if alerts is not None:
+            alerts.findings = findings
     app.router.add_post("/pair", _pair)
     app.router.add_get("/feed", _feed)
     app.router.add_get("/health", _health)
@@ -349,7 +365,7 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
         page = ConfigPage(settings, pairing, audit, fingerprint, lambda: set(app[SOCKETS]),
                           disconnect, alerts,
                           lambda: {k: v[0] for k, v in app[HOUSES].items()}, clock,
-                          lambda *a: ask_house(app, *a), lambda: _tell_mood(app), history)
+                          lambda *a: ask_house(app, *a), lambda: _tell_mood(app), history, findings)
         app[SETTINGS] = settings
         if alerts is not None:
             app[ALERTS], app[TASKS] = alerts, []
@@ -373,7 +389,8 @@ async def _serve(host: str, port: int, data: Path) -> None:
     if not history.healthy:
         audit.record("server", "database", "database damaged", "quick check failed", "problem")
         print("The database failed its check. Restore a backup.", file=sys.stderr)
-    app = make_app(Pairing(database), audit, settings, fingerprint, alerts, history=history)
+    app = make_app(Pairing(database), audit, settings, fingerprint, alerts, history=history,
+                   findings=Findings(database))
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, host, port, ssl_context=context).start()

@@ -39,7 +39,10 @@ URGENT = ("night", "away")
 
 
 class HouseRules:
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry,
+                 note: Callable[..., None] = lambda *a: None) -> None:
+        self._note = note
+        self._noted: set[str] = set()
         self._hass = hass
         options = entry.options
         self._on = {r for r in ("night", "away", "left_open", "offline") if options.get(r)}
@@ -91,6 +94,7 @@ class HouseRules:
             rule, _, entity_id = key.partition(":")
             if rule in self._on and entity_id in self._entities and key not in self._muted:
                 self._muted.append(key)
+                self._note(f"rules:{key}", "stopped", "Stopped from a phone", "rules", "low")
                 self._save()
 
     @callback
@@ -162,6 +166,14 @@ class HouseRules:
             if not self._told <= facts.keys():
                 self._told &= facts.keys()  # over, so the next time is news again
                 self._save()
+            for key in self._noted - facts.keys():
+                self._note(f"rules:{key}", "closed", "Over", "rules", "low")
+            self._noted &= facts.keys()
+            for key, (rule, wait, text) in facts.items():
+                if now - self._since[key] >= wait:
+                    self._noted.add(key)
+                    self._note(f"rules:{key}", "open", text, "rules",
+                               "medium" if rule in URGENT else "low")
             quiet = within(self._quiet, dt_util.now().time())
             self._sent = [t for t in self._sent if now - t < DAY]
             due = []
@@ -186,6 +198,8 @@ class HouseRules:
                                 "\n".join(text for _, _, text in batch), f"bram_{key}",
                                 safety=False, actions=actions):
                     self._told.update(k for _, k, _ in batch)
+                    for _, k, text in batch:
+                        self._note(f"rules:{k}", "sent", f"Phone: {text}", "rules", "low")
                     self._sent.append(now)
                     self._save()
 

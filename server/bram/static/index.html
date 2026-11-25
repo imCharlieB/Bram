@@ -63,6 +63,7 @@
     <a href="#overview">Home</a>
     <a href="#messages">Messages</a>
     <a href="#settings">Settings</a>
+    <a href="#findings">Findings</a>
     <a href="#history">History</a>
     <a href="#log">Log</a>
     <a href="#profile" id="nav-profile"><span class="avatar" id="avatar"></span><span id="nav-user">Profile</span></a>
@@ -342,6 +343,23 @@
           <input id="voice-speak" placeholder="HOST:10200">
           <button id="voice-load" class="quiet">Use these addresses</button>
         </details>
+      </div>
+    </section>
+
+    <section data-page="findings" hidden>
+      <h1>Findings</h1>
+      <div class="card">
+        <div class="row">
+          <select id="findings-show" aria-label="Show">
+            <option value="open">Open</option>
+            <option value="closed">Over</option>
+            <option value="ignored">Ignored</option>
+          </select>
+          <button id="findings-refresh" class="quiet">Refresh</button>
+        </div>
+        <ul id="findings"></ul>
+        <button id="findings-older" class="quiet" hidden>Older</button>
+        <p class="message" id="findings-message" role="status"></p>
       </div>
     </section>
 
