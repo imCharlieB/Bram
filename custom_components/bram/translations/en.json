@@ -15,9 +15,15 @@
   "options": {
     "step": {
       "init": {
-        "title": "What BRAM may see",
-        "description": "BRAM only receives these entities. It cannot control anything in this version.",
-        "data": {"entities": "Entities"}
+        "title": "BRAM options",
+        "description": "BRAM only sees the entities you choose, and cannot control anything. Leak and smoke alerts come from Home Assistant itself and ignore quiet hours. They do not replace certified alarms.",
+        "data": {
+          "entities": "Entities BRAM may see",
+          "phones": "Phones that get alerts",
+          "quiet_from": "Quiet hours from",
+          "quiet_to": "Quiet hours until",
+          "escalate": "After 5 minutes without an answer, also send leak and smoke alerts through Telegram and ntfy"
+        }
       }
     }
   }

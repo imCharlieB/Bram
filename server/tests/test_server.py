@@ -103,7 +103,7 @@ async def test_feed_logs_what_it_would_say(srv):
     house = await paired(srv)
     async with feed(srv, house["token"]) as ws:
         await ws.send_json({"type": "snapshot", "states": [STATE]})
-        await until(lambda: any(r["decision"] == "would_say"
+        await until(lambda: any(r["decision"] == "noticed"
                                 for r in srv.audit.entries(house["house_id"])))
         world = srv.app[HOUSES][house["house_id"]][0]
         assert world.check("binary_sensor.x") == "yes"

@@ -1,4 +1,4 @@
-"""BRAM Server. M1: listens, remembers live state, and logs. Sends no actions."""
+"""BRAM Server. Watches and sends messages. Controls nothing."""
 from __future__ import annotations
 
 import argparse
@@ -13,10 +13,12 @@ from pathlib import Path
 
 from aiohttp import WSCloseCode, WSMsgType, web
 
+from .alerts import Alerts
 from .audit import Audit
+from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing, ensure_certificate
 from .settings import Settings
-from .watch import Watcher
+from .watch import NOTABLE, Watcher, named
 from .web import ConfigPage
 from .world import Event, World
 
@@ -24,6 +26,9 @@ PAIRING = web.AppKey("pairing", Pairing)
 AUDIT = web.AppKey("audit", Audit)
 HOUSES = web.AppKey("houses", dict)
 SOCKETS = web.AppKey("sockets", dict)
+ALERTS = web.AppKey("alerts", Alerts)
+MONITORS = web.AppKey("monitors", Monitors)
+TASKS = web.AppKey("tasks", list)
 
 
 def _event(house_id: str, raw: object) -> Event:
@@ -33,7 +38,8 @@ def _event(house_id: str, raw: object) -> Event:
     if not all(isinstance(v, str) and len(v) <= 255 for v in values):
         raise ValueError("bad state")
     # The house comes from the token, never from the message (E4).
-    return Event(house_id, *values)
+    name = raw.get("name")
+    return Event(house_id, *values, name[:100] if isinstance(name, str) else "")
 
 
 async def _pair(request: web.Request) -> web.Response:
@@ -83,10 +89,14 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                         watcher.handle(event)
                         await _belief(ws, world, event)
                     ready = True
+                    if request.app.get(ALERTS) is not None:
+                        request.app[ALERTS].house_up(house_id, _name(request.app, house_id))
                 elif kind == "state" and ready:
                     event = _event(house_id, data.get("state"))
                     watcher.handle(event)
                     await _belief(ws, world, event)
+                elif kind in ("escalate", "deescalate") and ready:
+                    _escalate(request.app, world.event(data.get("entity_id")), kind)
                 elif kind == "heartbeat" and ready:
                     world.heartbeat()
                 else:
@@ -101,7 +111,40 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
             del sockets[house_id]
             world.disconnected()
             audit.record(house_id, "feed", "disconnected", "connection closed", "state unknown")
+            # Not when the owner removed the house.
+            if request.app.get(ALERTS) is not None and request.app[PAIRING].house_for(token):
+                request.app[ALERTS].house_down(house_id, _name(request.app, house_id))
     return ws
+
+
+def _escalate(app: web.Application, event: Event | None, kind: str) -> None:
+    """A home alert nobody acknowledged, if the owner turned this on in Home Assistant."""
+    if event is None or event.kind not in NOTABLE or app.get(ALERTS) is None:
+        return
+    if kind == "escalate":
+        text = f"{named(NOTABLE[event.kind], event)} Not acknowledged in Home Assistant."
+        app[ALERTS].raise_alert(event.house_id, event.entity_id, text, safety=True)
+    else:
+        app[ALERTS].settle(event.house_id, event.entity_id)
+
+
+def _name(app: web.Application, house_id: str) -> str:
+    return dict(app[PAIRING].houses()).get(house_id, "home")
+
+
+async def _start(app: web.Application) -> None:
+    # A house that does not come back after a server restart is also down.
+    for house_id, name in app[PAIRING].houses():
+        app[ALERTS].house_down(house_id, name)
+    app[TASKS] += [asyncio.create_task(c.listen()) for c in app[ALERTS].channels]
+    app[TASKS].append(asyncio.create_task(app[ALERTS].run()))
+    app[TASKS].append(asyncio.create_task(app[MONITORS].run()))
+
+
+async def _stop(app: web.Application) -> None:
+    for task in app[TASKS]:
+        task.cancel()
+    await asyncio.gather(*app[TASKS], return_exceptions=True)
 
 
 async def _belief(ws: web.WebSocketResponse, world: World, event: Event) -> None:
@@ -135,7 +178,8 @@ async def _shutdown(app: web.Application) -> None:
 
 
 def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
-             fingerprint: str = "", clock: Callable[[], float] = time.monotonic) -> web.Application:
+             fingerprint: str = "", alerts: Alerts | None = None,
+             clock: Callable[[], float] = time.monotonic) -> web.Application:
     app = web.Application(client_max_size=4096)
     app[PAIRING], app[AUDIT], app[HOUSES], app[SOCKETS] = pairing, audit, {}, {}
     app.router.add_post("/pair", _pair)
@@ -148,7 +192,13 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
                 await ws.close(code=WSCloseCode.POLICY_VIOLATION, message=b"unpaired")
 
         page = ConfigPage(settings, pairing, audit, fingerprint, lambda: set(app[SOCKETS]),
-                          disconnect, clock)
+                          disconnect, alerts, clock)
+        if alerts is not None:
+            app[ALERTS], app[TASKS] = alerts, []
+            alerts.channels = [page.ntfy, page.telegram]
+            app[MONITORS] = page.monitors
+            app.on_startup.append(_start)
+            app.on_cleanup.append(_stop)
         app.add_routes(page.routes())
     app.on_shutdown.append(_shutdown)
     return app
@@ -157,7 +207,9 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
 async def _serve(host: str, port: int, data: Path) -> None:
     context, fingerprint = ensure_certificate(data)
     database = data / "bram.db"
-    app = make_app(Pairing(database), Audit(database), Settings(database), fingerprint)
+    audit, settings = Audit(database), Settings(database)
+    alerts = Alerts(database, audit, lambda channel: settings.channel(channel).get("quiet", {}))
+    app = make_app(Pairing(database), audit, settings, fingerprint, alerts)
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, host, port, ssl_context=context).start()
@@ -167,7 +219,7 @@ async def _serve(host: str, port: int, data: Path) -> None:
             asyncio.get_running_loop().add_signal_handler(sig, stop.set)
         except NotImplementedError:  # Windows
             pass
-    print(f"BRAM Server listening on port {port} (log only)")
+    print(f"BRAM Server listening on port {port} (cannot control anything)")
     try:
         await stop.wait()
     finally:

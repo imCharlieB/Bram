@@ -10,11 +10,11 @@ from .models.base import ModelError
 from .models.ollama import OllamaProvider
 
 
-async def check_local(url: str) -> str:
+async def check_local(url: str, default_port: int = 11434) -> str:
     """Return the URL if every address it names is on a private network."""
     try:
         parts = urlsplit(url.strip())
-        host, port = parts.hostname, parts.port or 11434
+        host, port = parts.hostname, parts.port or default_port
     except ValueError:
         raise ModelError("That is not a valid address") from None
     if (parts.scheme not in ("http", "https") or not host or parts.username or parts.password
@@ -28,7 +28,7 @@ async def check_local(url: str) -> str:
         address = ipaddress.ip_address(item[4][0].split("%")[0])
         address = getattr(address, "ipv4_mapped", None) or address
         if not address.is_private or address.is_unspecified or address.is_link_local:
-            raise ModelError("Only a model on your own network can be used for now")
+            raise ModelError("Only addresses on your own network can be used for now")
     shown = f"[{host}]" if ":" in host else host
     return f"{parts.scheme}://{shown}:{port}"
 

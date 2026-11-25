@@ -94,7 +94,7 @@ def test_watcher_logs_once_per_change(world, audit):
     assert "cannot check" in said[4]
     assert "reporting again" in watcher.handle(ev("s", "leak", "off"))
     rows = audit.entries("h1")
-    assert len(rows) == 3 and {r["result"] for r in rows} == {"log_only"}
+    assert len(rows) == 3 and {r["decision"] for r in rows} == {"noticed"}
 
 
 @pytest.mark.parametrize("kind", ["motion", "light", "person"])
@@ -103,6 +103,11 @@ def test_everyday_activity_is_not_stored(world, audit, kind):
     for state in ("on", "off", "unavailable", "on"):
         watcher.handle(ev("x", kind, state))
     assert audit.entries("h1") == []
+
+
+def test_names_are_cleaned(world, audit):
+    event = Event("h1", "s", "leak", "on", "Laundry\n\x00 leak")
+    assert Watcher(world, audit).handle(event) == "Water leak detected. (Laundry leak)"
 
 
 def test_leak_already_present_at_startup_is_reported(world, audit):

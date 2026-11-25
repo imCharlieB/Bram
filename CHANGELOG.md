@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.0
+
+- Leak, smoke, and silent-sensor alerts from Home Assistant to your phone, with reminders until acknowledged and quiet hours in BRAM's options. They work without the server.
+- Telegram and ntfy messages when Home Assistant is lost, or a monitored Ollama, Frigate, or device stops answering. Both are off until you turn them on.
+- Messages page with quiet hours, test messages, and stopped messages.
+- A livelier home page and a shorter menu.
+- ntfy is part of the Docker stack.
+
 ## 0.3.0
 
 - The config page has a menu, an overview, its own log page with filters, and a profile for your username, password, and signed-in devices.

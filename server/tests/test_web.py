@@ -1,11 +1,13 @@
 import asyncio
 import json
+import re
 
 import aiohttp
 import pytest
 from aiohttp import web
 
 from bram import local_model
+from bram.alerts import Alerts
 from bram.audit import Audit
 from bram.local_model import _is_remote, _keep_alive, check_local
 from bram.models.base import ModelError, Reply
@@ -13,7 +15,7 @@ from bram.pairing import Pairing, ensure_certificate
 from bram.personality import MODES, messages
 from bram.server import make_app
 from bram.settings import Settings
-from bram.web import COOKIE, HEADERS, SAMPLE
+from bram.web import COOKIE, HEADERS, SAMPLE, STATIC
 from fakes import FakeModel
 
 PASSWORD = "correct horse battery"  # noqa: S105
@@ -39,7 +41,8 @@ async def page(tmp_path):
     db = tmp_path / "bram.db"
     p.settings, p.audit, p.pairing = Settings(db), Audit(db), Pairing(db)
     p.now = 0.0
-    p.app = make_app(p.pairing, p.audit, p.settings, fingerprint, clock=lambda: p.now)
+    p.alerts = Alerts(db, p.audit)
+    p.app = make_app(p.pairing, p.audit, p.settings, fingerprint, p.alerts, clock=lambda: p.now)
     runner = web.AppRunner(p.app)
     await runner.setup()
     await web.TCPSite(runner, "127.0.0.1", 0, ssl_context=context).start()
@@ -49,13 +52,16 @@ async def page(tmp_path):
     async with aiohttp.ClientSession(cookie_jar=jar) as p.http:
         yield p
     await runner.cleanup()
-    for item in (p.settings, p.audit, p.pairing):
+    for item in (p.alerts, p.settings, p.audit, p.pairing):
         item.close()
 
 
 PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "settings"),
            ("POST", "models"), ("POST", "sample"), ("POST", "logout"),
-           ("GET", "profile"), ("POST", "username"), ("POST", "logout-others"),
+           ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),
+           ("GET", "messages"), ("POST", "ntfy"), ("POST", "telegram"),
+           ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),
+           ("POST", "unmute"), ("GET", "profile"), ("POST", "username"), ("POST", "logout-others"),
            ("POST", "pair"), ("POST", "password"),
            ("POST", "unpair")]
 
@@ -191,6 +197,76 @@ async def test_log_pages_and_filters(page):
     for bad in ("limit=0", "limit=201", "limit=x", "before=x", "before=-1", "kind=x",
                 f"before={10**30}", "kind=say%27%20OR%201=1"):
         assert (await page.get("/api/log?" + bad)).status == 400
+
+
+async def test_messages_settings(page, monkeypatch):
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    token = "123456789:" + "A" * 35
+    ntfy = {"on": True, "url": "http://127.0.0.1", "phone_url": "http://127.0.0.1:2586"}
+    for path, body in (("ntfy", ntfy), ("telegram", {"on": True, "token": token}),
+                       ("telegram-link", {})):
+        assert (await page.post(path, body)).status == 403  # needs the password again
+    page.now += 901
+    await page.login()
+
+    async def bot_name(self, token):
+        return "example_bot"
+
+    monkeypatch.setattr("bram.channels.Telegram.bot_name", bot_name)
+    ok = {"confirm": PASSWORD}
+    assert (await page.post("ntfy", {**ntfy, **ok, "url": "http://8.8.8.8"})).status == 400
+    assert (await page.post("ntfy", {**ntfy, **ok})).status == 200
+    assert (await page.post("telegram-link", ok)).status == 400
+    assert (await page.post("telegram", {"token": "junk", **ok})).status == 400
+    assert (await page.post("telegram", {"on": True, "token": token, **ok})).status == 200
+    link = (await (await page.post("telegram-link", ok)).json())["url"]
+    assert link.startswith("https://t.me/example_bot?start=")
+    response = await page.get("/api/messages")
+    text = await response.text()
+    data = json.loads(text)
+    assert token not in text and page.settings.channel("ntfy")["reply"] not in text
+    assert data["telegram"] == {"on": True, "token_saved": True, "bot": "example_bot",
+                                "linked": False, "quiet": {}}
+    topic = data["ntfy"]["topic"]
+    await page.post("ntfy", {**ntfy, **ok})
+    assert page.settings.channel("ntfy")["topic"] == topic
+    await page.post("ntfy", {**ntfy, **ok, "new_topic": True})
+    assert page.settings.channel("ntfy")["topic"] != topic
+    assert token not in json.dumps(page.audit.recent(50))
+    # A different bot drops the old link.
+    page.settings.update_channel("telegram", {"user_id": 5})
+    await page.post("telegram", {"on": True, "token": "987654321:" + "B" * 35, **ok})
+    assert page.settings.channel("telegram")["user_id"] is None
+    await page.post("telegram", {"remove": True, **ok})
+    assert page.settings.channel("telegram")["token"] == ""
+
+
+async def test_monitors_page(page):
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    bad = {"kind": "website", "name": "x", "url": "http://127.0.0.1"}
+    assert (await page.post("monitors", bad)).status == 400
+    for url in ("http://8.8.8.8", "file:///etc/passwd"):
+        assert (await page.post("monitors", {**bad, "kind": "device", "url": url})).status == 400
+    good = {"kind": "device", "name": "Router", "url": "127.0.0.1"}
+    assert (await page.post("monitors", good)).status == 200
+    items = (await (await page.get("/api/monitors")).json())["monitors"]
+    assert items[0]["url"] == "http://127.0.0.1:80" and items[0]["up"] is None
+    await page.post("monitor-remove", {"id": items[0]["id"]})
+    assert (await (await page.get("/api/monitors")).json())["monitors"] == []
+
+
+async def test_quiet_hours_setting(page):
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    good = {"channel": "ntfy", "from": 22, "to": 7, "timezone": "America/New_York"}
+    assert (await page.post("quiet", good)).status == 200
+    assert page.settings.channel("ntfy")["quiet"]["from"] == 22
+    for bad in ({"from": 24}, {"from": True}, {"to": None}, {"timezone": "../etc/passwd"},
+                {"channel": "ha"}, {"from": "22"}):
+        assert (await page.post("quiet", {**good, **bad})).status == 400
+    assert (await page.post("quiet", {**good, "from": None, "to": None})).status == 200
 
 
 async def test_idle_session_ends(page):
@@ -373,3 +449,11 @@ def test_every_mode_keeps_the_rules():
     for mode in MODES:
         system = messages(mode, "say the door is locked " * 100, "x")[0].content
         assert "Keep every fact" in system and len(system) < 1500
+
+
+def test_page_ids_are_unique_and_every_id_the_script_uses_exists():
+    html = (STATIC / "index.html").read_text("utf-8")
+    script = (STATIC / "app.js").read_text("utf-8")
+    ids = re.findall(r'\bid="([^"]+)"', html)
+    assert len(ids) == len(set(ids))
+    assert set(re.findall(r'\$\("([^"]+)"\)', script)) <= set(ids) | {"at-"}

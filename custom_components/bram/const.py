@@ -4,6 +4,10 @@ CONF_CODE = "code"
 CONF_FINGERPRINT = "fingerprint"
 CONF_HOUSE_ID = "house_id"
 CONF_ENTITIES = "entities"
+CONF_PHONES = "phones"
+CONF_QUIET_FROM = "quiet_from"
+CONF_QUIET_TO = "quiet_to"
+CONF_ESCALATE = "escalate"
 # What "yes" and "no" mean for each kind BRAM understands.
 MEANING = {
     "person": ("home", "away"),

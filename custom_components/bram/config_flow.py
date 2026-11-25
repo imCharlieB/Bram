@@ -15,8 +15,18 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import CannotConnect, InvalidCode, pair
-from .const import CONF_CODE, CONF_ENTITIES, DEFAULT_PORT, DOMAIN
+from .const import (
+    CONF_CODE,
+    CONF_ENTITIES,
+    CONF_ESCALATE,
+    CONF_PHONES,
+    CONF_QUIET_FROM,
+    CONF_QUIET_TO,
+    DEFAULT_PORT,
+    DOMAIN,
+)
 from .feed import kind_of
+from .notifier import PREFIX, phones
 
 
 class BramConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -53,11 +63,24 @@ class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(data=user_input)
-        chosen = self.config_entry.options.get(CONF_ENTITIES, [])
+        options = self.config_entry.options
+        chosen = options.get(CONF_ENTITIES, [])
         allowed = {s.entity_id for s in self.hass.states.async_all()
                    if kind_of(s.entity_id, s.attributes.get("device_class"))}
+        # A phone that is missing right now stays chosen.
+        saved = options.get(CONF_PHONES, [])
+        listed = sorted({*phones(self.hass), *saved})
         return self.async_show_form(step_id="init", data_schema=vol.Schema({
             vol.Required(CONF_ENTITIES, default=chosen): selector.EntitySelector(
                 selector.EntitySelectorConfig(include_entities=sorted(allowed | set(chosen)),
                                               multiple=True)),
+            vol.Required(CONF_PHONES, default=saved): selector.SelectSelector(
+                selector.SelectSelectorConfig(multiple=True, options=[
+                    selector.SelectOptionDict(value=p, label=p.removeprefix(PREFIX))
+                    for p in listed])),
+            vol.Optional(CONF_QUIET_FROM, description={
+                "suggested_value": options.get(CONF_QUIET_FROM)}): selector.TimeSelector(),
+            vol.Optional(CONF_QUIET_TO, description={
+                "suggested_value": options.get(CONF_QUIET_TO)}): selector.TimeSelector(),
+            vol.Required(CONF_ESCALATE, default=options.get(CONF_ESCALATE, False)): bool,
         }))

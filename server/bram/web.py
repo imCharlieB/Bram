@@ -9,12 +9,16 @@ import time
 from collections.abc import Awaitable, Callable
 from importlib.metadata import version
 from pathlib import Path
+from zoneinfo import available_timezones
 
 from aiohttp import web
 
+from .alerts import Alerts, Outgoing
 from .audit import KINDS, Audit
+from .channels import TOKEN, ChannelError, Ntfy, Telegram, new_topic
 from .local_model import check_local, local_models, open_model
 from .models.base import ModelError
+from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing
 from .personality import CUSTOM_LIMIT, MODES, messages
 from .settings import Settings, login_matches, owner_name
@@ -41,12 +45,16 @@ FILES = {"": "index.html", "app.js": "app.js", "style.css": "style.css", "icon.p
 class ConfigPage:
     def __init__(self, settings: Settings, pairing: Pairing, audit: Audit,
                  fingerprint: str, connected: Callable[[], set[str]],
-                 disconnect: Callable[[str], Awaitable[None]],
+                 disconnect: Callable[[str], Awaitable[None]], alerts: Alerts | None = None,
                  clock: Callable[[], float] = time.monotonic) -> None:
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._fingerprint, self._connected = fingerprint, connected
         self._disconnect, self._clock = disconnect, clock
         self._started = clock()
+        self._alerts = alerts
+        self.monitors = Monitors(settings, alerts) if alerts is not None else None
+        self.ntfy = Ntfy(settings, self._answer)
+        self.telegram = Telegram(settings, self._answer)
         self._sessions: dict[str, tuple[float, float, str]] = {}
         self._failures: dict[str, tuple[int, float]] = {}
         self._login_lock = asyncio.Lock()
@@ -61,6 +69,16 @@ class ConfigPage:
             web.post("/api/username", self._private(self._change_username)),
             web.post("/api/logout-others", self._private(self._logout_others)),
             web.post("/api/password", self._private(self._change_password)),
+            web.get("/api/monitors", self._private(self._list_monitors)),
+            web.post("/api/monitors", self._private(self._add_monitor)),
+            web.post("/api/monitor-remove", self._private(self._remove_monitor)),
+            web.get("/api/messages", self._private(self._messages)),
+            web.post("/api/ntfy", self._confirmed(self._save_ntfy)),
+            web.post("/api/telegram", self._confirmed(self._save_telegram)),
+            web.post("/api/telegram-link", self._confirmed(self._telegram_link)),
+            web.post("/api/quiet", self._private(self._save_quiet)),
+            web.post("/api/test-message", self._private(self._test_message)),
+            web.post("/api/unmute", self._private(self._unmute)),
             web.post("/api/pair", self._confirmed(self._pair)),
             web.post("/api/unpair", self._confirmed(self._unpair)),
             web.post("/api/logout", self._private(self._logout)),
@@ -71,6 +89,9 @@ class ConfigPage:
             web.post("/api/models", self._private(self._models)),
             web.post("/api/sample", self._private(self._sample)),
         ]
+
+    def _answer(self, action: str, by: str) -> str:
+        return self._alerts.answer(action, by) if self._alerts else "That is no longer active."
 
     # --- access ---
 
@@ -236,6 +257,8 @@ class ConfigPage:
         if not isinstance(house_id, str) or not self._pairing.remove(house_id):
             return _json({"error": "No such home"}, 400)
         await self._disconnect(house_id)
+        if self._alerts is not None:
+            self._alerts.forget_house(house_id)
         self._audit.record(house_id, "config page", "unpaired", "removed by owner", "ok",
                            approver="owner")
         return _json({"ok": True})
@@ -309,6 +332,115 @@ class ConfigPage:
         self._audit.record("server", "config page", "settings saved",
                            ", ".join(sorted(values)), "ok", approver="owner")
         return _json({"ok": True, "settings": self._settings.all()})
+
+    async def _messages(self, request: web.Request) -> web.Response:
+        n, t = self._settings.channel("ntfy"), self._settings.channel("telegram")
+        names = dict(self._pairing.houses())
+        muted = self._alerts.muted() if self._alerts else []
+        return _json({
+            "ntfy": {"on": bool(n.get("on")), "url": n.get("url", "http://ntfy:80"),
+                     "phone_url": n.get("phone_url", ""), "topic": n.get("topic", ""),
+                     "quiet": n.get("quiet", {})},
+            # The token itself is never sent back.
+            "telegram": {"on": bool(t.get("on")), "token_saved": bool(t.get("token")),
+                         "bot": t.get("bot", ""), "linked": bool(t.get("user_id")),
+                         "quiet": t.get("quiet", {})},
+            "muted": [{**m, "house": names.get(m["house_id"], m["house_id"])} for m in muted]})
+
+    async def _save_ntfy(self, body: dict) -> web.Response:
+        try:
+            url = await check_local(str(body.get("url", "")), default_port=80)
+            phone = await check_local(str(body.get("phone_url", "")), default_port=80)
+        except ModelError as err:
+            return _json({"error": str(err)}, 400)
+        values = {"on": body.get("on") is True, "url": url, "phone_url": phone}
+        if body.get("new_topic") is True or not self._settings.channel("ntfy").get("topic"):
+            values |= {"topic": new_topic(), "reply": new_topic()}
+        self._settings.update_channel("ntfy", values)
+        self._audit.record("server", "config page", "ntfy saved",
+                           "on" if values["on"] else "off", "ok", approver="owner")
+        return _json({"ok": True})
+
+    async def _save_telegram(self, body: dict) -> web.Response:
+        token, values = body.get("token"), {"on": body.get("on") is True}
+        if token:
+            if not isinstance(token, str) or not TOKEN.fullmatch(token.strip()):
+                return _json({"error": "That does not look like a bot token"}, 400)
+            token = token.strip()
+            if token != self._settings.channel("telegram").get("token"):
+                try:
+                    bot = await self.telegram.bot_name(token)
+                except ChannelError as err:
+                    return _json({"error": str(err)}, 400)
+                # A different bot must be linked again.
+                values |= {"token": token, "bot": bot, "user_id": None}
+        if body.get("remove") is True:
+            values = {"on": False, "token": "", "bot": "", "user_id": None}
+        self._settings.update_channel("telegram", values)
+        self._audit.record("server", "config page", "telegram saved",
+                           "on" if values["on"] else "off", "ok", approver="owner")
+        return _json({"ok": True})
+
+    async def _telegram_link(self, body: dict) -> web.Response:
+        t = self._settings.channel("telegram")
+        if not t.get("on") or not t.get("bot"):
+            return _json({"error": "Save a bot token and turn Telegram on first"}, 400)
+        return _json({"url": f"https://t.me/{t['bot']}?start={self.telegram.new_link()}"})
+
+    async def _save_quiet(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        name, start, end = body.get("channel"), body.get("from"), body.get("to")
+        zone = body.get("timezone")
+        hours = (None, *range(24))
+        if (name not in ("ntfy", "telegram") or isinstance(start, bool) or isinstance(end, bool)
+                or start not in hours or end not in hours or (start is None) != (end is None)
+                or not isinstance(zone, str) or zone not in available_timezones()):
+            return _json({"error": "Invalid quiet hours"}, 400)
+        self._settings.update_channel(name, {
+            "quiet": {"from": start, "to": end, "timezone": zone}})
+        return _json({"ok": True})
+
+    async def _test_message(self, request: web.Request) -> web.Response:
+        name = (await _body(request)).get("channel")
+        channel = {"ntfy": self.ntfy, "telegram": self.telegram}.get(str(name))
+        if channel is None or not channel.ready():
+            return _json({"error": "Finish setting this up first"}, 400)
+        try:
+            await channel.send(Outgoing("0" * 16, "BRAM", "This is a test message.", False))
+        except ChannelError as err:
+            return _json({"error": str(err)}, 400)
+        return _json({"ok": True})
+
+    async def _list_monitors(self, request: web.Request) -> web.Response:
+        if self.monitors is None:
+            return _json({"monitors": []})
+        return _json({"monitors": [{**m, "up": self.monitors.status.get(m["id"])}
+                                   for m in self.monitors.all()]})
+
+    async def _add_monitor(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        if self.monitors is None:
+            return _json({"error": "Not available"}, 400)
+        try:
+            await self.monitors.add(body.get("kind"), body.get("name"), body.get("url"))
+        except (ValueError, ModelError) as err:
+            return _json({"error": str(err)}, 400)
+        self._audit.record("server", "config page", "monitor added", str(body["kind"]), "ok",
+                           approver="owner")
+        return _json({"ok": True})
+
+    async def _remove_monitor(self, request: web.Request) -> web.Response:
+        if self.monitors is not None:
+            self.monitors.remove((await _body(request)).get("id"))
+            self._audit.record("server", "config page", "monitor removed", "by owner", "ok",
+                               approver="owner")
+        return _json({"ok": True})
+
+    async def _unmute(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        if self._alerts is not None:
+            self._alerts.unmute(str(body.get("house_id")), str(body.get("key")))
+        return _json({"ok": True})
 
     async def _models(self, request: web.Request) -> web.Response:
         try:

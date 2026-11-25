@@ -17,7 +17,9 @@ CREATE TRIGGER IF NOT EXISTS audit_no_delete BEFORE DELETE ON audit
 """
 
 KINDS = {
-    "say": "decision = 'would_say'",
+    "say": "decision IN ('would_say', 'noticed', 'alert', 'notice', 'cleared')",
+    "message": ("decision IN ('sent', 'send failed', 'ack', 'snooze', 'mute', 'muted',"
+                " 'daily limit')"),
     "connection": "trigger IN ('feed', 'pairing')",
     "security": "trigger = 'config page'",
 }

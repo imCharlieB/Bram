@@ -7,11 +7,13 @@ import pytest
 from aiohttp import web
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_mock_service
 
+from bram.alerts import Alerts
 from bram.audit import Audit
 from bram.pairing import Pairing, ensure_certificate
 from bram.server import HOUSES, SOCKETS, make_app
+from bram.settings import Settings
 from custom_components.bram import gate
 from custom_components.bram.client import InvalidCode, parse_code
 from custom_components.bram.feed import Feed, kind_of
@@ -22,7 +24,8 @@ ROOT = Path(__file__).parents[1]
 @pytest.fixture
 async def server(tmp_path, socket_enabled):
     context, fingerprint = ensure_certificate(tmp_path)
-    app = make_app(Pairing(":memory:"), Audit(":memory:"))
+    audit, settings = Audit(":memory:"), Settings(":memory:")
+    app = make_app(Pairing(":memory:"), audit, settings, fingerprint, Alerts(":memory:", audit))
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, "127.0.0.1", 0, ssl_context=context).start()
@@ -52,7 +55,7 @@ async def start(hass, server):
 async def choose(hass, entry, entities):
     flow = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"entities": entities})
+        flow["flow_id"], {"entities": entities, "phones": [], "escalate": False})
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
@@ -123,6 +126,46 @@ async def test_device_page_shows_what_bram_believes(hass, server):
     await until(lambda: not server[0][SOCKETS])
 
 
+async def test_escalation_reaches_the_server(hass, server):
+    from bram.server import ALERTS
+
+    hass.states.async_set(LEAK, "on", {"device_class": "moisture"})
+    entry = await start(hass, server)
+    await choose(hass, entry, [LEAK])
+    app = server[0]
+    world = app[HOUSES][entry.data["house_id"]][0]
+    await until(lambda: world.check(LEAK) == "yes")
+    feed = entry.runtime_data
+    assert feed.send({"type": "escalate", "entity_id": "lock.other"})
+    assert feed.send({"type": "escalate", "entity_id": LEAK})
+
+    def open_alerts():
+        return [r[0] for r in app[ALERTS]._db.execute(
+            "SELECT key FROM alert WHERE cleared IS NULL AND safety = 1")]
+
+    await until(lambda: open_alerts() == [LEAK])
+    feed.send({"type": "deescalate", "entity_id": LEAK})
+    await until(lambda: open_alerts() == [])
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not app[SOCKETS])
+    assert feed.send({"type": "heartbeat"}) is False
+
+
+async def test_test_button(hass, server):
+    calls = async_mock_service(hass, "notify", "mobile_app_phone")
+    entry = await start(hass, server)
+    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(flow["flow_id"], {
+        "entities": [], "phones": ["mobile_app_phone"], "escalate": False,
+        "quiet_from": "22:00:00", "quiet_to": "07:00:00"})
+    await hass.async_block_till_done()
+    button = hass.states.async_entity_ids("button")[0]
+    await hass.services.async_call("button", "press", {"entity_id": button}, blocking=True)
+    assert calls[0].data["message"] == "This is a test message."
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])
+
+
 @pytest.mark.parametrize("raw", [
     "junk", "[]", "null", '{"type": "belief"}', '{"type": "call_service"}',
     '{"type": "belief", "entity_id": "lock.other", "answer": "yes"}',
@@ -160,8 +203,15 @@ def test_gate_refuses_everything(request_):
     assert gate.decide(request_).allowed is False
 
 
-def test_integration_has_no_way_to_call_a_service():
+def test_only_the_notifier_calls_a_service_and_only_to_notify():
+    text = (ROOT / "custom_components/bram/notifier.py").read_text(encoding="utf-8")
+    assert re.findall(r"async_call\((\S+)", text) == ['"notify",']
+
+
+def test_rest_of_integration_has_no_way_to_call_a_service():
     for path in (ROOT / "custom_components/bram").glob("*.py"):
+        if path.name == "notifier.py":
+            continue
         text = path.read_text(encoding="utf-8")
         assert not re.search(r"\.services\b|async_call|async_fire|states\.async_set", text), path
 

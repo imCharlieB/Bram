@@ -54,35 +54,51 @@
 <div id="app" hidden>
   <nav aria-label="Main">
     <a class="brand" href="#overview"><img src="icon.png" alt="" width="40" height="40"><b>BRAM</b></a>
-    <a href="#overview">Overview</a>
-    <a href="#homes">Homes</a>
-    <a href="#model">Model</a>
-    <a href="#personality">Personality</a>
+    <a href="#overview">Home</a>
+    <a href="#messages">Messages</a>
+    <a href="#settings">Settings</a>
     <a href="#log">Log</a>
     <a href="#profile" id="nav-profile"><span class="avatar" id="avatar"></span><span id="nav-user">Profile</span></a>
   </nav>
 
   <main id="pages">
     <section data-page="overview" hidden>
-      <h1>Overview</h1>
+      <div class="hero" id="hero">
+        <svg class="butler" viewBox="0 0 200 200" aria-hidden="true">
+          <defs><linearGradient id="neon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ff"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs>
+          <g class="ring" fill="none" stroke="url(#neon)" stroke-width="8" stroke-linecap="round">
+            <path d="M 120 37 A 38 38 0 1 1 66 55"/><path d="M 78 41 A 38 38 0 0 1 99 34"/>
+          </g>
+          <circle class="core" cx="100" cy="71" r="15"/>
+          <g fill="url(#neon)"><path d="M92 128 L71 116 L71 148 L92 136 Z"/><path d="M108 128 L129 116 L129 148 L108 136 Z"/></g>
+          <circle class="knot" cx="100" cy="132" r="7"/>
+          <g fill="none" stroke="url(#neon)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M64 126 L48 142 L40 170"/><path d="M136 126 L152 142 L160 170"/></g>
+        </svg>
+        <div>
+          <p class="note" id="hello"></p>
+          <h1 id="headline">Looking around...</h1>
+          <p class="note" id="detail"></p>
+        </div>
+      </div>
       <div class="card" id="start" hidden>
         <h2>Getting started</h2>
         <ul id="steps"></ul>
       </div>
-      <div class="tiles">
-        <a class="card tile" href="#homes"><span>Homes connected</span><b id="tile-homes"></b></a>
-        <a class="card tile" href="#model"><span>Model</span><b id="tile-model"></b></a>
-        <a class="card tile" href="#personality"><span>Personality</span><b id="tile-personality"></b></a>
+      <div class="board">
+        <div class="card"><div class="head"><h2>Homes</h2><a href="#homes">Manage</a></div><ul id="home-houses"></ul></div>
+        <div class="card"><div class="head"><h2>Watching</h2><a href="#monitors">Manage</a></div><ul id="home-monitors"></ul></div>
+        <div class="card"><div class="head"><h2>Mood</h2><a href="#personality">More</a></div><p class="mood" id="tile-personality"></p><div id="moods"></div></div>
+        <div class="card"><div class="head"><h2>Brain</h2><a href="#model">Change</a></div><p class="mood" id="tile-model"></p><p class="note">Runs on your own network.</p></div>
       </div>
       <div class="card">
-        <div class="head"><h2>Latest</h2><a href="#log">See all</a></div>
-        <ul id="latest"></ul>
+        <div class="head"><h2>What's been happening</h2><a href="#log">See all</a></div>
+        <ul class="timeline" id="latest"></ul>
       </div>
-      <p class="note">Log only: BRAM sends no alerts and cannot control anything yet. <span id="version"></span></p>
+      <p class="note">BRAM cannot control anything yet. It does not replace certified alarms. <span id="version"></span></p>
       <p class="message" id="overview-message" role="status"></p>
     </section>
 
-    <section data-page="homes" hidden>
+    <section id="at-homes" data-page="settings" hidden>
       <h1>Homes</h1>
       <div class="card">
         <h2>Connected homes</h2>
@@ -106,7 +122,7 @@
       </div>
     </section>
 
-    <section data-page="model" hidden>
+    <section id="at-model" data-page="settings" hidden>
       <h1>Model</h1>
       <div class="card">
         <label for="url">Ollama address</label>
@@ -123,7 +139,77 @@
       </div>
     </section>
 
-    <section data-page="personality" hidden>
+    <section id="at-monitors" data-page="messages" hidden>
+      <h1>Monitors</h1>
+      <p class="note">Things outside Home Assistant, on your own network. Checked every minute; you are told after three failures in a row.</p>
+      <div class="card">
+        <ul id="monitor-list"></ul>
+        <p class="message" id="monitors-message" role="status"></p>
+      </div>
+      <div class="card">
+        <h2>Add a monitor</h2>
+        <form id="monitor-form">
+          <label for="monitor-kind">What is it?</label>
+          <select id="monitor-kind">
+            <option value="ollama">Ollama</option>
+            <option value="frigate">Frigate</option>
+            <option value="device">A computer or device</option>
+          </select>
+          <label for="monitor-name">Name</label>
+          <input id="monitor-name" maxlength="60" required>
+          <label for="monitor-url">Address</label>
+          <input id="monitor-url" placeholder="http://HOST:11434" required>
+          <button id="monitor-add">Add</button>
+        </form>
+        <p class="message" id="monitor-message" role="status"></p>
+      </div>
+    </section>
+
+    <section id="at-messages" data-page="messages" hidden>
+      <h1>Messages</h1>
+      <p class="note">Used when Home Assistant is lost and for your monitors. Leak, smoke, and other home alerts come from Home Assistant's own app; set those up there, in BRAM's options. Nothing here can approve or control anything.</p>
+      <div class="card">
+        <div class="head"><h2>Telegram</h2><span id="tg-state"></span></div>
+        <p class="note">Messages pass through Telegram's servers and are not end-to-end encrypted. In Telegram, message @BotFather, send /newbot, and paste the token here.</p>
+        <label><input type="checkbox" id="tg-on"> Turned on</label>
+        <label for="tg-token">Bot token</label>
+        <input id="tg-token" type="password" autocomplete="off">
+        <div class="row">
+          <button id="tg-save">Save</button>
+          <button id="tg-link" class="quiet">Link my account</button>
+          <button id="tg-test" class="quiet">Send test</button>
+          <button id="tg-remove" class="quiet">Remove</button>
+        </div>
+        <p id="tg-link-box" hidden><a id="tg-url" target="_blank" rel="noreferrer">Open Telegram and press Start</a> (within 10 minutes)</p>
+        <p class="message" id="tg-message" role="status"></p>
+        <div class="row quiet-row" data-channel="telegram"></div>
+      </div>
+      <div class="card">
+        <div class="head"><h2>ntfy</h2><span id="ntfy-state"></span></div>
+        <p class="note">Runs in your own stack. Alerts and buttons only. Your phone must be able to reach it: at home, or by VPN.</p>
+        <label><input type="checkbox" id="ntfy-on"> Turned on</label>
+        <label for="ntfy-url">Address BRAM uses</label>
+        <input id="ntfy-url" type="url">
+        <label for="ntfy-phone">Address your phone uses</label>
+        <input id="ntfy-phone" type="url">
+        <div class="row">
+          <button id="ntfy-save">Save</button>
+          <button id="ntfy-test" class="quiet">Send test</button>
+          <button id="ntfy-new" class="quiet">New secret topic</button>
+        </div>
+        <p class="note" id="ntfy-help" hidden>In the ntfy app: add a subscription, choose another server, enter <b id="ntfy-server"></b>, and this topic:</p>
+        <pre id="ntfy-topic" hidden></pre>
+        <p class="message" id="ntfy-message" role="status"></p>
+        <div class="row quiet-row" data-channel="ntfy"></div>
+      </div>
+      <div class="card">
+        <h2>Stopped messages</h2>
+        <ul id="muted"></ul>
+      </div>
+      <p class="message" id="messages-message" role="status"></p>
+    </section>
+
+    <section id="at-personality" data-page="settings" hidden>
       <h1>Personality</h1>
       <div class="card">
         <p class="note">Changes wording only. Safety alerts and approvals always use plain text.</p>
@@ -147,7 +233,8 @@
         <div class="row">
           <select id="log-kind" aria-label="Show">
             <option value="">Everything</option>
-            <option value="say">What BRAM would say</option>
+            <option value="say">What BRAM noticed</option>
+            <option value="message">Messages and answers</option>
             <option value="connection">Connections</option>
             <option value="security">Sign-ins and changes</option>
           </select>

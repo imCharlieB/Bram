@@ -41,6 +41,13 @@ class Settings:
             raise ValueError("unknown setting")
         self._set(values)
 
+    def channel(self, name: str) -> dict[str, Any]:
+        """Private channel settings. Never returned whole by the config page."""
+        return self._get(f"_channel_{name}") or {}
+
+    def update_channel(self, name: str, values: dict[str, Any]) -> None:
+        self._set({f"_channel_{name}": {**self.channel(name), **values}})
+
     def login_record(self) -> str | None:
         return self._get("_login")
 

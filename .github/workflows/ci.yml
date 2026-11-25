@@ -39,6 +39,18 @@ jobs:
       - uses: actions/checkout@v5
       - run: docker compose -f compose.yaml -f compose.build.yaml build
       - run: docker compose -f compose.yaml -f compose.build.yaml run --rm bram pair --name CI
+      - name: ntfy allows only BRAM topics
+        run: |
+          docker compose up -d ntfy
+          for i in $(seq 20); do curl -fs localhost:2586/v1/health && break; sleep 1; done
+          code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+          test "$(code -d hi localhost:2586/bram-test)" = 200
+          test "$(code 'localhost:2586/bram-test/json?poll=1')" = 200
+          test "$(code -d hi localhost:2586/other)" = 403
+          test "$(code 'localhost:2586/other/json?poll=1')" = 403
+          test "$(code -H 'Content-Type: application/json' -d '{"topic":"other","message":"x"}' localhost:2586/)" = 403
+          test "$(code -d '{"topic":"bram-test","message":"x","actions":[{"action":"http","label":"A","url":"http://127.0.0.1/x","body":"y","clear":true}]}' localhost:2586/)" = 200
+          docker compose down
       - name: Stops cleanly
         run: |
           docker run -d --name bram bram-server:local

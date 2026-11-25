@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Callable, Iterable
+from typing import Any
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
@@ -47,6 +48,8 @@ class Feed:
         self._kinds: dict[str, str] = {}
         self._listeners: list[Callable[[], None]] = []
         self.version: str | None = None
+        self.alerts: Any = None  # set during setup
+        self._queue: asyncio.Queue[dict] | None = None
         self.connected = False
         self.beliefs: dict[str, str] = {}
 
@@ -66,6 +69,17 @@ class Feed:
     def _notify(self) -> None:
         for listener in list(self._listeners):
             listener()
+
+    @callback
+    def send(self, message: dict) -> bool:
+        """Queue a message for the server. False if it cannot be sent now."""
+        if self._queue is None:
+            return False
+        try:
+            self._queue.put_nowait(message)
+        except asyncio.QueueFull:
+            return False
+        return True
 
     @callback
     def _set_connected(self, connected: bool) -> None:
@@ -95,7 +109,8 @@ class Feed:
                 self._kinds[entity_id] = kind
         # A missing entity is reported as unavailable, never left out (B2).
         return {"entity_id": entity_id, "kind": self._kinds.get(entity_id, "unsupported"),
-                "state": state.state if state is not None else "unavailable"}
+                "state": state.state if state is not None else "unavailable",
+                "name": state.name[:100] if state is not None else ""}
 
     def _snapshot(self, entities: Iterable[str]) -> dict:
         return {"type": "snapshot",
@@ -140,6 +155,7 @@ class Feed:
         # Nothing can change between these two lines: neither one awaits.
         unsubscribe = async_track_state_change_event(self._hass, self._entities, changed)
         snapshot = self._snapshot(self._entities)
+        self._queue = queue
 
         async def send() -> None:
             await ws.send_json(snapshot)
@@ -162,6 +178,7 @@ class Feed:
             for task in done:
                 task.result()
         finally:
+            self._queue = None
             unsubscribe()
             for task in tasks:
                 task.cancel()

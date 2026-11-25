@@ -11,5 +11,26 @@ services:
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
 
+  # Optional phone alerts. Delete this service and the ntfy-data volume if unwanted.
+  ntfy:
+    image: binwiederhier/ntfy:v2.38.2
+    command: serve
+    restart: unless-stopped
+    ports:
+      - "2586:80"
+    environment:
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
+      # Everything is refused except BRAM's own topics, whose names are secret.
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_AUTH_ACCESS: "*:bram-*:rw"
+      NTFY_ENABLE_SIGNUP: "false"
+      NTFY_ENABLE_LOGIN: "false"
+      NTFY_WEB_ROOT: disable
+    volumes:
+      - ntfy-data:/var/lib/ntfy
+    security_opt: ["no-new-privileges:true"]
+
 volumes:
   bram-data:
+  ntfy-data:

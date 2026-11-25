@@ -23,17 +23,19 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 - Encrypted pairing between Home Assistant and the BRAM Server
 - You choose exactly which entities BRAM sees; nothing by default
 - A device page showing what BRAM believes, live
-- A log of leak and smoke messages it *would* send
+- Leak, smoke, and silent-sensor alerts through the Home Assistant app, even if the server is down
+- Optional Telegram and ntfy messages when Home Assistant or a monitored device is lost
+- A config page for setup, messages, model, personality, and the log
 
 ## Status
 
-> **Early development.** This version only watches and logs; it sends no alerts and cannot control anything. It is not a substitute for certified smoke, CO, or security alarms.
+> **Early development.** This version watches and can send alerts; it cannot control anything. It is not a substitute for certified smoke, CO, or security alarms.
 
 | Milestone | Status |
 |---|---|
 | M0 Model connection, benchmark, test fakes | Built |
 | M1 Connect to Home Assistant, log only | Built |
-| M2 Reach out | Planned |
+| M2 Reach out | In progress |
 | M3 Control | Planned |
 | M4 Optional memory | Planned |
 | M5 Watchdog | Planned |
