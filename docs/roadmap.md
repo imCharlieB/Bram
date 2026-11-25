@@ -59,7 +59,7 @@ Today the server's database logs connections, sign-ins, monitors, what the serve
 | Readings: temperature, humidity, air quality, power, energy, and water | ⬜ |
 | Past readings brought in from Home Assistant's own statistics, so trends do not start from nothing | ⬜ |
 | Learned hours moved here from Home Assistant | ⬜ |
-| Settings for how long to keep each kind, a size limit, and the size shown on the page | ⬜ |
+| Size limit, size by device and kind on the page, and [cleaning up](#cleaning-up) by asking you or when you say so | ⬜ |
 | Safe to copy while running, and a check at startup that it is not damaged | ⬜ |
 | Delete what BRAM knows about a device, person, or home | ⬜ |
 
@@ -76,7 +76,21 @@ Measured: 38 bytes for a reading, 55 for an event. Assuming 100 readings average
 | Events, such as doors, motion, and people | 2 years | 200 MB |
 | Heating and cooling runs | Always | Under 1 MB a year |
 | Findings and log | Always | A few MB a year |
-| **Limit** | 2 GB, oldest 5-minute readings go first | |
+| **Limit** | 2 GB, or what you set | |
+
+Nothing is thrown away just for being old. The times above are only what BRAM suggests when it asks.
+
+### Cleaning up
+
+| How | What happens |
+|---|---|
+| BRAM asks | At 80% of the limit it lists what is biggest and least used, with sizes, such as "Hall motion: 140 MB, never used for a finding." You choose **Delete**, **Shorten**, **Keep**, or **Ask in 30 days** |
+| You tell it | "Delete motion from before June" or "stop keeping the garage temperature", in chat or on the page |
+
+- Code works out exactly what matches, how many entries, how much space, and what trends would be lost. Nothing goes until you confirm that exact list on the page. The model never deletes anything.
+- Shorten turns 5-minute readings into hourly ones, so trends survive.
+- If the limit is reached with no answer, only the oldest 5-minute readings are shortened to hourly, and you are told. Hourly readings, heating and cooling runs, and findings are never removed without you.
+- The log of what BRAM did cannot be deleted (rule A11).
 
 ### Backups and secrets
 
@@ -242,4 +256,4 @@ Optional, for the installation and per person.
 | Reload an integration after a tap | Yes; rule A8 allows it |
 | Learned hours in the server's database | Yes |
 | Backups | By whatever backs up the server's machine |
-| How long to keep things | Waiting for the owner; suggested under [Size](#size) |
+| How long to keep things | Depends on size; BRAM asks what to remove, or the owner says |
