@@ -1,6 +1,6 @@
 # BRAM Hard Rules
 
-Status: **APPROVED 2026-11-24**. Changes need owner approval.
+Status: **APPROVED 2026-11-24**, A4, A5, and A9 changed by the owner 2026-11-25. Changes need owner approval.
 
 A rule is hard only if code enforces it and an automated test proves it. Prompt wording never counts as enforcement. Where [SPEC.md](SPEC.md) and this file disagree, this file wins. A failing rule test blocks the release.
 
@@ -17,12 +17,12 @@ A rule is hard only if code enforces it and an automated test proves it. Prompt 
 | A1 | The model only requests actions. It never calls Home Assistant directly. | The model process has no HA credentials; the gate is the only path | No code path from model output to a service call except the gate |
 | A2 | Denied by default. Only allowlisted entity + action + parameter combinations can run. New devices start blocked. | Gate allowlist | Every unlisted combination is refused |
 | A3 | Unlock, open a door/garage/gate, disarm, and disable a camera or alarm are always Tier 3 or Blocked. The owner cannot lower them. | Built-in floor in the gate | Attempts to configure a lower tier fail |
-| A4 | Approval covers one exact action on one device, by an authorized signed-in person, with phone approval plus PIN. It expires quickly and works once. | Gate approval record | Altered, reused, expired, and wrong-person approvals fail |
-| A5 | The model never sees a PIN. PINs are stored as salted hashes, and wrong attempts lock out. | Approval handled outside the conversation | PIN absent from prompts, memory, and logs |
+| A4 | Approval covers one exact action on one device, by an authorized person, by a tap on their own signed-in phone. The owner may also require a PIN, per device; it is off by default. It expires quickly and works once. | Gate approval record | Altered, reused, expired, and wrong-person approvals fail |
+| A5 | If a PIN is used, the model never sees it. PINs are stored as salted hashes, and wrong attempts lock out. | Approval handled outside the conversation | PIN absent from prompts, memory, and logs |
 | A6 | Voice, face, location, or a conversational "yes" never approves Tier 3. | Gate accepts only approval records | Each alone is refused |
 | A7 | No side doors. Scripts, scenes, automations, groups, and toggles get the highest tier of anything they can reach. If unknown, they are blocked. | Gate target resolver | Nested and templated targets are refused or raised |
 | A8 | BRAM cannot call generic services, shell, MQTT publish, or restart, and cannot edit Home Assistant configuration. Sole exception: A9. | Not in the gate's vocabulary | Such requests are refused |
-| A9 | BRAM may draft an automation, but installs it only after the owner sees the exact final content and approves it with a PIN. It may contain only Tier 1 actions and notifications. Later edits need approval again. | Automation validator in the gate | Tier 3, templated-service, and changed-after-approval drafts fail |
+| A9 | BRAM may draft an automation, but installs it only after the owner sees the exact final content and approves it on their phone. It may contain only Tier 1 actions and notifications. Later edits need approval again. | Automation validator in the gate | Tier 3, templated-service, and changed-after-approval drafts fail |
 | A10 | BRAM cannot change its own rules, tiers, allowlist, approvals, or code. | No such tool; settings are owner-only | Requests fail |
 | A11 | BRAM never disables smoke, CO, gas, or leak alarms, and never erases its audit log. | Blocked list; append-only log interface | Requests fail |
 | A12 | Rate limits, value bounds, and loop detection apply per device. | Gate | Excess, out-of-range, and looping requests stop |

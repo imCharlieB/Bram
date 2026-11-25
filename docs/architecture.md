@@ -34,7 +34,7 @@ The server sends back what it believes, for the device page, and answers to Assi
 | | Home alerts | Server messages |
 |---|---|---|
 | Run in | Home Assistant | BRAM Server |
-| About | Leak, smoke, silent safety sensors, lost server | Lost Home Assistant, monitors |
+| About | Leak, smoke, silent safety sensors, locks and doors, lost server | Lost Home Assistant, monitors |
 | Reach | HA app | Telegram, ntfy |
 | Need a model | No | No |
 

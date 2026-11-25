@@ -34,3 +34,4 @@ class AllowMessages(BramEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         self._feed.alerts.allow_all()
+        self._feed.rules.allow_all()

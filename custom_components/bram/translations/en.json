@@ -26,7 +26,7 @@
     "step": {
       "init": {
         "title": "BRAM",
-        "menu_options": {"see": "What BRAM can see", "alerts": "Phone alerts and quiet hours"}
+        "menu_options": {"see": "What BRAM can see", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors"}
       },
       "see": {
         "title": "What BRAM can see",
@@ -34,6 +34,18 @@
         "data": {
           "people": "People", "doors": "Locks and doors", "safety": "Leak and smoke sensors",
           "motion": "Motion and presence", "lights": "Lights"
+        }
+      },
+      "watch": {
+        "title": "Watch locks and doors",
+        "description": "Covers the locks and doors BRAM can see. Night and away messages ignore quiet hours. Away counts only the people BRAM can see, so add everyone who lives here first.",
+        "data": {
+          "night": "A lock is unlocked at night",
+          "away": "Something is open or unlocked while everyone is away",
+          "left_open": "A door, window, or garage is left open",
+          "offline": "A lock or door sensor goes offline",
+          "night_from": "Night starts", "night_to": "Night ends",
+          "open_minutes": "Left open means this many minutes"
         }
       },
       "alerts": {

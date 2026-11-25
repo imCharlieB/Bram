@@ -11,6 +11,7 @@ from homeassistant.loader import async_get_integration
 from .const import CONF_ENTITIES, DOMAIN
 from .feed import Feed
 from .home_alerts import HomeAlerts
+from .house_rules import HouseRules
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CONVERSATION, Platform.SENSOR]
 
@@ -27,6 +28,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             registry.async_remove(item.entity_id)
     feed.alerts = HomeAlerts(hass, entry, feed)
     entry.async_on_unload(await feed.alerts.start())
+    feed.rules = HouseRules(hass, entry)
+    entry.async_on_unload(await feed.rules.start())
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_create_background_task(hass, feed.run(), "bram feed")
     return True

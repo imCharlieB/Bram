@@ -217,6 +217,19 @@ async def test_unasked_answers_are_refused(hass):
     assert feed._asked == {}
 
 
+async def test_watch_page(hass, server):
+    entry = await start(hass, server)
+    watch = {"night": True, "away": False, "left_open": True, "offline": False,
+             "night_from": "23:00:00", "night_to": "05:00:00", "open_minutes": 15}
+    await options(hass, entry, "watch", watch)
+    assert watch.items() <= entry.options.items() and entry.options["entities"] == []
+    assert entry.runtime_data.rules._on == {"night", "left_open"}
+    await hass.services.async_call(
+        "button", "press", {"entity_id": "button.bram_allow_stopped_messages"}, blocking=True)
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])
+
+
 async def test_version_warning(hass):
     feed = Feed(hass, MockConfigEntry(domain="bram", options={"entities": ["light.a"]}))
     feed.version = "0.6.3"

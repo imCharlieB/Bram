@@ -22,6 +22,9 @@ from .const import (
     CONF_PHONES,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
+    DEFAULT_NIGHT_FROM,
+    DEFAULT_NIGHT_TO,
+    DEFAULT_OPEN_MINUTES,
     DEFAULT_PORT,
     DOMAIN,
     GROUPS,
@@ -62,7 +65,7 @@ class BramConfigFlow(ConfigFlow, domain=DOMAIN):
 
 class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="init", menu_options=["see", "alerts"])
+        return self.async_show_menu(step_id="init", menu_options=["see", "alerts", "watch"])
 
     async def async_step_see(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)
@@ -82,6 +85,21 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 selector.EntitySelector(
                     selector.EntitySelectorConfig(include_entities=listed, multiple=True)))
         return self.async_show_form(step_id="see", data_schema=vol.Schema(fields))
+
+    async def async_step_watch(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        options = dict(self.config_entry.options)
+        if user_input is not None:
+            return self.async_create_entry(data={**options, **user_input})
+        return self.async_show_form(step_id="watch", data_schema=vol.Schema({
+            **{vol.Required(rule, default=options.get(rule, False)): bool
+               for rule in ("night", "away", "left_open", "offline")},
+            vol.Required("night_from", default=options.get("night_from", DEFAULT_NIGHT_FROM)):
+                selector.TimeSelector(),
+            vol.Required("night_to", default=options.get("night_to", DEFAULT_NIGHT_TO)):
+                selector.TimeSelector(),
+            vol.Required("open_minutes", default=options.get(
+                "open_minutes", DEFAULT_OPEN_MINUTES)): vol.All(int, vol.Range(1, 1440)),
+        }))
 
     async def async_step_alerts(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)

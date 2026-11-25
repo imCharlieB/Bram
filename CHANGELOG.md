@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.8.0
+
+- Watch locks and doors: unlocked at night, open or unlocked while everyone is away, left open, or offline. All off until you turn them on.
+- Guides to how BRAM works, security, and the roadmap.
+- Approvals will be a tap on your phone; a PIN is optional.
+
 ## 0.7.0
 
 - BRAM can be chosen as a conversation agent in Home Assistant's Assist. It answers only about that home and cannot control anything.

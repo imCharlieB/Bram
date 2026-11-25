@@ -185,7 +185,7 @@ Each milestone ends with its rule tests passing and the owner's approval.
 
 ## 11. Decisions
 
-1. Tier 3: the owner approves by phone plus PIN, and can delegate per person and device.
+1. Tier 3: the owner approves by a tap on their phone, with an optional PIN per device, and can delegate per person and device.
 2. MIT license.
 3. Contact channels, each chosen per person:
 
@@ -199,4 +199,4 @@ Each milestone ends with its rule tests passing and the owner's approval.
 
 Voice is optional, and no particular hardware is assumed. BRAM is a conversation agent in the owner's own Assist pipelines, so replies go wherever each pipeline already sends them. For outreach, each room can be set to: none (default), its voice satellite, or any media player, for homes where the microphone and speaker are different devices. After speaking through a media player BRAM restores what was playing where the player supports it, and rule E4 applies. Two-way outreach needs a satellite that can start a conversation; otherwise the follow-up goes to the phone.
 
-WhatsApp and a custom phone app are not planned. Outside services are off by default, with private details and photos switched separately. Tier 3 approval happens only through the HA app plus PIN.
+WhatsApp and a custom phone app are not planned. Outside services are off by default, with private details and photos switched separately. Tier 3 approval happens only through the HA app, with an optional PIN.

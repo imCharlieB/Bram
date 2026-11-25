@@ -39,6 +39,13 @@ CLEAR = {"leak": "is dry", "smoke": "is clear"}
 ACK, MUTE = "BRAM_ACK_", "BRAM_MUTE_"
 
 
+def within(hours: tuple[str | None, str | None], now: datetime.time) -> bool:
+    start, end = (dt_util.parse_time(t) if t else None for t in hours)
+    if start is None or end is None or start == end:
+        return False
+    return start <= now < end if start < end else now >= start or now < end
+
+
 class HomeAlerts:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, feed: Feed) -> None:
         self._hass, self._feed = hass, feed
@@ -262,11 +269,7 @@ class HomeAlerts:
                             "bram_test", safety=False, actions=[])
 
     def _is_quiet(self) -> bool:
-        start, end = (dt_util.parse_time(t) if t else None for t in self._quiet)
-        if start is None or end is None or start == end:
-            return False
-        now = dt_util.now().time()
-        return start <= now < end if start < end else now >= start or now < end
+        return within(self._quiet, dt_util.now().time())
 
     def _now(self) -> float:
         return dt_util.utcnow().timestamp()

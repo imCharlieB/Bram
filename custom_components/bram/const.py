@@ -28,4 +28,6 @@ ICON = {
     "smoke": "mdi:smoke-detector", "opening": "mdi:door", "motion": "mdi:motion-sensor",
     "light": "mdi:lightbulb",
 }
+DEFAULT_NIGHT_FROM, DEFAULT_NIGHT_TO = "22:00:00", "06:00:00"
+DEFAULT_OPEN_MINUTES = 10
 DEFAULT_PORT = 8765

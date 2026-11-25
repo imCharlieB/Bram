@@ -4,16 +4,12 @@ Plans may change. Every item must follow the [Hard rules](../HARD_RULES.md).
 
 ## Built
 
-Pairing, live state, home alerts, Telegram and ntfy messages, monitors, config page, chat, Assist, voice, personalities.
+Pairing, live state, home alerts, Telegram and ntfy messages, monitors, config page, chat, Assist, voice, personalities, lock and door watching.
 
-## 1. Watchdog rules and questions
+## 1. Questions and digests
 
 | Feature | Notes |
 |---|---|
-| Lock unlocked at night | Night hours set by the owner |
-| Door or window open while everyone tracked is away | Unknown people count as maybe home |
-| Door left open too long | Time set by the owner |
-| Lock, alarm, or camera unavailable | |
 | "When did the back door last open?" | Reads Home Assistant's history for shared devices only |
 | Daily digest | Optional, at a chosen time |
 | Grouped messages | Several routine messages become one; safety alerts are never grouped |

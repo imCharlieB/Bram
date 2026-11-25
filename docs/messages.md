@@ -6,6 +6,7 @@
 |---|---|---|
 | Leak or smoke: at once, then up to 11 reminders until acknowledged, even in quiet hours | Home Assistant | HA app, and inside Home Assistant |
 | Leak or smoke sensor silent for 5 minutes | Home Assistant | HA app |
+| Lock and door watching, if turned on | Home Assistant | HA app |
 | BRAM Server lost for 3 minutes | Home Assistant | HA app |
 | Home Assistant lost for 3 minutes: reminders until acknowledged or it returns | BRAM Server | Telegram, ntfy |
 | A monitor not answering, or back | BRAM Server | Telegram, ntfy |
@@ -24,6 +25,21 @@ Home Assistant and each of Telegram and ntfy send at most 10 routine messages a 
 Safety alerts have **Acknowledge**. Silent-sensor messages have **Stop these**.
 
 **Fallback (off by default):** a leak or smoke alert nobody answers for 5 minutes can also go to Telegram and ntfy. It needs the BRAM Server to be connected.
+
+## Watching locks and doors
+
+**BRAM > Configure > Watch locks and doors.** All are off until you turn them on, and cover only the locks, doors, windows, and garage doors BRAM can see.
+
+| Choice | Tells you when | In quiet hours |
+|---|---|---|
+| Unlocked at night | A lock has been unlocked for 2 minutes during your night hours | Yes |
+| Open or unlocked while away | It has been so for 2 minutes and everyone BRAM can see is away | Yes |
+| Left open | It has been open as long as you set | After they end |
+| Offline | It has been unreachable for 5 minutes | After they end |
+
+You are told once each time, at most 20 times a day. **Stop these** stops one message for one device; undo it with **Allow stopped messages** on the device page.
+
+**Away** counts only people BRAM can see. Add everyone who lives there, or it may call the house empty when it is not. If anyone's location is unknown, BRAM does not call the house empty.
 
 ## Telegram
 
