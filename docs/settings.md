@@ -35,6 +35,8 @@ Quiet hours here affect only Home Assistant's messages.
 
 | Where | Setting | Default |
 |---|---|---|
+| History | Keep history | Off |
+| | Most space to use | 2048 MB |
 | Home | Mood | Professional |
 | Messages > Monitors | What to watch | None |
 | Messages > Telegram | Turned on, bot token, linked account | Off |

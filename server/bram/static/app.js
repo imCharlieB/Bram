@@ -1,13 +1,13 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
-const PAGES = ["overview", "messages", "settings", "log", "profile"];
+const PAGES = ["overview", "messages", "settings", "history", "log", "profile"];
 // Places inside a page.
 const PLACES = { homes: "settings", model: "settings", personality: "settings", voice: "settings", monitors: "messages" };
 const STORY = {
   connected: "Home Assistant connected", disconnected: "Home Assistant disconnected", paired: "A home was paired",
   unpaired: "A home was removed", "signed in": "You signed in", "login refused": "Someone entered a wrong login",
   "setup refused": "A setup attempt was refused", "settings saved": "Settings changed", "login created": "Your login was created",
-  "code created": "A pairing code was made", "password changed": "Your password changed", "second factor on": "Second factor turned on", "second factor off": "Second factor turned off", "username changed": "Your username changed",
+  "code created": "A pairing code was made", "password changed": "Your password changed", "history saved": "History settings changed", "history deleted": "History was deleted", "database damaged": "The database failed its check", "second factor on": "Second factor turned on", "second factor off": "Second factor turned off", "username changed": "Your username changed",
   "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "monitor removed": "A monitor was removed",
 };
 const ALARMING = new Set(["login refused", "setup refused", "disconnected", "alert", "send failed"]);
@@ -678,17 +678,47 @@ setInterval(() => {
 }, 15000);
 setInterval(tick, 1000);
 
+const lasted = (seconds) => seconds >= 3600 ? `${Math.floor(seconds / 3600)} h ${Math.round(seconds % 3600 / 60)} min` : `${Math.round(seconds / 60)} min`;
+
+function cells(values) {
+  const row = element("tr");
+  row.append(...values.map((value) => element("td", value)));
+  return row;
+}
+
+async function loadHistory() {
+  const data = await api("history");
+  $("history-on").checked = data.on;
+  $("history-limit").value = data.limit_mb;
+  const { reading, hourly, change, run } = data.counts;
+  $("history-size").textContent = `Using ${(data.size / 1e6).toFixed(1)} MB: ${(reading + hourly).toLocaleString()} readings, ${change.toLocaleString()} changes, ${run.toLocaleString()} heating and cooling runs.`
+    + (data.shortened ? " The limit was reached, so the oldest readings are now hourly." : "")
+    + (data.healthy ? "" : " THE DATABASE FAILED ITS CHECK. Restore a backup.");
+  const days = data.homes.flatMap((home) => home.days), pairs = data.homes.flatMap((home) => home.compare);
+  $("history-days").replaceChildren(...days.map((day) => cells([
+    new Date(day.day + "T12:00").toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }), day.name,
+    Object.entries(day.seconds).map(([what, time]) => `${what} ${lasted(time)}`).join(", ") + (day.cut ? " (not all seen)" : ""),
+    Object.entries(day.targets).sort((a, b) => b[1] - a[1]).map(([set, time]) => `${set} for ${lasted(time)}`).join(", "),
+    day.starts, day.outside ?? "unknown"])));
+  $("history-compare").replaceChildren(...pairs.map((pair) => cells([
+    pair.area, `${pair.climate}: ${pair.climate_avg}${pair.unit}`, `${pair.sensor}: ${pair.sensor_avg}${pair.unit}`,
+    `${pair.apart > 0 ? "+" : ""}${pair.apart}${pair.unit}`, `${pair.most}${pair.unit}`])));
+  if (!days.length) $("history-days").append(cells(["Nothing recorded yet"]));
+  if (!pairs.length) $("history-compare").append(cells(["Share a thermostat and a temperature sensor in the same room"]));
+}
+
 // --- pages ---
 
 const LOADERS = {
   overview: () => Promise.all([loadChat(), loadVoice(), loadHome()]),
   settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice()]),
   messages: () => Promise.all([loadMonitors(), loadMessages()]),
+  history: loadHistory,
   log: async () => say("log-message", await loadLog()), profile: loadProfile,
 };
 const MESSAGES = {
   overview: "overview-message", settings: "pair-message", messages: "messages-message",
-  log: "log-message", profile: "session-message",
+  history: "history-message", log: "log-message", profile: "session-message",
 };
 
 async function openPage() {
@@ -939,6 +969,21 @@ onClick("try", "personality-message", async () => {
   const { text } = await api("sample", personality());
   $("sample").textContent = text || "(The model said nothing)";
   $("sample").hidden = false;
+});
+
+onSubmit("history-form", "history-save", "history-message", async () => {
+  const confirm = await askPassword("This changes what BRAM remembers about your home.");
+  await api("history", { confirm, on: $("history-on").checked, limit_mb: Number($("history-limit").value),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+  await loadHistory();
+  return $("history-on").checked ? "Saved." : "Saved. What was kept is still here until you delete it.";
+});
+
+onClick("history-delete", "history-message", async () => {
+  const confirm = await askPassword("Delete everything BRAM recorded about your devices? This cannot be undone.");
+  await api("history-delete", { confirm });
+  await loadHistory();
+  return "Deleted.";
 });
 
 onClick("refresh", "log-message", () => loadLog());

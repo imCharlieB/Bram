@@ -63,7 +63,8 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("GET", "speech"), ("POST", "speech"), ("POST", "speech-find"),
            ("POST", "speech-voices"), ("POST", "speech-preview"),
            ("POST", "hear"), ("POST", "speak"),
-           ("GET", "house"),
+           ("GET", "house"), ("GET", "history"), ("POST", "history"),
+           ("POST", "history-delete"),
            ("GET", "picture"), ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
            ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),
            ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
@@ -474,12 +475,13 @@ async def test_settings(page):
             "personality": "custom", "custom_style": "private pirate words"}
     assert (await page.post("settings", {**good, "confirm": PASSWORD})).status == 200
     assert page.settings.all() == {
-        **good, "model_url": "http://127.0.0.1:11434", "timezone": ""}
+        **good, "model_url": "http://127.0.0.1:11434", "timezone": "", "keep_history": False,
+        "history_limit_mb": 2048}
     log = json.dumps(page.audit.recent(10))
     assert "settings saved" in log and "pirate" not in log
     for bad in ({"_password": "x"}, {"tier": 1}, {"personality": "evil"}, {"personality": []},
                 {"context": 1}, {"context": True}, {"custom_style": "x" * 501},
-                {"model_url": "http://8.8.8.8:11434"}, {"model": 5}):
+                {"model_url": "http://8.8.8.8:11434"}, {"model": 5}, {"keep_history": True}):
         assert (await page.post("settings", {**bad, "confirm": PASSWORD})).status == 400
     assert page.settings.all()["personality"] == "custom"
 
@@ -585,3 +587,16 @@ def test_page_ids_are_unique_and_every_id_the_script_uses_exists():
     ids = re.findall(r'\bid="([^"]+)"', html)
     assert len(ids) == len(set(ids))
     assert set(re.findall(r'\$\("([^"]+)"\)', script)) <= set(ids) | {"at-"}
+
+
+async def test_history_settings_need_the_password(page):
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    good = {"on": True, "limit_mb": 500, "timezone": "America/Chicago"}
+    assert (await page.post("history", {**good, "confirm": "wrong"})).status == 403
+    for bad in ({"on": 1}, {"limit_mb": 5}, {"limit_mb": True}, {"timezone": "Nowhere"}):
+        assert (await page.post("history", {**good, **bad, "confirm": PASSWORD})).status == 400
+    assert page.settings.all()["keep_history"] is False
+    assert (await page.post("history", {**good, "confirm": PASSWORD})).status == 200
+    saved = page.settings.all()
+    assert saved["keep_history"] and saved["timezone"] == "America/Chicago"

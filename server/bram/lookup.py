@@ -13,6 +13,9 @@ PROBLEMS = re.compile(
     r"\b(errors?|logs?|problems?|issues?|repairs?|broken|failing|failed|wrong|batter(y|ies)|"
     r"updates?|unavailable|health)\b", re.I)
 SECURITY = re.compile(r"\b(secur\w*|hack\w*|exposed|intru\w*|safe|vulnerab\w*)\b", re.I)
+CLIMATE = re.compile(
+    r"\b(a/?c|hvac|air ?con\w*|heat(ing|er|ed)?|cool(ing|ed)?|furnace|thermostats?|climate|"
+    r"temperatures?|run ?time|trends?)\b", re.I)
 MAX_LOOKUPS = 3
 
 
@@ -107,3 +110,34 @@ def security_facts(name: str, result: dict | None) -> list[str]:
     found = [f"{name}: {text}" for _, text in _findings(result)[:5]]
     return [*(found or [f"{name}: nothing found by the checks that ran"]),
             f"{name}: does not check your network, router, or passwords"]
+
+
+def _hours(seconds: float) -> str:
+    minutes = round(seconds / 60)
+    hours, rest = divmod(minutes, 60)
+    return f"{hours} h {rest} min" if hours else f"{rest} min"
+
+
+def climate_text(entry: dict) -> str:
+    ran = ", ".join(f"{_text(a, 20)} {_hours(s)}" for a, s in sorted(entry["seconds"].items()))
+    sets = ", ".join(f"{_text(t, 20)} for {_hours(s)}" for t, s in sorted(
+        entry["targets"].items(), key=lambda i: -i[1])[:4])
+    out = f", outside about {entry['outside']:g}" if entry["outside"] is not None else ""
+    cut = " (part of the day was not seen)" if entry["cut"] else ""
+    return f"{_text(entry['name'], 60)} {entry['day']}: {ran}; set to {sets}{out}{cut}"
+
+
+def compare_text(entry: dict) -> str:
+    unit = _text(entry["unit"], 5)
+    return (f"{_text(entry['area'], 40)}, last 7 days: {_text(entry['climate'], 60)} reads "
+            f"{entry['climate_avg']:g}{unit} on average and {_text(entry['sensor'], 60)} "
+            f"{entry['sensor_avg']:g}{unit}; the room sensor is {entry['apart']:+g}{unit} apart, "
+            f"{entry['most']:g}{unit} at most")
+
+
+def climate_lines(days: list[dict], pairs: list[dict]) -> list[str]:
+    if not days and not pairs:
+        return ["Heating and cooling history: nothing recorded yet"]
+    return ["Heating and cooling, from BRAM's own history. Use these lengths; do not work out your "
+            "own. A day that is missing had no run BRAM saw:",
+            *(climate_text(d) for d in days[:30]), *(compare_text(p) for p in pairs[:10])]

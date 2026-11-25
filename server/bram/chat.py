@@ -14,12 +14,17 @@ from dataclasses import dataclass, field
 from zoneinfo import ZoneInfo
 
 from .audit import Audit
+from .history import History
 from .local_model import open_model
 from .lookup import (
+    CLIMATE,
     HISTORY,
     MAX_LOOKUPS,
     PROBLEMS,
     SECURITY,
+    climate_lines,
+    climate_text,
+    compare_text,
     history_facts,
     history_lines,
     problem_lines,
@@ -94,7 +99,8 @@ class Chat:
                  worlds: Callable[[], dict[str, World]], monitors: Monitors | None,
                  opener: Callable = open_model,
                  clock: Callable[[], float] = time.monotonic,
-                 look_up: Callable | None = None) -> None:
+                 look_up: Callable | None = None, past: History | None = None) -> None:
+        self._past = past
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._worlds, self._monitors, self._open, self._clock = worlds, monitors, opener, clock
         self._look_up = look_up
@@ -208,8 +214,20 @@ class Chat:
         """History or problems, only when the question is about them."""
         lines: list[str] = []
         facts: list[str] = []
+        if self._past is not None and CLIMATE.search(text):
+            for home, _ in self._pairing.houses():
+                if house not in (None, home):
+                    continue
+                if not self._past.on:
+                    lines.append("Heating and cooling history: turned off; the owner can turn it "
+                                 "on under History on BRAM's page")
+                    break
+                days = self._past.climate_days(home, 7, self._zone())
+                pairs = self._past.compare(home)
+                lines += climate_lines(days, pairs)
+                facts += [climate_text(d) for d in days[:4]] + [compare_text(p) for p in pairs[:2]]
         if self._look_up is None:
-            return lines, facts
+            return lines, facts[:MAX_FACTS]
         worlds = self._worlds()
         homes = [(h, clean(n, 60)) for h, n in self._pairing.houses()
                  if h in worlds and house in (None, h)]

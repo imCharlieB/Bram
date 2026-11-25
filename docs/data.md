@@ -15,6 +15,7 @@ One SQLite file, plus a key and certificate, in the data folder.
 | Telegram token and account number | Send messages | **Plain**; protect the folder |
 | ntfy topics | Send messages | **Plain** |
 | Open and past alerts | Reminders after a restart | |
+| [History](history.md), if on | Trends | **Plain**; off until you turn it on |
 | Log | What happened and why | Entries cannot be changed or deleted through BRAM |
 
 The log holds events such as connections, sign-ins, alerts, and messages sent, including device names. It has no size limit yet.

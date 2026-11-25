@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.23.0
+
+- BRAM can keep history in its own database: readings, every heating and cooling run with its settings, and device changes. Off until you turn it on under History.
+- Brings in hourly averages Home Assistant already keeps, if history sharing is on.
+- Compares each thermostat with the other temperature sensors in its room.
+- The radar shows the room a person is in, as the People panel does.
+- Ask how long heating or cooling ran. The page has a History section, with the space used.
+
 ## 0.22.1
 
 - Security check: a token is reported by age. It said "not used", which Home Assistant does not record.

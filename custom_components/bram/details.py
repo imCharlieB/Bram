@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import re
+from math import isfinite
 from typing import Any
 
 from homeassistant.core import HomeAssistant, State
@@ -98,8 +99,45 @@ def detail(hass: HomeAssistant, state: State | None,
                     break
     if state.state not in ("unavailable", "unknown") and (text := _text(state)):
         found["text"] = text[:160]
+    if numbers := values(hass, state):
+        found["values"] = numbers
     if path := picture_path(state):
         found["picture"] = hashlib.sha256(path.encode()).hexdigest()[:16]
+    return found
+
+
+def values(hass: HomeAssistant, state: State) -> dict[str, Any]:
+    """The numbers and settings worth keeping, if the owner turns history on."""
+    a, found = state.attributes, {}
+    domain = state.entity_id.split(".", 1)[0]
+    if state.state in ("unavailable", "unknown"):
+        return found
+
+    def add(key: str, value: object) -> None:
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value):
+            found[key] = value
+
+    if domain == "climate":
+        for key, name in (("now", "current_temperature"), ("humidity", "current_humidity"),
+                          ("target", "temperature"), ("low", "target_temp_low"),
+                          ("high", "target_temp_high")):
+            add(key, a.get(name))
+        for key, name in (("action", "hvac_action"), ("preset", "preset_mode"),
+                          ("fan", "fan_mode")):
+            if a.get(name):
+                found[key] = str(a[name])[:40]
+        found["mode"] = state.state
+        found["unit"] = hass.config.units.temperature_unit
+    elif domain == "weather":
+        add("now", a.get("temperature"))
+        add("humidity", a.get("humidity"))
+        found["unit"] = str(a.get("temperature_unit") or hass.config.units.temperature_unit)
+    elif domain == "sensor" and (unit := a.get("unit_of_measurement")):
+        try:
+            add("now", float(state.state))
+        except ValueError:
+            return {}
+        found["unit"] = str(unit)[:10]
     return found
 
 

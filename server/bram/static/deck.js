@@ -360,7 +360,7 @@ const deck = (() => {
         g.fillText(short, spot.x, spot.y + big * (face ? 1.25 : 1) + 9);
       }
       if (over || node.state === "alert" || node.state === "warn") {
-        const label = [node.name, node.state === "unknown" ? "unknown" : node.says, node === hover && node.text, node === hover && node.age].filter(Boolean).join("  ");
+        const label = [node.name, node.state === "unknown" ? "unknown" : (node.kind === "person" && node.area) || node.says, node === hover && node.text, node === hover && node.age].filter(Boolean).join("  ");
         const right = spot.x >= x;
         g.globalAlpha = faded ? .15 : 1;
         g.font = "600 11px ui-monospace, Consolas, monospace";

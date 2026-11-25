@@ -18,6 +18,7 @@ from aiohttp import WSCloseCode, WSMsgType, web
 from .alerts import Alerts
 from .audit import Audit
 from .chat import MAX_TEXT, Busy, Chat
+from .history import History, number
 from .models.base import ModelError
 from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing, ensure_certificate
@@ -39,6 +40,10 @@ CONFIG = web.AppKey("config", ConfigPage)
 ASKED = web.AppKey("asked", dict)
 SETTINGS = web.AppKey("settings", Settings)
 ASK_TIMEOUT = 12
+HISTORY = web.AppKey("history", History)
+NUMBERS = ("now", "humidity", "target", "low", "high")
+WORDS = ("unit", "action", "mode", "preset", "fan")
+MAX_PAGES = 60
 
 
 def _detail(raw: object) -> dict:
@@ -49,6 +54,15 @@ def _detail(raw: object) -> dict:
     for key, limit in (("area", 40), ("floor", 40), ("text", 160), ("picture", 16)):
         if isinstance(raw.get(key), str):
             found[key] = raw[key][:limit]
+    values = raw.get("values")
+    if isinstance(values, dict):
+        found["values"] = {}
+        for key in NUMBERS:
+            if (value := number(values.get(key))) is not None:
+                found["values"][key] = value
+        for key in WORDS:
+            if isinstance(values.get(key), str):
+                found["values"][key] = values[key][:40]
     since = raw.get("since")
     if isinstance(since, (int, float)) and not isinstance(since, bool) and 0 < since < 1e11:
         found["since"] = float(since)
@@ -116,8 +130,10 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                     world.heartbeat()
                     theirs = data.get("version")
                     world.version = theirs[:20] if isinstance(theirs, str) else ""
-                    for event in [_event(house_id, s) for s in data["states"]]:
+                    events = [_event(house_id, s) for s in data["states"]]
+                    for event in events:
                         watcher.handle(event)
+                        _remember(request.app, event, world)
                         await _belief(ws, world, event)
                     ready = True
                     if request.app.get(ALERTS) is not None:
@@ -125,6 +141,7 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                 elif kind == "state" and ready:
                     event = _event(house_id, data.get("state"))
                     watcher.handle(event)
+                    _remember(request.app, event, world)
                     await _belief(ws, world, event)
                 elif kind in ("escalate", "deescalate") and ready:
                     _escalate(request.app, world.event(data.get("entity_id")), kind)
@@ -158,11 +175,46 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
         if sockets.get(house_id) is ws:
             del sockets[house_id]
             world.disconnected()
+            if request.app.get(HISTORY) is not None:
+                request.app[HISTORY].lost(house_id)
             audit.record(house_id, "feed", "disconnected", "connection closed", "state unknown")
             # Not when the owner removed the house.
             if request.app.get(ALERTS) is not None and request.app[PAIRING].house_for(token):
                 request.app[ALERTS].house_down(house_id, _name(request.app, house_id))
     return ws
+
+
+def _remember(app: web.Application, event: Event, world: World) -> None:
+    if app.get(HISTORY) is not None:
+        app[HISTORY].record(event, world)
+
+
+async def _keep(app: web.Application) -> None:
+    """Once a minute, note the readings. Now and then, bring in what is already known."""
+    tries: dict[int, float] = {}
+    while True:
+        await asyncio.sleep(60)
+        try:
+            app[HISTORY].sample([w for w, _ in app[HOUSES].values()])
+            for house_id in list(app[SOCKETS]):
+                await bring_past(app, house_id, tries)
+        except Exception as err:  # noqa: BLE001 - history must never stop the server
+            print(f"History could not be kept: {type(err).__name__}", file=sys.stderr)
+
+
+async def bring_past(app: web.Application, house_id: str, tries: dict[int, float]) -> None:
+    for device, entity_id in app[HISTORY].to_import(house_id):
+        if time.monotonic() - tries.get(device, -1e9) < 3600:
+            continue
+        tries[device] = time.monotonic()
+        for page in range(MAX_PAGES):
+            result = await ask_house(app, house_id, f"statistics:{page}", entity_id)
+            if result is None or "error" in result:
+                break
+            app[HISTORY].add_past(device, result.get("rows"))
+            if not result.get("more"):
+                app[HISTORY].imported(device)
+                break
 
 
 async def _tell_mood(app: web.Application) -> None:
@@ -236,6 +288,8 @@ async def _start(app: web.Application) -> None:
     app[TASKS] += [asyncio.create_task(c.listen()) for c in app[ALERTS].channels]
     app[TASKS].append(asyncio.create_task(app[ALERTS].run()))
     app[TASKS].append(asyncio.create_task(app[MONITORS].run()))
+    if app.get(HISTORY) is not None:
+        app[TASKS].append(asyncio.create_task(_keep(app)))
 
 
 async def _stop(app: web.Application) -> None:
@@ -276,10 +330,13 @@ async def _shutdown(app: web.Application) -> None:
 
 def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
              fingerprint: str = "", alerts: Alerts | None = None,
-             clock: Callable[[], float] = time.monotonic) -> web.Application:
+             clock: Callable[[], float] = time.monotonic,
+             history: History | None = None) -> web.Application:
     app = web.Application(client_max_size=4096)
     app[PAIRING], app[AUDIT], app[HOUSES], app[SOCKETS] = pairing, audit, {}, {}
     app[ASKED] = {}
+    if history is not None:
+        app[HISTORY] = history
     app.router.add_post("/pair", _pair)
     app.router.add_get("/feed", _feed)
     app.router.add_get("/health", _health)
@@ -292,7 +349,7 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
         page = ConfigPage(settings, pairing, audit, fingerprint, lambda: set(app[SOCKETS]),
                           disconnect, alerts,
                           lambda: {k: v[0] for k, v in app[HOUSES].items()}, clock,
-                          lambda *a: ask_house(app, *a), lambda: _tell_mood(app))
+                          lambda *a: ask_house(app, *a), lambda: _tell_mood(app), history)
         app[SETTINGS] = settings
         if alerts is not None:
             app[ALERTS], app[TASKS] = alerts, []
@@ -311,7 +368,12 @@ async def _serve(host: str, port: int, data: Path) -> None:
     database = data / "bram.db"
     audit, settings = Audit(database), Settings(database)
     alerts = Alerts(database, audit, lambda channel: settings.channel(channel).get("quiet", {}))
-    app = make_app(Pairing(database), audit, settings, fingerprint, alerts)
+    history = History(database, lambda: settings.all()["keep_history"],
+                      lambda: settings.all()["history_limit_mb"])
+    if not history.healthy:
+        audit.record("server", "database", "database damaged", "quick check failed", "problem")
+        print("The database failed its check. Restore a backup.", file=sys.stderr)
+    app = make_app(Pairing(database), audit, settings, fingerprint, alerts, history=history)
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, host, port, ssl_context=context).start()
@@ -326,6 +388,7 @@ async def _serve(host: str, port: int, data: Path) -> None:
         await stop.wait()
     finally:
         await runner.cleanup()
+        history.close()
 
 
 def main() -> None:

@@ -54,13 +54,15 @@ Today the server's database logs connections, sign-ins, monitors, what the serve
 | Every finding in one list: what, where, first seen, last seen, how often, told, acknowledged, fixed | ⬜ |
 | Home Assistant sends its findings and phone messages to that list, and catches up after a disconnect | ⬜ |
 | Findings page: open, fixed, and ignored, with the story of each | ⬜ |
-| History of shared devices, off until you turn it on (rule E10) | ⬜ |
-| Climate: every run of heating, cooling, and fan, with start, end, target, mode, preset, inside and outside temperature | ⬜ |
-| Readings: temperature, humidity, air quality, power, energy, and water | ⬜ |
-| Past readings brought in from Home Assistant's own statistics, so trends do not start from nothing | ⬜ |
+| History of shared devices, off until you turn it on (rule E10) | ✅ [History](history.md) |
+| Climate: every run of heating, cooling, and fan, with start, end, target, mode, preset, inside and outside temperature | ✅ |
+| Readings: temperature, humidity, air quality, power, energy, and water | ✅ |
+| Past readings brought in from Home Assistant's own statistics, so trends do not start from nothing | ✅ |
 | Learned hours moved here from Home Assistant | ⬜ |
-| Size limit, size by device and kind on the page, and [cleaning up](#cleaning-up) by asking you or when you say so | ⬜ |
-| Safe to copy while running, and a check at startup that it is not damaged | ⬜ |
+| Size limit and total size on the page | ✅ |
+| Each thermostat compared with the room's other temperature sensors | ✅ |
+| Size by device and kind, and [cleaning up](#cleaning-up) by asking you or when you say so | ⬜ |
+| Safe to copy while running, and a check at startup that it is not damaged | ✅ |
 | Delete what BRAM knows about a device, person, or home | ⬜ |
 
 Done when: every message BRAM sends can be traced to a stored finding, a restart loses nothing, a copy taken while running opens cleanly, and BRAM can answer "how long did the AC run each day last week, and at what setting?" from its own data.
@@ -135,6 +137,22 @@ BRAM looks by itself. Plain rules decide what is a problem. One finding per prob
 | New device on the network, with Trust; unconfigured discovered devices | ⬜ |
 | Router update, changed public address, new port opened, guest Wi-Fi left on, router protection off, unusual data use | ⬜ |
 
+### 3D printers
+
+Read from the printer's own integration. One printer is one device with a section of its own on Home.
+
+| Feature | Status |
+|---|---|
+| Printer found automatically: printing, paused, idle, off, with progress, time left, and file name | ⬜ |
+| Nozzle, bed, and chamber temperatures against target | ⬜ |
+| Told when finished, failed, paused, out of filament, or asking for attention | ⬜ |
+| Heater on while idle, temperature far from target, or hot with no print: routine warning, and never a substitute for a smoke alarm | ⬜ |
+| Printer offline during a print; off when idle is normal | ⬜ |
+| Smoke or heat sensor in the printer's room named in the alert | ⬜ |
+| Each print remembered: file, length, result, filament, power used | ⬜ |
+| Picture of the print, then the vision model looking for failed prints (phase 6) | ⬜ |
+| Pause a print with one tap; never start one or heat anything (phase 4) | ⬜ |
+
 ### Outreach
 
 | Feature | Status |
@@ -203,6 +221,7 @@ Optional, for the installation and per person.
 |---|---|
 | Suggested hours, with approval and undo | ✅ |
 | Usual values by hour and weekday, and what departs from them | ⬜ |
+| Thermostat against room sensor over time: drift, a room that lags, and which one to trust | ⬜ |
 | Climate trends: run time against outside temperature and setting, a system working harder than it used to, what each setting costs in run time, suggested settings | ⬜ |
 | Usual arrivals, lockup, and routines | ⬜ |
 | Suggested rules, previewed against past days before approval | ⬜ |

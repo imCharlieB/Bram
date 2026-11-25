@@ -63,6 +63,7 @@
     <a href="#overview">Home</a>
     <a href="#messages">Messages</a>
     <a href="#settings">Settings</a>
+    <a href="#history">History</a>
     <a href="#log">Log</a>
     <a href="#profile" id="nav-profile"><span class="avatar" id="avatar"></span><span id="nav-user">Profile</span></a>
   </nav>
@@ -341,6 +342,40 @@
           <input id="voice-speak" placeholder="HOST:10200">
           <button id="voice-load" class="quiet">Use these addresses</button>
         </details>
+      </div>
+    </section>
+
+    <section data-page="history" hidden>
+      <h1>History</h1>
+      <div class="card">
+        <h2>Keep history</h2>
+        <p class="note">BRAM remembers what your shared devices did, so it can find trends. It stays on this server.</p>
+        <form id="history-form">
+          <label class="check"><input id="history-on" type="checkbox"> Keep history</label>
+          <label for="history-limit">Most space to use, in MB</label>
+          <input id="history-limit" type="number" min="100" max="100000" required>
+          <div class="row">
+            <button id="history-save">Save</button>
+            <button id="history-delete" type="button" class="quiet">Delete all history</button>
+          </div>
+        </form>
+        <p class="note" id="history-size"></p>
+        <p class="message" id="history-message" role="status"></p>
+      </div>
+      <div class="card">
+        <h2>Heating and cooling, last 7 days</h2>
+        <div class="scroll"><table>
+          <thead><tr><th>Day</th><th>Device</th><th>Ran</th><th>Set to</th><th>Starts</th><th>Outside</th></tr></thead>
+          <tbody id="history-days"></tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <h2>Thermostat against room sensor, last 7 days</h2>
+        <p class="note">Average of readings taken at the same time, in the same room.</p>
+        <div class="scroll"><table>
+          <thead><tr><th>Room</th><th>Thermostat</th><th>Room sensor</th><th>Apart</th><th>Most</th></tr></thead>
+          <tbody id="history-compare"></tbody>
+        </table></div>
       </div>
     </section>
 

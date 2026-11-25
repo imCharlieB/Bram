@@ -21,6 +21,7 @@ from .details import picture
 from .security import check
 
 DAYS = 10
+PAST_DAYS = 60
 MAX_CHANGES = 20
 MAX_ERRORS = 12
 MAX_NAMES = 10
@@ -74,6 +75,12 @@ async def answer(hass: HomeAssistant, entry: ConfigEntry, kinds: dict[str, str],
         if entity_id not in entry.options.get(CONF_ENTITIES, []):
             return {"error": "refused"}
         return await picture(hass, entity_id)
+    if isinstance(what, str) and re.fullmatch(r"statistics:\d{1,2}", what):
+        if not entry.options.get(CONF_HISTORY):
+            return {"error": "off"}
+        if entity_id not in entry.options.get(CONF_ENTITIES, []):
+            return {"error": "refused"}
+        return await past(hass, entity_id, int(what.split(":")[1]))
     if what == "history":
         if not entry.options.get(CONF_HISTORY):
             return {"error": "off"}
@@ -162,6 +169,38 @@ async def history(hass: HomeAssistant, entity_id: str, kind: str) -> dict[str, A
         changes.append([_when(at), word, f"for {length(end - at)}{now}"])
     return {"changes": changes[::-1][:MAX_CHANGES], "counts": counts, "days": DAYS,
             "totals": {w: length(t) for w, t in totals.items()}}
+
+
+async def past(hass: HomeAssistant, entity_id: str, page: int) -> dict[str, Any]:
+    """Hourly averages Home Assistant already keeps, 60 days at a time, newest first."""
+    if "recorder" not in hass.config.components:
+        return {"error": "off"}
+    from homeassistant.components.recorder.statistics import (
+        get_metadata,
+        statistics_during_period,
+    )
+
+    state = hass.states.get(entity_id)
+    unit = state.attributes.get("unit_of_measurement") if state is not None else None
+    end = dt_util.utcnow() - datetime.timedelta(days=PAST_DAYS * page)
+    start = end - datetime.timedelta(days=PAST_DAYS)
+    units = {"temperature": unit} if unit in ("°C", "°F", "K") else None
+
+    def read() -> tuple[list, bool]:
+        known = get_metadata(hass, statistic_ids={entity_id})
+        # Numbers in another unit would be wrong, so they are left out.
+        if not known or (units is None and known[entity_id][1]["unit_of_measurement"] != unit):
+            return [], False
+        rows = statistics_during_period(hass, start, end, {entity_id}, "hour", units,
+                                        {"min", "mean", "max"}).get(entity_id, [])
+        older = statistics_during_period(
+            hass, start - datetime.timedelta(days=3650), start, {entity_id}, "month", units,
+            {"mean"}).get(entity_id, [])
+        return rows, bool(older)
+
+    rows, more = await get_instance(hass).async_add_executor_job(read)
+    return {"rows": [[r["start"], r["min"], r["mean"], r["max"]] for r in rows
+                     if r.get("mean") is not None], "more": more}
 
 
 def length(seconds: float) -> str:

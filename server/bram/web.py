@@ -11,7 +11,7 @@ import time
 from collections.abc import Awaitable, Callable
 from importlib.metadata import version
 from pathlib import Path
-from zoneinfo import available_timezones
+from zoneinfo import ZoneInfo, available_timezones
 
 import segno
 from aiohttp import web
@@ -21,6 +21,7 @@ from .alerts import Alerts, Outgoing
 from .audit import KINDS, Audit
 from .channels import TOKEN, ChannelError, Ntfy, Telegram, new_topic
 from .chat import MAX_TEXT, Busy, Chat
+from .history import History
 from .local_model import check_local, local_models, open_model
 from .models.base import ModelError
 from .monitors import Monitors
@@ -62,7 +63,9 @@ class ConfigPage:
                  worlds: Callable[[], dict[str, World]] | None = None,
                  clock: Callable[[], float] = time.monotonic,
                  look_up: Callable | None = None,
-                 mood_changed: Callable[[], Awaitable[None]] | None = None) -> None:
+                 mood_changed: Callable[[], Awaitable[None]] | None = None,
+                 history: History | None = None) -> None:
+        self.history = history
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._fingerprint, self._connected = fingerprint, connected
         self._disconnect, self._clock = disconnect, clock
@@ -76,7 +79,7 @@ class ConfigPage:
         self.speech = Speech(settings)
         self._worlds = worlds or dict
         self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors,
-                         look_up=look_up)
+                         look_up=look_up, past=history)
         self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk,
                                  hear=self.speech.hear)
         self._sessions: dict[str, tuple[float, float, str]] = {}
@@ -105,6 +108,9 @@ class ConfigPage:
             web.post("/api/speech-preview", self._private(self._preview)),
             web.post("/api/hear", self._private(self._hear)),
             web.post("/api/speak", self._private(self._speak)),
+            web.get("/api/history", self._private(self._history)),
+            web.post("/api/history", self._confirmed(self._save_history)),
+            web.post("/api/history-delete", self._confirmed(self._delete_history)),
             web.get("/api/house", self._private(self._house)),
             web.get("/api/picture", self._private(self._picture)),
             web.get("/api/chat", self._private(self._chat_history)),
@@ -376,6 +382,8 @@ class ConfigPage:
         if not isinstance(house_id, str) or not self._pairing.remove(house_id):
             return _json({"error": "No such home"}, 400)
         await self._disconnect(house_id)
+        if self.history is not None:
+            self.history.forget(house_id)
         if self._alerts is not None:
             self._alerts.forget_house(house_id)
         self._audit.record(house_id, "config page", "unpaired", "removed by owner", "ok",
@@ -459,6 +467,35 @@ class ConfigPage:
         self._audit.record("server", "config page", "settings saved",
                            ", ".join(sorted(values)), "ok", approver="owner")
         return _json({"ok": True, "settings": self._settings.all()})
+
+    async def _history(self, request: web.Request) -> web.Response:
+        if self.history is None:
+            return _json({"on": False})
+        zone = ZoneInfo(self._settings.all()["timezone"] or "UTC")
+        homes = [{"name": name, "days": self.history.climate_days(house, 7, zone),
+                  "compare": self.history.compare(house)}
+                 for house, name in self._pairing.houses()]
+        return _json({**self.history.summary(), "homes": homes})
+
+    async def _save_history(self, body: dict) -> web.Response:
+        on, limit = body.get("on"), body.get("limit_mb")
+        if not isinstance(on, bool) or type(limit) is not int or not 100 <= limit <= 100_000:
+            return _json({"error": "Choose a limit from 100 to 100,000 MB"}, 400)
+        zone = body.get("timezone")
+        if zone not in available_timezones():
+            return _json({"error": "Unknown time zone"}, 400)
+        self._settings.update({"keep_history": on, "history_limit_mb": limit, "timezone": zone})
+        self._audit.record("server", "config page", "history saved", "on" if on else "off", "ok",
+                           approver="owner")
+        return _json({"ok": True})
+
+    async def _delete_history(self, body: dict) -> web.Response:
+        if self.history is None:
+            return _json({"error": "No history"}, 400)
+        self.history.forget()
+        self._audit.record("server", "config page", "history deleted", "everything", "ok",
+                           approver="owner")
+        return _json({"ok": True})
 
     async def _messages(self, request: web.Request) -> web.Response:
         n, t = self._settings.channel("ntfy"), self._settings.channel("telegram")
