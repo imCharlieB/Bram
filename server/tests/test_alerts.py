@@ -57,6 +57,7 @@ def env():
     e.audit.close()
 
 
+@pytest.mark.rule("C4")
 async def test_safety_repeats_until_limit(env):
     await env.leak()
     assert len(env.box.sent) == 1 and env.box.sent[0].safety
@@ -65,6 +66,7 @@ async def test_safety_repeats_until_limit(env):
     assert "reminder" in env.box.sent[1].title
 
 
+@pytest.mark.rule("C4")
 async def test_safety_stops_when_acknowledged(env):
     await env.leak()
     label, action = env.box.sent[0].buttons[0]
@@ -87,6 +89,7 @@ async def test_clearing_does_not_stop_an_unacknowledged_safety_alert(env):
     assert [m.text for m in env.box.sent if not m.safety] == ["Dry again."]
 
 
+@pytest.mark.rule("C3")
 async def test_nothing_suppresses_safety(env):
     env.quiet = {"from": 0, "to": 23, "timezone": "UTC"}
     env.alerts._db.execute("INSERT INTO mute VALUES ('h', 's')")
@@ -150,6 +153,7 @@ async def test_house_down_and_back(env):
     assert sum(m.safety for m in env.box.sent) == 1
 
 
+@pytest.mark.rule("E8")
 async def test_notice_snooze_mute_and_unmute(env):
     env.alerts.raise_alert("h", "n", "note", safety=False)
     await env.alerts.tick()
@@ -166,6 +170,7 @@ async def test_notice_snooze_mute_and_unmute(env):
     assert env.alerts.raise_alert("h", "n", "note", safety=False)
 
 
+@pytest.mark.rule("E8")
 async def test_daily_limit(env):
     for i in range(DAILY_NOTICES + 3):
         env.alerts.raise_alert("h", f"n{i}", "note", safety=False)
@@ -174,6 +179,7 @@ async def test_daily_limit(env):
     assert len(env.box.sent) == DAILY_NOTICES
 
 
+@pytest.mark.rule("E8")
 async def test_quiet_hours_delay_notices(env):
     env.now = 1_700_000_000.0  # 22:13:20 UTC
     env.quiet = {"from": 22, "to": 7, "timezone": "UTC"}

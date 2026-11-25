@@ -81,6 +81,7 @@ async def test_unknown_is_reported_as_unknown(env, state):
     assert reply.facts == ["Front door: unknown, cannot tell"]
 
 
+@pytest.mark.rule("B2")
 async def test_stale_state_is_unknown(env):
     env.set("Front door", "lock", "locked")
     env.now = 500

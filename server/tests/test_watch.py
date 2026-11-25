@@ -48,6 +48,7 @@ def test_unrecognized_lock_state_is_not_locked(world, state):
     assert world.check("lock.a") is Answer.UNKNOWN
 
 
+@pytest.mark.rule("B2")
 def test_missing_stale_and_disconnected_are_unknown(world, clock):
     assert world.check("lock.a") is Answer.UNKNOWN
     world.update(ev("lock.a", "lock", "locked"))
@@ -61,6 +62,7 @@ def test_missing_stale_and_disconnected_are_unknown(world, clock):
     assert world.check("lock.a") is Answer.UNKNOWN
 
 
+@pytest.mark.rule("B2")
 def test_empty_house_needs_every_person_known_away(world):
     assert world.anyone_home() is Answer.UNKNOWN
     world.update(ev("person.a", "person", "not_home"))

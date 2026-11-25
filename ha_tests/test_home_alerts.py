@@ -68,6 +68,8 @@ def action(call):
     return call.data["data"]["actions"][0]["action"]
 
 
+@pytest.mark.rule("C1")
+@pytest.mark.rule("C2")
 async def test_leak_is_sent_at_once_without_the_server(env):
     await env.start()
     env.feed.connected = False
@@ -77,6 +79,7 @@ async def test_leak_is_sent_at_once_without_the_server(env):
     assert data["importance"] == "max" and data["priority"] == "high"
 
 
+@pytest.mark.rule("C4")
 async def test_repeats_to_limit_then_stops(env):
     await env.start()
     await env.set("on")
@@ -111,6 +114,7 @@ async def test_drying_out_does_not_stop_an_unacknowledged_alert(env):
     assert len(env.calls) == 2
 
 
+@pytest.mark.rule("B2")
 async def test_unavailable_is_not_dry(env):
     await env.start()
     await env.set("on")
@@ -120,6 +124,7 @@ async def test_unavailable_is_not_dry(env):
     assert len(env.safety()) == 1
 
 
+@pytest.mark.rule("C3")
 async def test_quiet_hours_and_mute_never_hold_back_safety(env):
     await env.start(quiet_from="00:00:00", quiet_to="23:59:00")
     await env.press(f"BRAM_MUTE_{LEAK}")
@@ -167,6 +172,7 @@ async def test_silent_sensor_waits_tells_once_and_reports_back(env):
     assert env.texts()[1] == "Reporting again: Laundry leak is dry"
 
 
+@pytest.mark.rule("E8")
 async def test_mute_stops_silent_notices(env):
     await env.start()
     await env.set("unavailable")
@@ -187,6 +193,7 @@ async def test_stopped_messages_can_be_allowed_again(env):
     assert len(env.calls) == 1
 
 
+@pytest.mark.rule("E8")
 async def test_quiet_hours_delay_notices(env):
     local = dt_util.as_local(START).time()
     later = (dt_util.as_local(START) + datetime.timedelta(hours=2)).time()
@@ -198,6 +205,7 @@ async def test_quiet_hours_delay_notices(env):
     assert len(env.calls) == 1
 
 
+@pytest.mark.rule("E8")
 async def test_daily_limit(env):
     await env.start()
     for i in range(DAILY_NOTICES + 4):

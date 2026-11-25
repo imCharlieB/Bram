@@ -181,6 +181,7 @@ async def test_option_pages_keep_each_other(hass, server):
     await until(lambda: not server[0][SOCKETS])
 
 
+@pytest.mark.rule("A1")
 async def test_assist(hass, server, monkeypatch):
     assert await async_setup_component(hass, "homeassistant", {})
     calls = []
@@ -328,11 +329,13 @@ def test_gate_refuses_everything(request_):
     assert gate.decide(request_).allowed is False
 
 
+@pytest.mark.rule("A1")
 def test_only_the_notifier_calls_a_service_and_only_to_notify():
     text = (ROOT / "custom_components/bram/notifier.py").read_text(encoding="utf-8")
     assert re.findall(r"async_call\((\S+)", text) == ['"notify",']
 
 
+@pytest.mark.rule("A1")
 def test_rest_of_integration_has_no_way_to_call_a_service():
     for path in (ROOT / "custom_components/bram").glob("*.py"):
         if path.name == "notifier.py":
