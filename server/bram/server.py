@@ -16,7 +16,8 @@ from aiohttp import WSCloseCode, WSMsgType, web
 
 from .alerts import Alerts
 from .audit import Audit
-from .chat import Chat
+from .chat import MAX_TEXT, Busy, Chat
+from .models.base import ModelError
 from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing, ensure_certificate
 from .settings import Settings
@@ -75,7 +76,7 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
     world.disconnected()
     audit.record(house_id, "feed", "connected", "valid token", "ok")
     await ws.send_json({"type": "hello", "version": version("bram-core")})
-    ready = False
+    ready, questions = False, set()
     try:
         async for message in ws:
             # Replaced, or unpaired by the owner.
@@ -103,6 +104,11 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                     await _belief(ws, world, event)
                 elif kind in ("escalate", "deescalate") and ready:
                     _escalate(request.app, world.event(data.get("entity_id")), kind)
+                elif kind == "ask" and ready:
+                    # Answered on the side, so a slow model never holds up the feed.
+                    task = asyncio.create_task(_answer(request.app, ws, house_id, data))
+                    questions.add(task)
+                    task.add_done_callback(questions.discard)
                 elif kind == "heartbeat" and ready:
                     world.heartbeat()
                 else:
@@ -113,6 +119,8 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                 await ws.close(code=WSCloseCode.UNSUPPORTED_DATA)
                 break
     finally:
+        for task in questions:
+            task.cancel()
         if sockets.get(house_id) is ws:
             del sockets[house_id]
             world.disconnected()
@@ -121,6 +129,27 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
             if request.app.get(ALERTS) is not None and request.app[PAIRING].house_for(token):
                 request.app[ALERTS].house_down(house_id, _name(request.app, house_id))
     return ws
+
+
+async def _answer(app: web.Application, ws: web.WebSocketResponse, house_id: str,
+                  data: dict) -> None:
+    question, text, talk = data.get("id"), data.get("text"), data.get("conversation")
+    if not all(isinstance(v, str) and len(v) <= n
+               for v, n in ((question, 64), (talk, 64), (text, MAX_TEXT))):
+        return
+    if app.get(CHAT) is None:
+        reply = "Chat is not available."
+    else:
+        try:
+            reply = (await app[CHAT].ask(f"ha:{house_id}:{talk}", text, house=house_id)).text
+        except Busy:
+            reply = "I'm still thinking about something else. Try again in a moment."
+        except ModelError:
+            reply = "I can't think right now. My model is not answering."
+    try:
+        await ws.send_json({"type": "answer", "id": question, "text": reply})
+    except ConnectionError:
+        pass
 
 
 def _escalate(app: web.Application, event: Event | None, kind: str) -> None:

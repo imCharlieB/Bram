@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.7.0
+
+- BRAM can be chosen as a conversation agent in Home Assistant's Assist. It answers only about that home and cannot control anything.
+- Telegram voice notes, if chat and hearing are set up.
+
 ## 0.6.3
 
 - BRAM warns, on its page and in Home Assistant's Repairs, when the server and Home Assistant sides are different versions.

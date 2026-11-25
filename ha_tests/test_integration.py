@@ -6,16 +6,19 @@ from pathlib import Path
 
 import pytest
 from aiohttp import web
-from homeassistant.core import CoreState
+from homeassistant.components import conversation
+from homeassistant.core import Context, CoreState
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_mock_service
 
 from bram.alerts import Alerts
 from bram.audit import Audit
+from bram.chat import Reply
 from bram.pairing import Pairing, ensure_certificate
-from bram.server import HOUSES, SOCKETS, make_app
+from bram.server import CHAT, HOUSES, SOCKETS, make_app
 from bram.settings import Settings
 from custom_components.bram import gate
 from custom_components.bram.client import InvalidCode, parse_code
@@ -176,6 +179,41 @@ async def test_option_pages_keep_each_other(hass, server):
     assert "quiet_from" not in entry.options
     await hass.config_entries.async_unload(entry.entry_id)
     await until(lambda: not server[0][SOCKETS])
+
+
+async def test_assist(hass, server, monkeypatch):
+    assert await async_setup_component(hass, "homeassistant", {})
+    calls = []
+    hass.bus.async_listen("call_service", lambda e: calls.append(e))
+    entry = await start(hass, server)
+    asked = []
+
+    async def ask(key, text, *, house):
+        asked.append((key, text, house))
+        return Reply("The door is locked.", [])
+
+    monkeypatch.setattr(server[0][CHAT], "ask", ask)
+
+    async def say(text):
+        result = await conversation.async_converse(
+            hass, text, None, Context(), agent_id="conversation.bram_assist")
+        return result.response.speech["plain"]["speech"]
+
+    await until(lambda: entry.runtime_data.connected)
+    assert await say("is the door locked") == "The door is locked."
+    assert asked[0][1:] == ("is the door locked", entry.data["house_id"])
+    for sock in list(server[0][SOCKETS].values()):
+        await sock.close()
+    await until(lambda: not entry.runtime_data.connected)
+    assert "can't reach" in await say("hello")
+    assert calls == []
+    await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_unasked_answers_are_refused(hass):
+    feed = Feed(hass, MockConfigEntry(domain="bram", options={"entities": []}))
+    feed.handle_message('{"type": "answer", "id": "x", "text": "unlock"}')
+    assert feed._asked == {}
 
 
 async def test_version_warning(hass):

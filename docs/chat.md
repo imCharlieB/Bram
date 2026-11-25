@@ -12,13 +12,25 @@ Type to BRAM on its home page. It uses the model and personality from **Settings
 - **"Anyone home"** covers only people you shared. It is not proof the house is empty.
 - **Nothing is saved to disk.** A chat is forgotten when you clear it, sign out, leave it for 30 minutes, or restart the server. The last 12 messages are kept in mind.
 - **Stays on your network.** The model must be on your own network.
-- While a leak or smoke sensor is triggered, BRAM drops its personality and answers plainly.
 - It answers one question at a time, and shares your model with anything else using it.
 - It is not an emergency service and cannot call one.
 
 ## In Telegram
 
 Off by default, because answers about your home pass through Telegram, which is not end-to-end encrypted. On the **Messages** page, set up Telegram, check **Let me chat with BRAM here**, and **Save**. Only the linked account is answered.
+
+### Voice notes
+
+With Telegram chat on and [hearing](voice.md) set up, send a voice note of up to 30 seconds. BRAM shows what it heard. The recording passes through Telegram, then is turned into text on your network and not stored.
+
+## In Home Assistant's Assist
+
+**Settings > Voice assistants**: add an assistant, or open one, and choose **BRAM Assist** as its conversation agent. Your other choices, such as how it hears and speaks, stay the same. Choose the old agent to go back.
+
+- It answers only about that home, and not about monitors or other homes.
+- **Anyone who can use that assistant can ask** who is home and what is locked.
+- It uses the personality you set in BRAM.
+- BRAM cannot control anything. If the assistant has **Prefer handling commands locally** on, Home Assistant itself still handles commands such as turning on a light.
 
 ## Problems
 

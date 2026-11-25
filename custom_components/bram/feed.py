@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 import re
+import secrets
 from collections.abc import Callable, Iterable
 from typing import Any
 
@@ -21,6 +22,7 @@ from .const import CONF_ENTITIES, CONF_FINGERPRINT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 HEARTBEAT = 30
+ANSWER_TIMEOUT = 60
 _VERSION = re.compile(r"\d{1,4}\.\d{1,4}\.\d{1,4}")
 RETRY_MAX = 300
 QUEUE_SIZE = 1000
@@ -57,6 +59,7 @@ class Feed:
         self.version: str | None = None
         self.alerts: Any = None  # set during setup
         self._queue: asyncio.Queue[dict] | None = None
+        self._asked: dict[str, asyncio.Future[str]] = {}
         self.connected = False
         self.beliefs: dict[str, str] = {}
         self.server_version: str | None = None
@@ -89,11 +92,30 @@ class Feed:
             return False
         return True
 
+    async def ask(self, text: str, conversation: str) -> str:
+        """Ask the server. The answer is only ever words to say."""
+        key = secrets.token_hex(8)
+        waiting = self._asked[key] = self._hass.loop.create_future()
+        try:
+            if not self.send({"type": "ask", "id": key, "text": text[:2000],
+                              "conversation": conversation[:64]}):
+                return "I can't reach the BRAM Server right now."
+            async with asyncio.timeout(ANSWER_TIMEOUT):
+                return await waiting
+        except TimeoutError:
+            return "That took too long. Please try again."
+        finally:
+            self._asked.pop(key, None)
+
     @callback
     def _set_connected(self, connected: bool) -> None:
         self.connected = connected
         self.beliefs.clear()
         self.server_version = None
+        if not connected:
+            for waiting in self._asked.values():
+                if not waiting.done():
+                    waiting.set_result("I lost contact with the BRAM Server.")
         self._notify()
 
     @callback
@@ -116,6 +138,12 @@ class Feed:
             data = json.loads(raw)
         except ValueError:
             data = None
+        if (isinstance(data, dict) and data.keys() == {"type", "id", "text"}
+                and data["type"] == "answer" and isinstance(data["id"], str)
+                and isinstance(data["text"], str) and data["id"] in self._asked):
+            if not self._asked[data["id"]].done():
+                self._asked[data["id"]].set_result(data["text"][:4000])
+            return
         if (isinstance(data, dict) and data.keys() == {"type", "version"}
                 and data["type"] == "hello" and isinstance(data["version"], str)
                 and _VERSION.fullmatch(data["version"])):

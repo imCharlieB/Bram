@@ -66,6 +66,10 @@ See [Alerts and messages](messages.md).
 
 Keep both on the same version; BRAM warns on its page and in Home Assistant's Repairs when they differ. The server's is at the bottom of BRAM's home page; the integration's is on its device page. Your login, pairing, and settings are kept in the `bram-data` volume; do not delete it. See [Changes](../CHANGELOG.md).
 
+## Avoiding the browser warning (optional)
+
+If you run a reverse proxy with a trusted certificate, point it at `https://SERVER:8765`, ignore the upstream certificate, and pass the original host name. Keep it reachable only from your own network or VPN. Home Assistant should keep connecting directly to port 8765. Create your login before adding the proxy. Behind a proxy, wrong passwords from anyone count together toward the lockout.
+
 ## Problems
 
 | Problem | Try |

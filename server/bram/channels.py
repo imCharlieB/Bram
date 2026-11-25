@@ -17,10 +17,13 @@ from .chat import Busy
 from .local_model import check_local
 from .models.base import ModelError
 from .settings import Settings
+from .speech import MAX_SECONDS, SpeechError
+from .voice_note import MAX_FILE, decode
 
 _LOGGER = logging.getLogger(__name__)
 LINK_LIFETIME = 600
 TOKEN = re.compile(r"\d{5,15}:[A-Za-z0-9_-]{30,60}")
+FILE_PATH = re.compile(r"[A-Za-z0-9_]+/[A-Za-z0-9_.-]+")
 ACTION = re.compile(r"(ack|snooze|mute):[0-9a-f]{16}")
 
 
@@ -127,9 +130,10 @@ class Telegram:
     def __init__(self, settings: Settings, answer: Callable[[str, str], str],
                  transport: httpx.AsyncBaseTransport | None = None,
                  clock: Callable[[], float] = time.monotonic,
-                 talk: Callable[[str], Awaitable[str]] | None = None) -> None:
+                 talk: Callable[[str], Awaitable[str]] | None = None,
+                 hear: Callable[[bytes], Awaitable[str]] | None = None) -> None:
         self._settings, self._answer, self._clock = settings, answer, clock
-        self._talk = talk
+        self._talk, self._hear = talk, hear
         self._talking: set[asyncio.Task] = set()
         self._transport = transport
         self._link: tuple[str, float] | None = None
@@ -213,6 +217,9 @@ class Telegram:
     async def _message(self, message: dict) -> None:
         sender, chat = message.get("from") or {}, message.get("chat") or {}
         user_id, text = sender.get("id"), message.get("text")
+        voice = message.get("voice")
+        if text is None and isinstance(voice, dict):
+            text = ""
         if (not isinstance(user_id, int) or not isinstance(text, str) or sender.get("is_bot")
                 or chat.get("type") != "private" or chat.get("id") != user_id):
             return
@@ -225,18 +232,57 @@ class Telegram:
                                            "on BRAM's Messages page.")
                 return
             # A slow model must not hold up buttons.
-            task = asyncio.create_task(self._chat(user_id, text))
+            task = asyncio.create_task(self._chat(user_id, text, voice))
             self._talking.add(task)
             task.add_done_callback(self._talking.discard)
 
-    async def _chat(self, user_id: int, text: str) -> None:
+    async def _chat(self, user_id: int, text: str, voice: object = None) -> None:
         try:
+            if isinstance(voice, dict):
+                text = await self._listen(voice)
             answer = await self._talk(text)
+            if isinstance(voice, dict):
+                answer = f"I heard: {text}\n\n{answer}"
+        except SpeechError as err:
+            answer = str(err)
+        except ChannelError:
+            answer = "I could not get that recording."
         except Busy:
             answer = "I'm still thinking about the last thing. Try again in a moment."
         except ModelError as err:
             answer = f"I can't answer right now: {err}"
         await self._reply(user_id, answer[:4000])
+
+    async def _listen(self, voice: dict) -> str:
+        if self._hear is None:
+            raise SpeechError("Hearing is not set up")
+        size, seconds = voice.get("file_size"), voice.get("duration")
+        if (not isinstance(size, int) or not 0 < size <= MAX_FILE
+                or not isinstance(seconds, int) or seconds > MAX_SECONDS):
+            raise SpeechError(f"Keep it under {MAX_SECONDS} seconds")
+        file = await self.call("getFile", {"file_id": voice.get("file_id")})
+        path = file.get("file_path") if isinstance(file, dict) else None
+        if not isinstance(path, str) or not FILE_PATH.fullmatch(path):
+            raise ChannelError("Telegram sent an unexpected file")
+        data = bytearray()
+        try:
+            async with httpx.AsyncClient(timeout=20, transport=self._transport, trust_env=False,
+                                         follow_redirects=False) as client, client.stream(
+                    "GET", f"https://api.telegram.org/file/bot{self.config()['token']}/{path}",
+            ) as response:
+                if response.status_code != 200:
+                    raise ChannelError("Telegram refused the file")
+                async for chunk in response.aiter_bytes():
+                    data += chunk
+                    if len(data) > MAX_FILE:
+                        raise SpeechError("That recording is too long")
+        except httpx.HTTPError:
+            # The address holds the token, so the original error is not passed on.
+            raise ChannelError("Telegram did not answer") from None
+        text = await self._hear(await asyncio.to_thread(decode, bytes(data)))
+        if not text:
+            raise SpeechError("I didn't catch that")
+        return text
 
     async def idle(self) -> None:
         await asyncio.gather(*self._talking, return_exceptions=True)

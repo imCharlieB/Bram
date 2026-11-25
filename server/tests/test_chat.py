@@ -1,7 +1,10 @@
 import asyncio
+import io
 import sqlite3
 
+import av
 import httpx
+import numpy as np
 import pytest
 
 from bram.audit import Audit
@@ -10,6 +13,8 @@ from bram.chat import IDLE, MAX_HISTORY, Busy, Chat
 from bram.models.base import ModelError, Reply
 from bram.pairing import Pairing
 from bram.settings import Settings
+from bram.speech import SpeechError
+from bram.voice_note import decode
 from bram.world import Event, World
 
 
@@ -133,13 +138,12 @@ async def test_nothing_is_written_to_disk(env):
     sqlite3.connect(env.path).close()
 
 
-async def test_plain_manners_during_a_safety_event(env):
+@pytest.mark.parametrize("house", [False, True])
+async def test_personality_is_always_the_one_set(env, house):
     env.settings.update({"personality": "unhinged"})
-    await env.chat.ask("k", "hi")
-    assert "unhinged" in env.system
     env.set("Laundry", "leak", "on")
-    await env.chat.ask("k", "hi")
-    assert "unhinged" not in env.system and "Laundry (Home): leaking" in env.system
+    await env.chat.ask("k", "hi", house=env.house if house else None)
+    assert "unhinged" in env.system
 
 
 async def test_one_question_at_a_time(env):
@@ -180,6 +184,21 @@ async def test_many_devices_are_limited_but_the_asked_one_is_kept(env):
     assert "Attic window (Home): open" in env.system and "more devices" in env.system
 
 
+async def test_a_home_is_answered_only_from_itself(env):
+    other = env.pairing.redeem(env.pairing.new_code("Cabin", "0" * 64).split("-")[2])[0]
+    env.worlds[other] = World(other, clock=lambda: env.now)
+    env.worlds[other].update(Event(other, "x.y", "lock", "unlocked", "Cabin door"))
+    env.audit.record(other, "x", "noticed", "Cabin leak", "ok")
+    env.audit.record(env.house, "x", "noticed", "Home leak", "ok")
+    env.set("Front door", "lock", "locked")
+    env.settings.update({"personality": "unhinged"})
+    reply = await env.chat.ask("ha", "any door", house=env.house)
+    assert "Cabin" not in env.system and "Home leak" in env.system
+    assert reply.facts == ["Front door: locked"]
+    await env.chat.ask("web", "any door")
+    assert "Cabin door" in env.system and "unhinged" in env.system
+
+
 BOT = "123456789:" + "A" * 35
 
 
@@ -214,6 +233,65 @@ async def test_telegram_chat_is_off_by_default_and_only_for_the_linked_account(e
     await t.handle(message(5, "who is home?"))
     await t.idle()
     assert len(env.seen) == 1 and "Hello." in sent[-1]
+
+
+def voice_note(seconds=1.0):
+    out = io.BytesIO()
+    with av.open(out, "w", format="ogg") as file:
+        stream = file.add_stream("libopus", rate=48000)
+        stream.layout = "mono"
+        samples = np.zeros((1, 960), dtype=np.int16)
+        for _ in range(int(seconds * 50)):
+            frame = av.AudioFrame.from_ndarray(samples, format="s16", layout="mono")
+            frame.sample_rate = 48000
+            for packet in stream.encode(frame):
+                file.mux(packet)
+        for packet in stream.encode(None):
+            file.mux(packet)
+    return out.getvalue()
+
+
+def test_voice_notes_are_decoded_and_limited():
+    assert 14000 * 2 < len(decode(voice_note())) < 18000 * 2
+    for bad in (b"", b"junk" * 100, voice_note(33), b"x" * 1_000_001):
+        with pytest.raises(SpeechError):
+            decode(bad)
+
+
+async def test_telegram_voice_note(env):
+    env.settings.update_channel("telegram", {"on": True, "token": BOT, "user_id": 5, "chat": True})
+    sent, heard, path = [], [], ["voice/file_1.oga"]
+
+    def handler(request):
+        if "/file/" in request.url.path:
+            return httpx.Response(200, content=voice_note())
+        sent.append(request.content.decode())
+        return httpx.Response(200, json={"ok": True, "result": {"file_path": path[0]}})
+
+    async def hear(pcm):
+        heard.append(len(pcm))
+        return "who is home"
+
+    async def talk(text):
+        return (await env.chat.ask("telegram", text)).text
+
+    t = Telegram(env.settings, lambda a, b: "", httpx.MockTransport(handler), talk=talk, hear=hear)
+
+    async def note(user=5, **voice):
+        item = message(user, None)
+        item["message"]["voice"] = {"file_id": "f", "file_size": 5000, "duration": 2, **voice}
+        await t.handle(item)
+        await t.idle()
+
+    await note(user=6)
+    assert heard == [] and sent == []
+    await note()
+    assert len(heard) == 1 and "I heard: who is home" in sent[-1]
+    await note(duration=60)
+    await note(file_size=10**9)
+    path[0] = "../../etc/passwd"
+    await note()
+    assert len(heard) == 1 and "could not get" in sent[-1]
 
 
 async def test_telegram_chat_does_not_hold_up_buttons(env):

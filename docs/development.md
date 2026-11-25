@@ -17,7 +17,7 @@ Checks, all run by CI:
 
 The integration tests need Python 3.14 and Linux (or CI):
 
-    pip install pytest-homeassistant-custom-component
+    pip install pytest-homeassistant-custom-component hassil home-assistant-intents
     pip install -e server
     python -m pytest ha_tests -o asyncio_mode=auto
 

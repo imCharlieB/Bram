@@ -104,7 +104,8 @@ class Chat:
         self._conversations = {k: c for k, c in self._conversations.items()
                                if k == key or not k.startswith(prefix)}
 
-    async def ask(self, key: str, text: str) -> Reply:
+    async def ask(self, key: str, text: str, *, house: str | None = None) -> Reply:
+        """A question from one home is answered only from that home (E4)."""
         text = text.strip()[:MAX_TEXT]
         if not text:
             raise ModelError("Say something first")
@@ -116,13 +117,10 @@ class Chat:
         async with self._lock:
             self._expire()
             conversation = self._conversations.get(key) or Conversation()
-            states = self._states()
-            urgent = any(kind in ("leak", "smoke") and answer is Answer.YES
-                         for _, _, kind, answer in states)
-            # Plain manners while something is wrong.
-            mode = "professional" if urgent else saved["personality"]
-            system = "\n\n".join((RULES, f"Style: {style(mode, saved['custom_style'])}",
-                                  self._report(text, states)))
+            states = self._states(house)
+            manner = style(saved["personality"], saved["custom_style"])
+            system = "\n\n".join((RULES, f"Style: {manner}",
+                                  self._report(text, states, house)))
             question = Message("user", text)
             model = await self._open(saved["model_url"], saved["model"], saved["context"],
                                      max_output=600)
@@ -145,17 +143,21 @@ class Chat:
 
     # --- what BRAM knows ---
 
-    def _states(self) -> list[tuple[str, str, str, Answer]]:
+    def _states(self, house: str | None) -> list[tuple[str, str, str, Answer]]:
         names = dict(self._pairing.houses())
         return [(names[house_id], clean(event.name or event.entity_id, 60), event.kind,
                  world.check(event.entity_id))
-                for house_id, world in self._worlds().items() if house_id in names
+                for house_id, world in self._worlds().items()
+                if house_id in names and house in (None, house_id)
                 for event in world.all() if event.kind in WORDS]
 
-    def _report(self, question: str, states: list[tuple[str, str, str, Answer]]) -> str:
+    def _report(self, question: str, states: list[tuple[str, str, str, Answer]],
+                house: str | None) -> str:
         lines = [f"Now: {self._now()}"]
         worlds = self._worlds()
         for house_id, name in self._pairing.houses():
+            if house not in (None, house_id):
+                continue
             world = worlds.get(house_id)
             live = world is not None and world.live
             people = {
@@ -170,14 +172,16 @@ class Chat:
                   for house, name, kind, answer in ranked[:MAX_ENTITIES]]
         if len(ranked) > MAX_ENTITIES:
             lines.append(f"{len(ranked) - MAX_ENTITIES} more devices are not listed here")
-        if self._monitors is not None:
+        if self._monitors is not None and house is None:
             for item in self._monitors.all():
                 up = self._monitors.status.get(item["id"])
                 lines.append(f"Monitor {item['name']}: "
                              + ("not checked yet" if up is None
                                 else "answering" if up else "NOT answering"))
         zone = self._zone()
-        for row in self._audit.recent(8, kind="say"):
+        events = [r for r in self._audit.recent(60, kind="say")
+                  if house in (None, r["house_id"])][:8]
+        for row in events:
             at = datetime.datetime.fromtimestamp(row["at"], zone).strftime("%a %H:%M")
             lines.append(f"Event {at}: {clean(row['reason'], 160)}")
         # The markers cannot be forged from inside the report.

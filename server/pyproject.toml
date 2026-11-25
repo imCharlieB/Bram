@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bram-core"
-version = "0.6.3"
+version = "0.7.0"
 description = "BRAM Server"
 license = { text = "MIT" }
 requires-python = ">=3.13"
-dependencies = ["aiohttp>=3.11,<4", "cryptography>=43", "httpx>=0.27,<1", "segno>=1.6", "tzdata"]
+dependencies = ["aiohttp>=3.11,<4", "av>=14", "cryptography>=43", "httpx>=0.27,<1", "numpy", "segno>=1.6", "tzdata"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=1", "ruff>=0.5"]

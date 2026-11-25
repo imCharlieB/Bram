@@ -3,11 +3,12 @@
   "name": "BRAM",
   "codeowners": ["@imCharlieB"],
   "config_flow": true,
+  "dependencies": ["conversation"],
   "documentation": "https://github.com/imCharlieB/Bram",
   "integration_type": "service",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/imCharlieB/Bram/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "0.6.3"
+  "version": "0.7.0"
 }

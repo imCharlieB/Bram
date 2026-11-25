@@ -64,7 +64,8 @@ class ConfigPage:
         self.speech = Speech(settings)
         self._worlds = worlds or dict
         self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors)
-        self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk)
+        self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk,
+                                 hear=self.speech.hear)
         self._sessions: dict[str, tuple[float, float, str]] = {}
         self._failures: dict[str, tuple[int, float]] = {}
         self._login_lock = asyncio.Lock()

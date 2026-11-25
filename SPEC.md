@@ -110,7 +110,7 @@ Each connector owns its own quiet hours; they never affect another connector or 
 
 ### Personality modes
 
-Chosen per person at setup and changeable at any time. A mode changes wording only.
+Chosen by the owner and changeable at any time. A mode changes wording only.
 
 | Mode | Style |
 |---|---|
@@ -123,9 +123,8 @@ Chosen per person at setup and changeable at any time. A mode changes wording on
 
 - Modes never change permissions, approvals, facts, limits, or when BRAM speaks. Custom text is style only and is treated as data.
 - Safety alerts, approval requests, and PIN prompts always use their fixed text.
-- Unhinged is opt-in per adult and used only in that person's private channels. Shared speakers and displays, guests, children, and unidentified speakers get the room's mode, Professional by default. The owner can allow Unhinged for a room.
+- The owner's chosen mode applies everywhere BRAM talks: its page, Assist, speakers, and Telegram. Per-person modes may come with M7.
 - Unhinged may roast the person who chose it. It does not use slurs, threats, or sexual content about real people, and does not target anyone else in the home.
-- If BRAM is unsure who is listening, or a safety event is active, it uses Professional.
 - How far a mode goes depends on the chosen model. The setup screen shows a sample.
 
 ## 6. Memory
