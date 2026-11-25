@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
@@ -21,14 +22,15 @@ RETRY_MAX = 300
 QUEUE_SIZE = 1000
 
 _BINARY = {"moisture": "leak", "smoke": "smoke", "door": "opening", "window": "opening",
-           "opening": "opening", "garage_door": "opening"}
+           "opening": "opening", "garage_door": "opening",
+           "motion": "motion", "occupancy": "motion", "presence": "motion", "moving": "motion"}
 _COVER = {"door", "garage", "gate", "window"}
 
 
 def kind_of(entity_id: str, device_class: str | None) -> str | None:
     """The kind BRAM understands, or None."""
     domain = entity_id.split(".", 1)[0]
-    if domain in ("person", "lock"):
+    if domain in ("person", "lock", "light"):
         return domain
     if domain == "binary_sensor":
         return _BINARY.get(device_class or "")
@@ -43,6 +45,47 @@ class Feed:
         self._entry = entry
         self._entities: list[str] = entry.options.get(CONF_ENTITIES, [])
         self._kinds: dict[str, str] = {}
+        self._listeners: list[Callable[[], None]] = []
+        self.connected = False
+        self.beliefs: dict[str, str] = {}
+
+    @property
+    def entities(self) -> list[str]:
+        return self._entities
+
+    def kind(self, entity_id: str) -> str | None:
+        return self._kinds.get(entity_id)
+
+    @callback
+    def listen(self, listener: Callable[[], None]) -> Callable[[], None]:
+        self._listeners.append(listener)
+        return lambda: self._listeners.remove(listener)
+
+    @callback
+    def _notify(self) -> None:
+        for listener in list(self._listeners):
+            listener()
+
+    @callback
+    def _set_connected(self, connected: bool) -> None:
+        self.connected = connected
+        self.beliefs.clear()
+        self._notify()
+
+    @callback
+    def handle_message(self, raw: str) -> None:
+        """Accept display-only beliefs about chosen entities. Refuse everything else."""
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            data = None
+        if (isinstance(data, dict) and data.keys() == {"type", "entity_id", "answer"}
+                and data["type"] == "belief" and data["entity_id"] in self._entities
+                and data["answer"] in ("yes", "no", "unknown")):
+            self.beliefs[data["entity_id"]] = data["answer"]
+            self._notify()
+            return
+        _LOGGER.warning("Refused a server request: %s", gate.decide(data).reason)
 
     def _state(self, entity_id: str, state: State | None) -> dict[str, str]:
         if state is not None:
@@ -69,7 +112,11 @@ class Feed:
                 async with ws:
                     _LOGGER.info("Connected to the BRAM Server")
                     delay, warned = 5, False
-                    await self._session(ws)
+                    self._set_connected(True)
+                    try:
+                        await self._session(ws)
+                    finally:
+                        self._set_connected(False)
             except (aiohttp.ClientError, TimeoutError, ConnectionError) as err:
                 if not warned:
                     _LOGGER.warning("BRAM Server connection failed: %s", type(err).__name__)
@@ -106,8 +153,7 @@ class Feed:
         async def receive() -> None:
             async for message in ws:
                 if message.type is aiohttp.WSMsgType.TEXT:
-                    decision = gate.decide(message.data)
-                    _LOGGER.warning("Refused a server request: %s", decision.reason)
+                    self.handle_message(message.data)
 
         tasks = [asyncio.create_task(send()), asyncio.create_task(receive())]
         try:

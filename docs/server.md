@@ -10,13 +10,14 @@ In this version the server watches and logs. It sends no messages and controls n
 | `pair --name NAME` | Print a one-time code for a Home Assistant, valid 10 minutes |
 | `houses` | List paired houses |
 | `unpair HOUSE_ID` | Remove a house; restart the server afterward |
-| `log HOUSE_ID` | Print the audit log, including what BRAM would have said |
+| `log [HOUSE_ID]` | Print the audit log, including what BRAM would have said. The ID is optional with one house |
 
 | Option | Meaning | Default |
 |---|---|---|
 | `--data` | Where the key, certificate, and database live; give it before the command | `data` |
 | `--host` | Address to listen on (`run`) | all |
 | `--port` | Port to listen on (`run`) | 8765 |
+| `--json` | Print full records (`log`) | off |
 | `--name` | Your name for the house (`pair`) | required |
 
 ## Docker
@@ -39,7 +40,13 @@ To build it yourself, use `docker compose -f compose.yaml -f compose.build.yaml 
 2. In Home Assistant: **Settings > Devices & services > Add integration > BRAM**. Enter the server's address, port, and the code.
 3. Open BRAM's options and choose what it may see. Nothing is shared until you do.
 
-Supported: people, locks, leak, smoke, door, window, garage door, and gate entities.
+Supported: people, locks, lights, and motion, occupancy, presence, leak, smoke, door, window, garage door, and gate entities.
+
+## Device page
+
+**Settings > Devices & services > BRAM** shows whether the server is connected, plus one **Sees ...** sensor per chosen entity. Each shows what the server believes, so you can turn on a light and watch it change. *Unknown* means BRAM cannot tell; *unavailable* means it is not connected.
+
+BRAM does not store light, motion, or presence activity. Home Assistant's own history records the **Sees** sensors like any other sensor.
 
 ## Security
 

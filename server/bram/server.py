@@ -6,6 +6,7 @@ import asyncio
 import json
 import signal
 import sys
+import time
 from pathlib import Path
 
 from aiohttp import WSCloseCode, WSMsgType, web
@@ -75,13 +76,18 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                     world.heartbeat()
                     for event in [_event(house_id, s) for s in data["states"]]:
                         watcher.handle(event)
+                        await _belief(ws, world, event)
                     ready = True
                 elif kind == "state" and ready:
-                    watcher.handle(_event(house_id, data.get("state")))
+                    event = _event(house_id, data.get("state"))
+                    watcher.handle(event)
+                    await _belief(ws, world, event)
                 elif kind == "heartbeat" and ready:
                     world.heartbeat()
                 else:
                     raise ValueError("unexpected message")
+            except ConnectionError:
+                break
             except (ValueError, KeyError, TypeError):
                 await ws.close(code=WSCloseCode.UNSUPPORTED_DATA)
                 break
@@ -91,6 +97,22 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
             world.disconnected()
             audit.record(house_id, "feed", "disconnected", "connection closed", "state unknown")
     return ws
+
+
+async def _belief(ws: web.WebSocketResponse, world: World, event: Event) -> None:
+    """Tell Home Assistant what BRAM now believes. For display only; nothing is stored."""
+    await ws.send_json({"type": "belief", "entity_id": event.entity_id,
+                        "answer": world.check(event.entity_id)})
+
+
+def _log_house(houses: list[tuple[str, str]], wanted: str | None) -> str:
+    ids = [h[0] for h in houses]
+    if wanted is None and len(ids) == 1:
+        return ids[0]
+    if wanted in ids:
+        return wanted
+    listing = "\n".join(f"  {i} {name}" for i, name in houses) or "  (none)"
+    raise SystemExit(f"Choose a paired house:\n{listing}")
 
 
 def _new_house(house_id: str, audit: Audit) -> tuple[World, Watcher]:
@@ -147,7 +169,8 @@ def main() -> None:
     sub.add_parser("houses")
     sub.add_parser("unpair").add_argument("house_id")
     log = sub.add_parser("log")
-    log.add_argument("house_id")
+    log.add_argument("house_id", nargs="?")
+    log.add_argument("--json", action="store_true")
     args = p.parse_args()
     _, fingerprint = ensure_certificate(args.data)
     database = args.data / "bram.db"
@@ -168,8 +191,12 @@ def main() -> None:
             sys.exit("No such house")
         print("Removed. Restart the server to end any open connection.")
     elif args.command == "log":
-        for row in Audit(database).entries(args.house_id):
-            print(json.dumps(row))
+        for row in Audit(database).entries(_log_house(Pairing(database).houses(), args.house_id)):
+            if args.json:
+                print(json.dumps(row))
+            else:
+                at = time.strftime("%Y-%m-%d %H:%M:%S %Z", time.localtime(row["at"]))
+                print(f"{at}  {row['decision']:<12}  {row['trigger']}: {row['reason']}")
 
 
 if __name__ == "__main__":

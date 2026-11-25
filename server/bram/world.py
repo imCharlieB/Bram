@@ -13,6 +13,8 @@ MEANING = {
     "leak": {"on": True, "off": False},
     "smoke": {"on": True, "off": False},
     "opening": {"on": True, "off": False, "open": True, "closed": False},
+    "motion": {"on": True, "off": False},
+    "light": {"on": True, "off": False},
     "lock": {"unlocked": True, "locked": False},
 }
 

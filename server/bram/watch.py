@@ -14,6 +14,11 @@ UNCHECKED = {
     "smoke": "A smoke sensor stopped reporting, so I cannot check it.",
 }
 
+RECOVERED = {
+    "leak": "A leak sensor is reporting again, and it is dry.",
+    "smoke": "A smoke sensor is reporting again, and it is clear.",
+}
+
 
 class Watcher:
     def __init__(self, world: World, audit: Audit) -> None:
@@ -32,6 +37,8 @@ class Watcher:
         text = None
         if now is Answer.YES:
             text = NOTABLE.get(event.kind)
+        elif now is Answer.NO and before is Answer.UNKNOWN:
+            text = RECOVERED.get(event.kind)
         elif now is Answer.UNKNOWN:
             text = UNCHECKED.get(event.kind)
         if text:

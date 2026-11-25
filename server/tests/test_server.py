@@ -8,7 +8,7 @@ from aiohttp import web
 
 from bram.audit import Audit
 from bram.pairing import Pairing, ensure_certificate
-from bram.server import HOUSES, make_app
+from bram.server import HOUSES, _log_house, make_app
 
 
 class Running:
@@ -144,6 +144,25 @@ async def test_unpaired_house_cannot_reconnect(srv):
     assert srv.pairing.remove(house["house_id"])
     with pytest.raises(aiohttp.WSServerHandshakeError):
         await feed(srv, house["token"])
+
+
+async def test_belief_is_returned_for_display(srv):
+    house = await paired(srv)
+    async with feed(srv, house["token"]) as ws:
+        light = {"entity_id": "light.x", "kind": "light", "state": "on"}
+        await ws.send_json({"type": "snapshot", "states": [light]})
+        assert await ws.receive_json(timeout=3) == {
+            "type": "belief", "entity_id": "light.x", "answer": "yes"}
+        await ws.send_json({"type": "state", "state": {**light, "state": "unavailable"}})
+        assert (await ws.receive_json(timeout=3))["answer"] == "unknown"
+
+
+def test_log_house_choice():
+    one, two = [("a", "A")], [("a", "A"), ("b", "B")]
+    assert _log_house(one, None) == "a" and _log_house(two, "b") == "b"
+    for houses, wanted in ((one, "HOUSE_ID"), (two, None), ([], None)):
+        with pytest.raises(SystemExit):
+            _log_house(houses, wanted)
 
 
 def test_certificate_is_kept(tmp_path):

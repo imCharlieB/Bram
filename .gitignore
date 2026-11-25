@@ -9,3 +9,4 @@ bench-results/
 private/
 .venv-ha/
 data/
+.claude/
