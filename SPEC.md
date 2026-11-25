@@ -81,6 +81,8 @@ One server image, two packages: an HA App (HA OS/Supervised) and Docker Compose 
 | Built-in STT / TTS | Only if the Assist pipeline proves insufficient | Later |
 | Trainer | Section 9 | M8 |
 
+The fuller feature list and current order are in [docs/roadmap.md](docs/roadmap.md), which the owner extended on 2026-11-25 with watchdog rules, history questions, digests, network and radio checks, and backup models.
+
 ## 5. Reaching out
 
 **Triggers:** an event, a schedule, a promised follow-up, or an expected thing that did not happen.
