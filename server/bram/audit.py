@@ -35,5 +35,9 @@ class Audit:
         rows = self._db.execute("SELECT * FROM audit WHERE house_id = ? ORDER BY id", (house_id,))
         return [dict(r) for r in rows]
 
+    def recent(self, limit: int) -> list[dict]:
+        rows = self._db.execute("SELECT * FROM audit ORDER BY id DESC LIMIT ?", (limit,))
+        return [dict(r) for r in rows]
+
     def close(self) -> None:
         self._db.close()

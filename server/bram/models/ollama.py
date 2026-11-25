@@ -52,9 +52,11 @@ class OllamaProvider:
     async def version(self) -> str:
         return str((await self._request("GET", "/api/version")).get("version"))
 
+    async def tags(self) -> list[dict[str, Any]]:
+        return (await self._request("GET", "/api/tags")).get("models") or []
+
     async def installed(self) -> list[str]:
-        data = await self._request("GET", "/api/tags")
-        return [m["name"] for m in data.get("models") or []]
+        return [m["name"] for m in await self.tags()]
 
     async def details(self) -> dict[str, Any]:
         return await self._request("POST", "/api/show", {"model": self.model})

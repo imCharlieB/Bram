@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BRAM</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<header>
+  <img src="icon.png" alt="" width="52" height="52">
+  <div><h1>BRAM</h1><p>Butler, Reconnaissance &amp; Automation Manager</p></div>
+  <button id="logout" class="quiet" hidden>Sign out</button>
+</header>
+
+<main id="setup" class="narrow" hidden>
+  <section class="card">
+    <h2>Welcome. Let's set up BRAM.</h2>
+    <p class="note">Create the owner login. You will use it to change BRAM's settings.</p>
+    <form id="setup-form">
+      <label for="setup-code">Setup code, from the BRAM Server's log</label>
+      <input id="setup-code" autocomplete="one-time-code" maxlength="12" placeholder="XXXX-XXXX" required>
+      <label for="new-user">Username</label>
+      <input id="new-user" autocomplete="username" maxlength="64" required>
+      <label for="new-password">Password, at least 12 characters</label>
+      <input id="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="200" required>
+      <label for="new-again">Password again</label>
+      <input id="new-again" type="password" autocomplete="new-password" maxlength="200" required>
+      <button id="create">Create login</button>
+    </form>
+    <p class="message" id="setup-message" role="alert"></p>
+  </section>
+</main>
+
+<main id="closed" class="narrow" hidden>
+  <section class="card">
+    <h2>Setup has timed out</h2>
+    <p>For safety, setup closes 15 minutes after the BRAM Server starts, or after 5 wrong codes. Restart the BRAM container, then reload this page.</p>
+  </section>
+</main>
+
+<main id="login" class="narrow" hidden>
+  <section class="card">
+    <h2>Sign in</h2>
+    <form id="login-form">
+      <label for="user">Username</label>
+      <input id="user" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button id="signin">Sign in</button>
+    </form>
+    <p class="message" id="login-message" role="alert"></p>
+  </section>
+</main>
+
+<main id="app" hidden>
+  <section class="card wide" id="start" hidden>
+    <h2>Getting started</h2>
+    <ul id="steps"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Homes</h2>
+    <ul id="houses"></ul>
+    <form id="pair-form">
+      <label for="home">Connect a Home Assistant</label>
+      <div class="row">
+        <input id="home" placeholder="Home" maxlength="64" required>
+        <button id="pair" class="quiet">Get code</button>
+      </div>
+    </form>
+    <div id="code-box" hidden>
+      <pre id="code"></pre>
+      <button id="copy" class="quiet">Copy</button>
+      <p class="note">In Home Assistant: Settings, Devices &amp; services, Add integration, BRAM. Server address <b id="address"></b>, port <b id="port"></b>. The code works once, for <b id="minutes"></b> minutes.</p>
+    </div>
+    <p class="message" id="pair-message" role="status"></p>
+    <p class="note">Log only: BRAM sends no alerts and cannot control anything yet.</p>
+  </section>
+
+  <section class="card">
+    <h2>Model</h2>
+    <label for="url">Ollama address</label>
+    <div class="row">
+      <input id="url" type="url" placeholder="http://HOST:11434">
+      <button id="find" class="quiet">Find models</button>
+    </div>
+    <label for="model">Model</label>
+    <select id="model"></select>
+    <label for="context">Context size, if the model is not already loaded</label>
+    <input id="context" type="number" min="2048" max="262144" step="1024">
+    <button id="save-model">Save model</button>
+    <p class="message" id="model-message" role="status"></p>
+  </section>
+
+  <section class="card wide">
+    <h2>Personality</h2>
+    <p class="note">Changes wording only. Safety alerts and approvals always use plain text.</p>
+    <div id="modes" role="radiogroup" aria-label="Personality"></div>
+    <div id="custom-box" hidden>
+      <label for="custom">Describe the style</label>
+      <textarea id="custom" rows="3"></textarea>
+    </div>
+    <div class="row">
+      <button id="save-personality">Save personality</button>
+      <button id="try" class="quiet">Try it</button>
+    </div>
+    <p class="message" id="personality-message" role="status"></p>
+    <blockquote id="sample" hidden></blockquote>
+  </section>
+
+  <section class="card wide">
+    <h2>Change password</h2>
+    <form id="change-form">
+      <label for="change-new">New password, at least 12 characters</label>
+      <input id="change-new" type="password" autocomplete="new-password" minlength="12" maxlength="200" required>
+      <label for="change-again">New password again</label>
+      <input id="change-again" type="password" autocomplete="new-password" maxlength="200" required>
+      <button id="change" class="quiet">Change password</button>
+    </form>
+    <p class="message" id="change-message" role="status"></p>
+  </section>
+
+  <section class="card wide">
+    <h2>Log</h2>
+    <button id="refresh" class="quiet">Refresh</button>
+    <div class="scroll"><table>
+      <thead><tr><th>Time</th><th>House</th><th>What</th><th>Why</th></tr></thead>
+      <tbody id="log"></tbody>
+    </table></div>
+  </section>
+</main>
+<dialog id="confirm" aria-labelledby="confirm-title">
+  <form id="confirm-form">
+    <h2 id="confirm-title">Enter your password</h2>
+    <p class="note" id="confirm-text"></p>
+    <input id="confirm-password" type="password" autocomplete="current-password" aria-label="Password" required>
+    <div class="row"><button>Continue</button><button type="button" class="quiet" id="confirm-cancel">Cancel</button></div>
+  </form>
+</dialog>
+</body>
+</html>

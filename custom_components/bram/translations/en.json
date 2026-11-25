@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Pair with your BRAM Server",
-        "description": "Run `bram-server pair --name Home` on the server and paste the code it prints.",
+        "description": "Open the BRAM Server's config page, press Get code, and paste the code here.",
         "data": {"host": "Server address", "port": "Port", "code": "Pairing code"}
       }
     },

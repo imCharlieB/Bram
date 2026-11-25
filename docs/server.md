@@ -2,14 +2,17 @@
 
 In this version the server watches and logs. It sends no messages and controls nothing. It does not replace certified alarms.
 
+Everyday setup happens on the config page. These commands are for running the server and for rescue.
+
     bram-server [--data DIR] COMMAND
 
 | Command | Does |
 |---|---|
 | `run` | Start the server |
 | `pair --name NAME` | Print a one-time code for a Home Assistant, valid 10 minutes |
+| `reset-login` | Remove a forgotten config page login. Restart the server, then set it up again |
 | `houses` | List paired houses |
-| `unpair HOUSE_ID` | Remove a house; restart the server afterward |
+| `unpair HOUSE_ID` | Remove a house |
 | `log [HOUSE_ID]` | Print the audit log, including what BRAM would have said. The ID is optional with one house |
 
 | Option | Meaning | Default |
@@ -25,18 +28,31 @@ In this version the server watches and logs. It sends no messages and controls n
 The image is built by GitHub for 64-bit Intel/AMD machines. `edge` is the latest development version.
 
     docker compose up -d
-    docker compose exec bram bram-server --data /data pair --name Home
 
 To build it yourself, use `docker compose -f compose.yaml -f compose.build.yaml up -d --build`.
 
 ### Portainer
 
-1. **Stacks > Add stack > Repository**. URL `https://github.com/imCharlieB/Bram`, reference `refs/heads/main`, compose path `compose.yaml`. Deploy.
-2. **Containers > bram > Console**, connect with `/bin/sh`, and run `bram-server --data /data pair --name Home`.
+**Stacks > Add stack > Repository**. URL `https://github.com/imCharlieB/Bram`, reference `refs/heads/main`, compose path `compose.yaml`. Deploy, then continue with the config page.
+
+## Config page
+
+1. Open `https://SERVER:8765`. Your browser warns because the server made its own certificate; continue only on your own network.
+2. Enter the **setup code** from the server's log (in Portainer: **Containers > bram > Logs**; in the HA App: **Log**) and create the owner login. Setup closes after 15 minutes or 5 wrong codes; restart the container for a new code.
+3. Follow **Getting started** on the page.
+
+It shows status and the log, pairs and removes homes, and sets the model and personality. **Try it** sends your model one invented sentence and nothing about your home. It cannot control anything, change what BRAM may do, or approve actions.
+
+- Only models on your own network are accepted, and models that Ollama runs in the cloud are refused.
+- If the model is already loaded, BRAM keeps its context size and unload time so other users are not affected.
+- Pairing, removing a home, changing the model, and changing the password ask for the password again.
+- Sessions end after 30 minutes idle or 12 hours.
+- Five wrong passwords from one address, or 20 in all, lock sign-in for 15 minutes. Resetting the login signs everyone out.
+- BRAM does not send messages yet, so the saved personality only affects **Try it** for now.
 
 ## Pairing
 
-1. Run `bram-server pair --name Home`, using the same `--data` as the running server.
+1. On the config page, enter a name under **Connect a Home Assistant** and press **Get code**.
 2. In Home Assistant: **Settings > Devices & services > Add integration > BRAM**. Enter the server's address, port, and the code.
 3. Open BRAM's options and choose what it may see. Nothing is shared until you do.
 

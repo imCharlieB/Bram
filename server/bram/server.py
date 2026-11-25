@@ -4,22 +4,27 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import signal
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from aiohttp import WSCloseCode, WSMsgType, web
 
 from .audit import Audit
 from .pairing import CODE_LIFETIME, Pairing, ensure_certificate
+from .settings import Settings
 from .watch import Watcher
+from .web import ConfigPage
 from .world import Event, World
 
 PAIRING = web.AppKey("pairing", Pairing)
 AUDIT = web.AppKey("audit", Audit)
 HOUSES = web.AppKey("houses", dict)
 SOCKETS = web.AppKey("sockets", dict)
+PAGE = web.AppKey("page", ConfigPage)
 
 
 def _event(house_id: str, raw: object) -> Event:
@@ -64,7 +69,8 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
     ready = False
     try:
         async for message in ws:
-            if sockets.get(house_id) is not ws:
+            # Replaced, or unpaired by the owner.
+            if sockets.get(house_id) is not ws or request.app[PAIRING].house_for(token) is None:
                 break
             if message.type is not WSMsgType.TEXT:
                 break
@@ -129,19 +135,31 @@ async def _shutdown(app: web.Application) -> None:
         await ws.close(code=WSCloseCode.GOING_AWAY)
 
 
-def make_app(pairing: Pairing, audit: Audit) -> web.Application:
+def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
+             fingerprint: str = "", clock: Callable[[], float] = time.monotonic) -> web.Application:
     app = web.Application(client_max_size=4096)
     app[PAIRING], app[AUDIT], app[HOUSES], app[SOCKETS] = pairing, audit, {}, {}
     app.router.add_post("/pair", _pair)
     app.router.add_get("/feed", _feed)
     app.router.add_get("/health", _health)
+    if settings is not None:
+        async def disconnect(house_id: str) -> None:
+            ws = app[SOCKETS].get(house_id)
+            if ws is not None:
+                await ws.close(code=WSCloseCode.POLICY_VIOLATION, message=b"unpaired")
+
+        page = ConfigPage(settings, pairing, audit, fingerprint, lambda: set(app[SOCKETS]),
+                          disconnect, clock)
+        app[PAGE] = page
+        app.add_routes(page.routes())
     app.on_shutdown.append(_shutdown)
     return app
 
 
 async def _serve(host: str, port: int, data: Path) -> None:
-    context, _ = ensure_certificate(data)
-    app = make_app(Pairing(data / "bram.db"), Audit(data / "bram.db"))
+    context, fingerprint = ensure_certificate(data)
+    database = data / "bram.db"
+    app = make_app(Pairing(database), Audit(database), Settings(database), fingerprint)
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, host, port, ssl_context=context).start()
@@ -151,6 +169,9 @@ async def _serve(host: str, port: int, data: Path) -> None:
             asyncio.get_running_loop().add_signal_handler(sig, stop.set)
         except NotImplementedError:  # Windows
             pass
+    if app[PAGE].needs_setup:
+        code = app[PAGE].setup_code
+        print(f"Setup code: {code[:4]}-{code[4:]}  (open the config page within 15 minutes)")
     print(f"BRAM Server listening on port {port} (log only)")
     try:
         await stop.wait()
@@ -166,12 +187,14 @@ def main() -> None:
     run.add_argument("--host", default="0.0.0.0")  # noqa: S104 - TLS and a token are required
     run.add_argument("--port", type=int, default=8765)
     sub.add_parser("pair").add_argument("--name", required=True)
+    sub.add_parser("reset-login")
     sub.add_parser("houses")
     sub.add_parser("unpair").add_argument("house_id")
     log = sub.add_parser("log")
     log.add_argument("house_id", nargs="?")
     log.add_argument("--json", action="store_true")
     args = p.parse_args()
+    os.umask(0o077)  # only this user may read the key and database
     _, fingerprint = ensure_certificate(args.data)
     database = args.data / "bram.db"
     if args.command == "run":
@@ -183,13 +206,16 @@ def main() -> None:
         print(Pairing(database).new_code(args.name, fingerprint))
         print(f"Enter this code in Home Assistant within {CODE_LIFETIME // 60} minutes. "
               "It works once.")
+    elif args.command == "reset-login":
+        Settings(database).reset_login()
+        print("Login removed. Restart the server, then open the config page to make a new one.")
     elif args.command == "houses":
         for house_id, name in Pairing(database).houses():
             print(house_id, name)
     elif args.command == "unpair":
         if not Pairing(database).remove(args.house_id):
             sys.exit("No such house")
-        print("Removed. Restart the server to end any open connection.")
+        print("Removed.")
     elif args.command == "log":
         for row in Audit(database).entries(_log_house(Pairing(database).houses(), args.house_id)):
             if args.json:

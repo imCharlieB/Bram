@@ -106,7 +106,7 @@ Safety alerts use a separate path that skips policy and composition.
 | Home Assistant, BRAM's options | Entities, tiers, HA phone and speaker delivery, and **quiet hours for Home Assistant delivery only** |
 | BRAM config page, on the server | Model, people, personality, memory, other connectors and their own quiet hours, audit log |
 
-Each connector owns its own quiet hours; they never affect another connector or any safety alert. The config page is off until the owner creates a password, is encrypted, locks out repeated failures, and cannot lower a tier or approve an action: those stay in Home Assistant.
+Each connector owns its own quiet hours; they never affect another connector or any safety alert. First-run setup lets the owner create the login in a browser with a one-time code from the server's log, for 15 minutes after the server starts. Sensitive changes ask for the password again. A second factor is required before any control feature ships (M3). Normal setup never needs a command line. The config page is encrypted, locks out repeated failures, and cannot lower a tier or approve an action: those stay in Home Assistant.
 
 ### Personality modes
 
