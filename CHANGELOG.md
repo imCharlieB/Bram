@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.19.0
+
+- The command look covers every page, including sign-in.
+
 ## 0.18.1
 
 - Devices on the command deck are larger, with icons and names, and open their details when clicked.

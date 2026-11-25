@@ -104,4 +104,9 @@ jobs:
           if gh release view "v$version" >/dev/null 2>&1; then exit 0; fi
           # 1.0.0 and later need a test for every hard rule (F9).
           case "$version" in 0.*) ;; *) python3 scripts/rule_coverage.py --release ;; esac
-          gh release create "v$version" --target "$GITHUB_SHA" --title "BRAM $version" --notes "Early development. See CHANGELOG.md."
+          for try in 1 2 3; do
+            gh release create "v$version" --target "$GITHUB_SHA" --title "BRAM $version" --notes "Early development. See CHANGELOG.md." && exit 0
+            sleep $((try * 20))
+            if gh release view "v$version" >/dev/null 2>&1; then exit 0; fi
+          done
+          exit 1
