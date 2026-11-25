@@ -19,6 +19,7 @@ class BramEntity(Entity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)}, name="BRAM", manufacturer="BRAM",
             sw_version=self._feed.version,
+            configuration_url=f"https://{entry.data['host']}:{entry.data['port']}/",
             model="Household butler", entry_type=DeviceEntryType.SERVICE)
 
     async def async_added_to_hass(self) -> None:

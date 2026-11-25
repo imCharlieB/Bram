@@ -21,6 +21,7 @@ from .chat import MAX_TEXT, Busy, Chat
 from .models.base import ModelError
 from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing, ensure_certificate
+from .personality import MODES
 from .settings import Settings
 from .watch import NOTABLE, Watcher, named
 from .web import ConfigPage
@@ -35,6 +36,7 @@ MONITORS = web.AppKey("monitors", Monitors)
 TASKS = web.AppKey("tasks", list)
 CHAT = web.AppKey("chat", Chat)
 ASKED = web.AppKey("asked", dict)
+SETTINGS = web.AppKey("settings", Settings)
 ASK_TIMEOUT = 12
 
 
@@ -79,6 +81,9 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
     world.disconnected()
     audit.record(house_id, "feed", "connected", "valid token", "ok")
     await ws.send_json({"type": "hello", "version": version("bram-core")})
+    if request.app.get(SETTINGS) is not None:
+        mode = request.app[SETTINGS].all()["personality"]
+        await ws.send_json({"type": "mood", "mode": mode})
     ready, questions = False, set()
     try:
         async for message in ws:
@@ -111,6 +116,12 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                     waiting = request.app[ASKED].get((house_id, data.get("id")))
                     if waiting is not None and not waiting.done():
                         waiting.set_result(data.get("result"))
+                elif kind == "mood" and ready:
+                    # Wording only, so the house may choose it.
+                    if data.get("mode") in tuple(MODES) and request.app.get(SETTINGS) is not None:
+                        request.app[SETTINGS].update({"personality": data["mode"]})
+                        audit.record(house_id, "mood", "mood changed", data["mode"], "ok")
+                        await _tell_mood(request.app)
                 elif kind == "ask" and ready:
                     # Answered on the side, so a slow model never holds up the feed.
                     task = asyncio.create_task(_answer(request.app, ws, house_id, data))
@@ -136,6 +147,15 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
             if request.app.get(ALERTS) is not None and request.app[PAIRING].house_for(token):
                 request.app[ALERTS].house_down(house_id, _name(request.app, house_id))
     return ws
+
+
+async def _tell_mood(app: web.Application) -> None:
+    message = {"type": "mood", "mode": app[SETTINGS].all()["personality"]}
+    for ws in list(app[SOCKETS].values()):
+        try:
+            await ws.send_json(message)
+        except ConnectionError:
+            continue
 
 
 async def ask_house(app: web.Application, house_id: str, what: str,
@@ -256,7 +276,8 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
         page = ConfigPage(settings, pairing, audit, fingerprint, lambda: set(app[SOCKETS]),
                           disconnect, alerts,
                           lambda: {k: v[0] for k, v in app[HOUSES].items()}, clock,
-                          lambda *a: ask_house(app, *a))
+                          lambda *a: ask_house(app, *a), lambda: _tell_mood(app))
+        app[SETTINGS] = settings
         if alerts is not None:
             app[ALERTS], app[TASKS] = alerts, []
             alerts.channels = [page.ntfy, page.telegram]

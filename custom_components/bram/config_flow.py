@@ -25,6 +25,7 @@ from .const import (
     CONF_PROBLEMS,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
+    DEFAULT_DIGEST,
     DEFAULT_NIGHT_FROM,
     DEFAULT_NIGHT_TO,
     DEFAULT_OPEN_MINUTES,
@@ -70,9 +71,47 @@ class BramConfigFlow(ConfigFlow, domain=DOMAIN):
 class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(step_id="init", menu_options=[
-            "suggest", "quick", "see", "alerts", "watch", "chat"])
+            "basic", "suggest", "quick", "see", "alerts", "watch", "chat"])
 
     _found: list[str] = []
+
+    async def async_step_basic(
+        self, user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Everything most people want, on one page."""
+        options = dict(self.config_entry.options)
+        chosen = options.get(CONF_ENTITIES, [])
+        offered = suggest(self.hass, chosen)
+        known = phones(self.hass)
+        saved = options.get(CONF_PHONES, [])
+        if user_input is not None:
+            add = [e for e in user_input.pop("add", []) if e in offered]
+            if user_input.pop("summary"):
+                user_input[CONF_DIGEST] = options.get(CONF_DIGEST, DEFAULT_DIGEST)
+            else:
+                options.pop(CONF_DIGEST, None)
+            return self.async_create_entry(data={
+                **options, **user_input, CONF_ENTITIES: [*chosen, *add]})
+        schema = {
+            vol.Required(CONF_PHONES, default=saved or (known if len(known) == 1 else [])):
+                self._phone_list(sorted({*known, *saved})),
+        }
+        if offered:
+            schema[vol.Optional("add", description={"suggested_value": offered})] = (
+                selector.EntitySelector(selector.EntitySelectorConfig(
+                    include_entities=offered, multiple=True)))
+        # Away stays off here: it is wrong until everyone who lives there is shared.
+        schema |= {vol.Required(key, default=options.get(key, True)): bool
+                   for key in ("night", "left_open", "offline", CONF_HISTORY)}
+        schema[vol.Required("summary", default=True)] = bool
+        return self.async_show_form(step_id="basic", data_schema=vol.Schema(schema))
+
+    @staticmethod
+    def _phone_list(listed: list[str]) -> selector.SelectSelector:
+        return selector.SelectSelector(selector.SelectSelectorConfig(multiple=True, options=[
+            selector.SelectOptionDict(
+                value=p, label=p.removeprefix(PREFIX).replace("_", " ").title())
+            for p in listed]))
 
     async def async_step_quick(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors = {}
@@ -172,11 +211,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
         saved = options.get(CONF_PHONES, [])
         listed = sorted({*phones(self.hass), *saved})
         return self.async_show_form(step_id="alerts", data_schema=vol.Schema({
-            vol.Required(CONF_PHONES, default=saved): selector.SelectSelector(
-                selector.SelectSelectorConfig(multiple=True, options=[
-                    selector.SelectOptionDict(
-                        value=p, label=p.removeprefix(PREFIX).replace("_", " ").title())
-                    for p in listed])),
+            vol.Required(CONF_PHONES, default=saved): self._phone_list(listed),
             vol.Optional(CONF_QUIET_FROM, description={
                 "suggested_value": options.get(CONF_QUIET_FROM)}): selector.TimeSelector(),
             vol.Optional(CONF_QUIET_TO, description={

@@ -334,6 +334,61 @@ async def test_server_can_look_things_up_only_when_allowed(hass, server):
     assert await ask_house(app, house, "problems") is None
 
 
+async def test_recommended_setup(hass, server):
+    async_mock_service(hass, "notify", "mobile_app_phone")
+    hass.states.async_set(LOCK, "locked")
+    hass.states.async_set("person.alex", "home")
+    entry = await start(hass, server)
+    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    flow = await hass.config_entries.options.async_configure(
+        flow["flow_id"], {"next_step_id": "basic"})
+    fields = {str(k): k for k in flow["data_schema"].schema}
+    assert fields["phones"].default() == ["mobile_app_phone"]  # the only one
+    assert set(fields["add"].description["suggested_value"]) == {LOCK, "person.alex"}
+    assert "away" not in fields and entry.options["entities"] == []
+    await hass.config_entries.options.async_configure(flow["flow_id"], {
+        "phones": ["mobile_app_phone"], "add": [LOCK], "night": True, "left_open": True,
+        "offline": False, "share_history": True, "summary": True})
+    await reconnected(hass, entry)
+    assert entry.options["entities"] == [LOCK] and entry.options["digest"] == "08:00:00"
+    assert entry.runtime_data.rules._on == {"night", "left_open"}
+    # Again, changing only what is asked, and keeping what was set elsewhere.
+    hass.config_entries.async_update_entry(entry, options={
+        **entry.options, "night_from": "23:30:00", "away": True})
+    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    flow = await hass.config_entries.options.async_configure(
+        flow["flow_id"], {"next_step_id": "basic"})
+    await hass.config_entries.options.async_configure(flow["flow_id"], {
+        "phones": ["mobile_app_phone"], "night": True, "left_open": True,
+        "offline": False, "share_history": True, "summary": False})
+    await reconnected(hass, entry)
+    assert entry.options["entities"] == [LOCK] and "digest" not in entry.options
+    assert entry.options["night_from"] == "23:30:00" and entry.options["away"]
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])
+
+
+async def test_mood(hass, server):
+    from bram.server import SETTINGS, _tell_mood
+
+    entry = await start(hass, server)
+    app, mood = server[0], "select.bram_mood"
+    await until(lambda: hass.states.get(mood).state == "Professional")
+    await hass.services.async_call(
+        "select", "select_option", {"entity_id": mood, "option": "Unhinged"}, blocking=True)
+    await until(lambda: hass.states.get(mood).state == "Unhinged")
+    assert app[SETTINGS].all()["personality"] == "unhinged"
+    app[SETTINGS].update({"personality": "dry"})
+    await _tell_mood(app)
+    await until(lambda: hass.states.get(mood).state == "Dry")
+    entry.runtime_data.send({"type": "mood", "mode": "evil"})
+    entry.runtime_data.handle_message('{"type": "mood", "mode": ["dry"]}')
+    await asyncio.sleep(0.2)
+    assert app[SETTINGS].all()["personality"] == "dry"
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not app[SOCKETS])
+
+
 async def test_watch_page(hass, server):
     entry = await start(hass, server)
     watch = {"night": True, "away": False, "left_open": True, "offline": False,
@@ -360,7 +415,7 @@ async def test_version_warning(hass):
 
     feed.handle_message('{"type": "belief", "entity_id": "light.a", "answer": "yes"}')
     assert issue() == "server_outdated"  # too old to say
-    for version, expected in (("0.6.3", None), ("0.6.2", "server_outdated"),
+    for version, expected in (("0.6.3", None), ("0.6.9", None), ("0.5.9", "server_outdated"),
                               ("0.10.0", "integration_outdated"), ("0.6.3", None)):
         hello(version)
         assert issue() == expected

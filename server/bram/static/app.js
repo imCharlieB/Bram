@@ -107,13 +107,16 @@ function loadSteps() {
   }));
 }
 
+// Fixes (0.12.1) may differ between the two sides; features (0.12) should not.
+const release = (text) => text.split(".").slice(0, 2).join(".");
+
 async function loadStatus() {
   const { houses, version } = await api("status");
   $("version").textContent = `BRAM Server ${version}`;
   paired = houses.length > 0;
   loadSteps();
   world.houses = houses;
-  const odd = houses.find((house) => house.connected && house.version !== version);
+  const odd = houses.find((house) => house.connected && release(house.version) !== release(version));
   $("outdated").hidden = !odd;
   if (odd) {
     const old = !odd.version || odd.version.localeCompare(version, undefined, { numeric: true }) < 0;
@@ -372,9 +375,46 @@ async function loadVoice() {
   const voice = await api("speech");
   $("voice-hear").value = voice.hear;
   $("voice-speak").value = voice.speak;
-  $("voice-name").value = voice.voice;
+  voiceName = voice.voice;
+  for (const [id, address] of [["hear", voice.hear], ["speak", voice.speak]]) {
+    $(`${id}-dot`).className = address ? "dot up" : "dot";
+    $(`${id}-state`).textContent = address ? `On, using ${address}` : "Not set up";
+  }
+  const on = Boolean(voice.hear || voice.speak);
+  $("voice-find").textContent = on ? "Look again" : "Set up voice";
+  $("voice-tests").hidden = !on;
+  $("voice-test").hidden = !voice.speak;
+  $("hear-test").hidden = !voice.hear;
+  $("voice-choose").hidden = $("voice-missing").hidden = true;
   $("talk").hidden = !voice.hear;
   $("aloud-box").hidden = !voice.speak;
+}
+
+let voiceName = "";
+
+function showVoices(voices) {
+  const language = (navigator.language || "en").slice(0, 2).toLowerCase();
+  const mine = voices.filter((voice) => voice.language.toLowerCase().startsWith(language));
+  const list = mine.length ? mine : voices;
+  const options = [["", "Piper's own choice"], ...list.map((voice) => [voice.name, `${voice.ready ? "" : "\u2601 "}${voice.name.replaceAll("_", " ").replaceAll("-", " ")}`])];
+  $("voice-list").replaceChildren(...options.map(([value, text]) => {
+    const option = element("option", text);
+    option.value = value;
+    option.selected = value === voiceName;
+    return option;
+  }));
+  $("voice-pick").hidden = !$("voice-speak").value;
+}
+
+function showFound(hear, speak) {
+  const set = (id, found) => {
+    $(`${id}-dot`).className = found ? "dot up" : "dot down";
+    $(`${id}-state`).textContent = found ? `Found at ${found}` : "Not found";
+  };
+  set("hear", hear);
+  set("speak", speak);
+  $("voice-choose").hidden = !hear && !speak;
+  $("voice-missing").hidden = Boolean(hear && speak);
 }
 
 function hush() {
@@ -382,13 +422,13 @@ function hush() {
   playing = null;
 }
 
-async function speak(text) {
-  const response = await fetch("/api/speak", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text.slice(0, 1500) }),
-  });
-  if (!response.ok) throw new Error((await response.json()).error || "BRAM could not speak");
+async function play(path, body) {
   player ??= new AudioContext();
   await player.resume();
+  const response = await fetch("/api/" + path, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error((await response.json()).error || "BRAM could not speak");
   const sound = await player.decodeAudioData(await response.arrayBuffer());
   hush();
   playing = player.createBufferSource();
@@ -396,6 +436,8 @@ async function speak(text) {
   playing.connect(player.destination);
   playing.start();
 }
+
+const speak = (text) => play("speak", { text: text.slice(0, 1500) });
 
 async function openMicrophone() {
   if (!navigator.mediaDevices) throw new Error("This browser only allows the microphone over https");
@@ -438,42 +480,60 @@ function toPcm(parts, rate) {
   return out;
 }
 
-function talkStart() {
+function talkStart(button, messageId, done) {
   if (recording || $("chat-send").disabled) return;
   hush();
   player ??= new AudioContext();  // created by a press, so the browser lets it play later
   player.resume();
-  $("talk").classList.add("live");
-  say("chat-message", "Listening. Let go when you are done.");
+  button.classList.add("live");
+  say(messageId, "Listening. Let go when you are done.");
   const opening = openMicrophone();
   opening.catch(() => {});
-  recording = { opening, timer: setTimeout(talkStop, MAX_TALK) };
+  recording = { opening, button, messageId, done, timer: setTimeout(talkStop, MAX_TALK) };
 }
 
 async function talkStop() {
   if (!recording) return;
-  const { opening, timer } = recording;
+  const { opening, button, messageId, done, timer } = recording;
   recording = null;
   clearTimeout(timer);
-  $("talk").classList.remove("live");
-  $("talk").disabled = true;
+  button.classList.remove("live");
+  button.disabled = true;
   try {
     const pcm = await (await opening)();
     if (pcm.length < 4000) throw new Error("Hold the button while you speak");
-    say("chat-message", "Working out what you said...");
+    say(messageId, "Working out what you said...");
     const response = await fetch("/api/hear", { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: pcm });
     const data = await response.json();
     if (response.status === 401) show("login");
     if (!response.ok) throw new Error(data.error || "Something went wrong");
     if (!data.text) throw new Error("I didn't catch that");
-    say("chat-message", "");
-    $("chat-text").value = data.text;
-    $("chat-form").requestSubmit();
+    say(messageId, "");
+    done(data.text);
   } catch (error) {
-    say("chat-message", error.message, "bad");
+    say(messageId, error.message, "bad");
   } finally {
-    $("talk").disabled = false;
+    button.disabled = false;
   }
+}
+
+function holdToTalk(button, messageId, done) {
+  const begin = () => talkStart(button, messageId, done);
+  button.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    button.setPointerCapture(event.pointerId);
+    begin();
+  });
+  for (const name of ["pointerup", "pointercancel"]) button.addEventListener(name, talkStop);
+  button.addEventListener("keydown", (event) => {
+    if (event.key !== " " && event.key !== "Enter") return;
+    event.preventDefault();
+    if (!event.repeat) begin();
+  });
+  button.addEventListener("keyup", (event) => {
+    if (event.key === " " || event.key === "Enter") talkStop();
+  });
+  button.addEventListener("contextmenu", (event) => event.preventDefault());
 }
 
 async function loadChat() {
@@ -600,32 +660,45 @@ onSubmit("chat-form", "chat-send", "chat-message", async () => {
     $("chat-text").focus();
   }
 });
-$("talk").addEventListener("pointerdown", (event) => {
-  if (event.button !== 0) return;
-  $("talk").setPointerCapture(event.pointerId);
-  talkStart();
+holdToTalk($("talk"), "chat-message", (text) => {
+  $("chat-text").value = text;
+  $("chat-form").requestSubmit();
 });
-for (const name of ["pointerup", "pointercancel"]) $("talk").addEventListener(name, talkStop);
-$("talk").addEventListener("keydown", (event) => {
-  if (event.key !== " " && event.key !== "Enter") return;
-  event.preventDefault();
-  if (!event.repeat) talkStart();
-});
-$("talk").addEventListener("keyup", (event) => {
-  if (event.key === " " || event.key === "Enter") talkStop();
-});
-$("talk").addEventListener("contextmenu", (event) => event.preventDefault());
+holdToTalk($("hear-test"), "voice-message", (text) => say("voice-message", `I heard: ${text}`, "good"));
 addEventListener("blur", talkStop);
 try { $("aloud").checked = localStorage.getItem("aloud") === "yes"; } catch { /* not remembered */ }
 $("aloud").addEventListener("change", () => {
   if (!$("aloud").checked) hush();
   try { localStorage.setItem("aloud", $("aloud").checked ? "yes" : "no"); } catch { /* not remembered */ }
 });
+onClick("voice-find", "voice-message", async () => {
+  const { hear, speak: voice } = await api("speech-find", { host: location.hostname });
+  if (hear) $("voice-hear").value = hear.address;
+  if (voice) $("voice-speak").value = voice.address;
+  showFound(hear?.address || $("voice-hear").value, voice?.address || $("voice-speak").value);
+  showVoices(voice?.voices || []);
+  return hear || voice ? "Choose a voice, listen, then turn it on." : "";
+});
+onClick("voice-load", "voice-message", async () => {
+  const { voices } = await api("speech-voices", { address: $("voice-speak").value });
+  showFound($("voice-hear").value, $("voice-speak").value);
+  showVoices(voices);
+  return "Now press Turn on voice.";
+});
+onClick("voice-preview", "voice-message", async () => {
+  await play("speech-preview", { address: $("voice-speak").value, voice: $("voice-list").value });
+});
 onClick("voice-save", "voice-message", async () => {
-  const confirm = await askPassword("Your voice will be sent to these addresses.");
-  await api("speech", { confirm, hear: $("voice-hear").value, speak: $("voice-speak").value, voice: $("voice-name").value });
+  const confirm = await askPassword("Your voice will be sent to these machines on your network.");
+  await api("speech", { confirm, hear: $("voice-hear").value, speak: $("voice-speak").value, voice: $("voice-list").value || "" });
   await loadVoice();
-  return "Saved";
+  return "Voice is on. Test it above, or hold the talk button on Home.";
+});
+onClick("voice-off", "voice-message", async () => {
+  const confirm = await askPassword("Turn off hearing and speaking?");
+  await api("speech", { confirm, hear: "", speak: "", voice: "" });
+  await loadVoice();
+  return "Voice is off.";
 });
 onClick("voice-test", "voice-message", async () => {
   await speak("Good evening. This is BRAM.");

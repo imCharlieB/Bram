@@ -6,7 +6,16 @@ import wave
 import pytest
 
 from bram.settings import Settings
-from bram.speech import MAX_AUDIO, Speech, SpeechError, check_address, synthesize, transcribe
+from bram.speech import (
+    MAX_AUDIO,
+    Speech,
+    SpeechError,
+    check_address,
+    describe,
+    find,
+    synthesize,
+    transcribe,
+)
 
 
 def event(kind, data=None, payload=b"", split=False):
@@ -89,6 +98,37 @@ async def test_bad_speaking_server(answer):
     async with Fake("synthesize", answer) as (_, address):
         with pytest.raises(SpeechError):
             await synthesize(address, "hi")
+
+
+INFO = {"tts": [{"name": "piper", "voices": [
+    {"name": "en_US-a-medium", "languages": ["en_US"], "installed": True},
+    {"name": "de_DE-b-low", "languages": ["de_DE"], "installed": False},
+    {"name": "../evil", "languages": ["x"]}, "junk"]}], "asr": []}
+
+
+async def test_describe():
+    async with Fake("describe", event("info", INFO)) as (_, address):
+        found = await describe("speak", address)
+        assert [v["name"] for v in found["voices"]] == ["en_US-a-medium", "de_DE-b-low"]
+        assert found["voices"][0]["ready"] and not found["voices"][1]["ready"]
+    async with Fake("describe", event("info", INFO)) as (_, address):
+        assert await describe("hear", address) is None
+    for junk in (b"", b"junk\n", event("info", {"tts": "x"}), event("other") * 9):
+        async with Fake("describe", junk) as (_, address):
+            assert await describe("speak", address) is None
+    for address in ("127.0.0.1:9", "8.8.8.8:10200", "http://x"):
+        assert await describe("speak", address) is None
+
+
+async def test_find(monkeypatch):
+    async def fake(kind, address):
+        if (kind, address) == ("hear", "127.0.0.1:10300"):
+            return {"name": "whisper", "voices": []}
+        return None
+
+    monkeypatch.setattr("bram.speech.describe", fake)
+    assert await find("127.0.0.1") == {
+        "hear": {"address": "127.0.0.1:10300", "name": "whisper", "voices": []}, "speak": None}
 
 
 async def test_nothing_listening():

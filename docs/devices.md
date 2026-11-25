@@ -44,6 +44,8 @@ Anything else, or a state it does not recognize, is *unknown*.
 
 **BRAM Server** shows the connection. Each chosen device has a line with what the server believes. *Unavailable* means the server is not connected.
 
+**Visit** opens BRAM's page. **Mood** changes BRAM's [personality](personality.md).
+
 | Button | Does |
 |---|---|
 | Send test message | Sends to your chosen phones |

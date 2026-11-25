@@ -36,7 +36,20 @@
     "step": {
       "init": {
         "title": "BRAM",
-        "menu_options": {"suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors", "chat": "What chat may look up"}
+        "menu_options": {"basic": "Recommended setup", "suggest": "BRAM's suggestions", "quick": "Add devices quickly", "see": "What BRAM can see", "alerts": "Phone alerts and quiet hours", "watch": "Watch locks and doors", "chat": "What chat may look up"}
+      },
+      "basic": {
+        "title": "Recommended setup",
+        "description": "Pick your phone, remove anything you do not want, and submit. You can change every part later. BRAM cannot control anything.",
+        "data": {
+          "phones": "Phones that get alerts",
+          "add": "Share these with BRAM",
+          "night": "Tell me if a lock is unlocked at night (10 PM to 6 AM)",
+          "left_open": "Tell me if a door is left open (10 minutes)",
+          "offline": "Tell me if a lock or door sensor goes offline",
+          "share_history": "Let chat look up history of what BRAM can see",
+          "summary": "Send a daily summary (8 AM)"
+        }
       },
       "quick": {
         "title": "Add devices quickly",

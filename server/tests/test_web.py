@@ -58,7 +58,9 @@ async def page(tmp_path):
 
 PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "settings"),
            ("POST", "models"), ("POST", "sample"), ("POST", "logout"),
-           ("GET", "speech"), ("POST", "speech"), ("POST", "hear"), ("POST", "speak"),
+           ("GET", "speech"), ("POST", "speech"), ("POST", "speech-find"),
+           ("POST", "speech-voices"), ("POST", "speech-preview"),
+           ("POST", "hear"), ("POST", "speak"),
            ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
            ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),
            ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
@@ -308,6 +310,17 @@ async def test_voice_on_the_page(page, monkeypatch):
     assert (await hear(2_000_000)).status == 413
     assert (await hear(10, "https://evil.example")).status == 403
     assert heard == [900_000]
+    async def describe(kind, address):
+        return {"name": "x", "voices": [{"name": "v1", "ready": True, "language": "en"}]}
+
+    monkeypatch.setattr("bram.web.describe", describe)
+    found = await page.post("speech-voices", {"address": "127.0.0.1:10200"})
+    assert (await found.json())["voices"][0]["name"] == "v1"
+    preview = await page.post("speech-preview", {"address": "127.0.0.1:10200", "voice": "v1"})
+    assert (await preview.read()).startswith(b"RIFF")
+    for bad in ({"address": 5}, {"address": "127.0.0.1", "voice": "../x"}):
+        assert (await page.post("speech-preview", bad)).status == 400
+    assert (await page.post("speech-find", {"host": 5})).status == 400
     reply = await page.post("speak", {"text": "hi"})
     assert reply.content_type == "audio/wav" and await reply.read() == b"RIFFhi"
     assert (await page.post("speak", {"text": 5})).status == 400
@@ -364,6 +377,7 @@ async def test_pair_and_unpair_from_the_page(page):
     headers = {"Authorization": f"Bearer {paired['token']}"}
     async with page.http.ws_connect(page.url + "/feed", ssl=page.pin, headers=headers) as ws:
         await ws.receive(timeout=3)  # hello
+        await ws.receive(timeout=3)  # mood
         await ws.send_json({"type": "snapshot", "states": [], "version": "0.1.0"})
         await asyncio.sleep(0.2)
         houses = (await (await page.get("/api/status")).json())["houses"]

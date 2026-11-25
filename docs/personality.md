@@ -1,6 +1,6 @@
 # Personality
 
-Choose a mode on BRAM's home page under **Mood**, or in **Settings > Personality**. It applies everywhere BRAM talks: its page, Assist, and Telegram.
+Choose a mode on BRAM's home page under **Mood**, in **Settings > Personality**, or with **Mood** on BRAM's device page in Home Assistant, where automations can change it too. It applies everywhere BRAM talks: its page, Assist, and Telegram.
 
 | Mode | Garage open for 40 minutes |
 |---|---|

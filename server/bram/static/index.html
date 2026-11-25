@@ -255,18 +255,50 @@
     <section id="at-voice" data-page="settings" hidden>
       <h1>Voice</h1>
       <div class="card">
-        <p class="note">Optional. Uses Whisper and Piper (Wyoming) on your own network. Leave either one empty to turn it off.</p>
-        <label for="voice-hear">Hearing (Whisper)</label>
-        <input id="voice-hear" placeholder="whisper:10300">
-        <label for="voice-speak">Speaking (Piper)</label>
-        <input id="voice-speak" placeholder="piper:10200">
-        <label for="voice-name">Voice name, or empty for the default</label>
-        <input id="voice-name" maxlength="80" placeholder="en_US-lessac-medium">
-        <div class="row">
-          <button id="voice-save">Save voice</button>
-          <button id="voice-test" class="quiet">Test voice</button>
+        <p class="note">Talk to BRAM by holding a button, and let it talk back. Everything stays on your network.</p>
+        <div class="voice-row"><i class="dot" id="hear-dot"></i><div><b>Hearing you</b><p class="note" id="hear-state">Not set up</p></div></div>
+        <div class="voice-row"><i class="dot" id="speak-dot"></i><div><b>Speaking</b><p class="note" id="speak-state">Not set up</p></div></div>
+        <button id="voice-find">Set up voice</button>
+
+        <div id="voice-choose" hidden>
+          <div id="voice-pick" hidden>
+            <label for="voice-list">BRAM's voice</label>
+            <div class="row">
+              <select id="voice-list"></select>
+              <button id="voice-preview" class="quiet">Listen</button>
+            </div>
+            <p class="note">Voices marked with a cloud are downloaded the first time, which can take a minute.</p>
+          </div>
+          <button id="voice-save">Turn on voice</button>
+        </div>
+
+        <div id="voice-missing" hidden>
+          <h2>Nothing was found yet</h2>
+          <p class="note">BRAM needs Whisper to hear and Piper to speak. Both are free. To add them in Portainer:</p>
+          <ol>
+            <li>Stacks, Add stack. Name it <b>bram-voice</b>.</li>
+            <li>Choose <b>Repository</b>, with this address: <code>https://github.com/imCharlieB/Bram</code></li>
+            <li>Compose path: <code>compose.voice.yaml</code></li>
+            <li>Deploy, wait a few minutes for the first download, then press <b>Set up voice</b> again.</li>
+          </ol>
+          <p class="note">Already have them on another machine? Open Advanced below.</p>
+        </div>
+
+        <div class="row" id="voice-tests" hidden>
+          <button id="voice-test" class="quiet">Test speaking</button>
+          <button id="hear-test" class="quiet">Hold and talk to test hearing</button>
+          <button id="voice-off" class="quiet">Turn off voice</button>
         </div>
         <p class="message" id="voice-message" role="status"></p>
+
+        <details>
+          <summary>Advanced</summary>
+          <label for="voice-hear">Whisper address, or empty for none</label>
+          <input id="voice-hear" placeholder="HOST:10300">
+          <label for="voice-speak">Piper address, or empty for none</label>
+          <input id="voice-speak" placeholder="HOST:10200">
+          <button id="voice-load" class="quiet">Use these addresses</button>
+        </details>
       </div>
     </section>
 

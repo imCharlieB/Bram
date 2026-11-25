@@ -24,6 +24,9 @@ MAX_REPLY = 20_000_000
 MAX_EVENT = 4_000_000
 TIMEOUT = 60
 PORTS = {"hear": 10300, "speak": 10200}
+NAMES = {"hear": "whisper", "speak": "piper"}
+FIND_TIMEOUT = 5
+MAX_VOICES = 400
 
 
 class SpeechError(Exception):
@@ -91,6 +94,57 @@ async def _connect(kind: str, address: str) -> AsyncIterator[
     finally:
         if writer is not None:
             writer.close()
+
+
+async def describe(kind: str, address: str) -> dict | None:
+    """What a Wyoming server offers, or None if there is none of this kind there."""
+    try:
+        async with asyncio.timeout(FIND_TIMEOUT), _connect(kind, address) as (reader, writer):
+            await _write(writer, "describe")
+            for _ in range(5):
+                event, data, _ = await _read(reader)
+                if event == "info":
+                    return _offers(kind, data)
+    except (SpeechError, TimeoutError):
+        pass
+    return None
+
+
+def _offers(kind: str, info: dict) -> dict | None:
+    services = info.get("asr" if kind == "hear" else "tts")
+    services = [s for s in services if isinstance(s, dict)] if isinstance(services, list) else []
+    if not services:
+        return None
+    name = services[0].get("name")
+    voices = []
+    for service in services:
+        models = service.get("voices") or service.get("models") or []
+        for model in models if isinstance(models, list) else []:
+            if not isinstance(model, dict) or not valid_voice(model.get("name")):
+                continue
+            languages = model.get("languages")
+            language = languages[0] if isinstance(languages, list) and languages else ""
+            voices.append({"name": model["name"], "ready": model.get("installed") is True,
+                           "language": str(language)[:12]})
+    voices.sort(key=lambda v: (not v["ready"], v["language"], v["name"]))
+    return {"name": str(name)[:40], "voices": voices[:MAX_VOICES] if kind == "speak" else []}
+
+
+def valid_voice(name: object) -> bool:
+    return isinstance(name, str) and 0 < len(name) <= 80 and all(
+        c.isalnum() or c in "_-." for c in name)
+
+
+async def find(host: str) -> dict:
+    """Look in the usual places: beside BRAM, and on the machine it runs on."""
+    async def look(kind: str) -> dict | None:
+        places = [f"{NAMES[kind]}:{PORTS[kind]}", f"{host}:{PORTS[kind]}",
+                  f"host.docker.internal:{PORTS[kind]}"]
+        offers = await asyncio.gather(*(describe(kind, p) for p in places))
+        return next(({"address": p, **o} for p, o in zip(places, offers, strict=True) if o), None)
+
+    hear, speak = await asyncio.gather(look("hear"), look("speak"))
+    return {"hear": hear, "speak": speak}
 
 
 async def transcribe(address: str, pcm: bytes) -> str:
@@ -166,8 +220,7 @@ class Speech:
     async def save(self, body: dict) -> None:
         values = {k: await check_address(k, body[k]) if body.get(k) else "" for k in PORTS}
         voice = body.get("voice") or ""
-        if not isinstance(voice, str) or len(voice) > 80 or not all(
-                c.isalnum() or c in "_-." for c in voice):
+        if voice and not valid_voice(voice):
             raise SpeechError("That voice name is not valid")
         self._settings.update_channel("speech", {**values, "voice": voice})
 
@@ -184,3 +237,9 @@ class Speech:
             raise SpeechError("Speaking is not set up")
         async with self._lock:
             return await synthesize(c["speak"], text, c["voice"])
+
+    async def preview(self, address: str, voice: str) -> bytes:
+        if voice and not valid_voice(voice):
+            raise SpeechError("That voice name is not valid")
+        async with self._lock:
+            return await synthesize(address, "Good evening. I am BRAM, at your service.", voice)

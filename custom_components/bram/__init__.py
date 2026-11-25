@@ -14,7 +14,8 @@ from .feed import Feed
 from .home_alerts import HomeAlerts
 from .house_rules import HouseRules
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CONVERSATION, Platform.SENSOR]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CONVERSATION,
+             Platform.SELECT, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -22,7 +23,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     feed.version = str((await async_get_integration(hass, DOMAIN)).version)
     wanted = {f"{entry.entry_id}_{e}" for e in entry.options.get(CONF_ENTITIES, [])}
     wanted |= {f"{entry.entry_id}_connected", f"{entry.entry_id}_test",
-               f"{entry.entry_id}_allow", f"{entry.entry_id}_assist"}
+               f"{entry.entry_id}_allow", f"{entry.entry_id}_assist",
+               f"{entry.entry_id}_mood"}
     registry = er.async_get(hass)
     for item in er.async_entries_for_config_entry(registry, entry.entry_id):
         if item.unique_id not in wanted:

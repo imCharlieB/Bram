@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.12.0
+
+- Voice setup in one button: BRAM finds Whisper and Piper, you choose and hear a voice, and test both. It explains what to do if they are missing.
+- Recommended setup in Home Assistant: one page with sensible choices.
+- Mood on the device page, and a Visit button that opens BRAM's page.
+- The out-of-date warning ignores small fixes.
+
 ## 0.11.0
 
 - Daily summary on your phone at a time you choose. Off until set.

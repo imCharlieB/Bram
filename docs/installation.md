@@ -46,7 +46,7 @@ Do this right away. Setup closes 15 minutes after the server starts, and until t
 
 1. On BRAM's page: **Settings > Connect a Home Assistant > Get code**.
 2. In Home Assistant: **Settings > Devices & services > Add integration > BRAM**. Enter the server's address, port 8765, and the code. It works once, for 10 minutes.
-3. Open BRAM's options (**Configure > Add devices quickly**) and choose. See [Devices](devices.md). Nothing is shared until you do.
+3. Open BRAM's options (**Configure > Recommended setup**): pick your phone, remove anything you do not want to share, and **Submit**. For more choices, see [Devices](devices.md) and [Every setting](settings.md). Nothing is shared until you do.
 4. Open BRAM's device page. **BRAM Server** should say **Connected**. Turn on a light you chose and watch its line change.
 
 ## 5. Choose a model (optional)

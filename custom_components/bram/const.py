@@ -26,6 +26,10 @@ GROUPS = {
     "people": ("person",), "doors": ("lock", "opening"), "safety": ("leak", "smoke"),
     "motion": ("motion",), "lights": ("light",),
 }
+MOODS = {
+    "professional": "Professional", "friendly": "Friendly", "dry": "Dry", "minimal": "Minimal",
+    "unhinged": "Unhinged", "custom": "Custom",
+}
 ICON = {
     "person": "mdi:account-eye", "lock": "mdi:lock", "leak": "mdi:water-alert",
     "smoke": "mdi:smoke-detector", "opening": "mdi:door", "motion": "mdi:motion-sensor",
@@ -33,4 +37,5 @@ ICON = {
 }
 DEFAULT_NIGHT_FROM, DEFAULT_NIGHT_TO = "22:00:00", "06:00:00"
 DEFAULT_OPEN_MINUTES = 10
+DEFAULT_DIGEST = "08:00:00"
 DEFAULT_PORT = 8765

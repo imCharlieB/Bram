@@ -18,7 +18,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 
 from . import gate
 from .client import connect
-from .const import CONF_ENTITIES, CONF_FINGERPRINT, DOMAIN
+from .const import CONF_ENTITIES, CONF_FINGERPRINT, DOMAIN, MOODS
 from .queries import answer
 
 _LOGGER = logging.getLogger(__name__)
@@ -66,6 +66,7 @@ class Feed:
         self.connected = False
         self.beliefs: dict[str, str] = {}
         self.server_version: str | None = None
+        self.mood: str | None = None
 
     @property
     def entities(self) -> list[str]:
@@ -134,7 +135,9 @@ class Feed:
     @callback
     def _compare(self) -> None:
         """Show a repair while the two halves of BRAM differ."""
-        if self.version is None or self.server_version == self.version:
+        # Fixes may differ between the two sides; features should not.
+        if self.version is None or (
+                self.server_version and _key(self.server_version)[:2] == _key(self.version)[:2]):
             ir.async_delete_issue(self._hass, DOMAIN, "version")
             return
         server = self.server_version
@@ -164,6 +167,11 @@ class Feed:
                 and isinstance(data["text"], str) and data["id"] in self._asked):
             if not self._asked[data["id"]].done():
                 self._asked[data["id"]].set_result(data["text"][:4000])
+            return
+        if (isinstance(data, dict) and data.keys() == {"type", "mode"}
+                and data["type"] == "mood" and data["mode"] in tuple(MOODS)):
+            self.mood = data["mode"]
+            self._notify()
             return
         if (isinstance(data, dict) and data.keys() == {"type", "version"}
                 and data["type"] == "hello" and isinstance(data["version"], str)

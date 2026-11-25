@@ -25,7 +25,7 @@ from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing
 from .personality import CUSTOM_LIMIT, MODES, messages
 from .settings import Settings, login_matches, owner_name
-from .speech import MAX_AUDIO, MAX_SPEAK, Speech, SpeechError
+from .speech import MAX_AUDIO, MAX_SPEAK, Speech, SpeechError, describe, find
 from .world import World
 
 STATIC = Path(__file__).parent / "static"
@@ -54,11 +54,13 @@ class ConfigPage:
                  disconnect: Callable[[str], Awaitable[None]], alerts: Alerts | None = None,
                  worlds: Callable[[], dict[str, World]] | None = None,
                  clock: Callable[[], float] = time.monotonic,
-                 look_up: Callable | None = None) -> None:
+                 look_up: Callable | None = None,
+                 mood_changed: Callable[[], Awaitable[None]] | None = None) -> None:
         self._settings, self._pairing, self._audit = settings, pairing, audit
         self._fingerprint, self._connected = fingerprint, connected
         self._disconnect, self._clock = disconnect, clock
         self._started = clock()
+        self._mood_changed = mood_changed
         self._alerts = alerts
         self.monitors = Monitors(settings, alerts) if alerts is not None else None
         self.ntfy = Ntfy(settings, self._answer)
@@ -84,6 +86,9 @@ class ConfigPage:
             web.post("/api/password", self._private(self._change_password)),
             web.get("/api/speech", self._private(self._get_speech)),
             web.post("/api/speech", self._confirmed(self._save_speech)),
+            web.post("/api/speech-find", self._private(self._find_speech)),
+            web.post("/api/speech-voices", self._private(self._voices)),
+            web.post("/api/speech-preview", self._private(self._preview)),
             web.post("/api/hear", self._private(self._hear)),
             web.post("/api/speak", self._private(self._speak)),
             web.get("/api/chat", self._private(self._chat_history)),
@@ -357,6 +362,8 @@ class ConfigPage:
                 if refused is not None:
                     return refused
             self._settings.update(values)
+            if "personality" in values and self._mood_changed is not None:
+                await self._mood_changed()
         except (ValueError, ModelError) as err:
             return _json({"error": str(err)}, 400)
         # Names only: a custom style is personal text (E10).
@@ -465,6 +472,28 @@ class ConfigPage:
 
     async def _get_speech(self, request: web.Request) -> web.Response:
         return _json(self.speech.config())
+
+    async def _find_speech(self, request: web.Request) -> web.Response:
+        host = (await _body(request)).get("host")
+        if not isinstance(host, str) or len(host) > 100:
+            return _json({"error": "Invalid address"}, 400)
+        return _json(await find(f"[{host}]" if ":" in host else host))
+
+    async def _voices(self, request: web.Request) -> web.Response:
+        address = (await _body(request)).get("address")
+        found = await describe("speak", address) if isinstance(address, str) else None
+        return _json({"voices": found["voices"] if found else []})
+
+    async def _preview(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        address, voice = body.get("address"), body.get("voice") or ""
+        if not isinstance(address, str):
+            return _json({"error": "Find Piper first"}, 400)
+        try:
+            wav = await self.speech.preview(address, voice)
+        except SpeechError as err:
+            return _json({"error": str(err)}, 400)
+        return web.Response(body=wav, content_type="audio/wav", headers=HEADERS)
 
     async def _save_speech(self, body: dict) -> web.Response:
         try:

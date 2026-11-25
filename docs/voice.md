@@ -33,15 +33,12 @@ Their models are downloaded on first start, so allow a few minutes. Optional sta
 
 ## Set it up
 
-On BRAM's page, **Settings > Voice**:
+1. On BRAM's page, go to **Settings > Voice** and press **Set up voice**. BRAM looks beside itself and on its own machine.
+2. Choose a voice and press **Listen**. A cloud means it is downloaded the first time.
+3. Press **Turn on voice**.
+4. Use **Test speaking** and **Hold and talk to test hearing**.
 
-| Field | With `compose.full.yaml` | Separate stack or your own |
-|---|---|---|
-| Hearing (Whisper) | `whisper:10300` | `SERVER:10300` |
-| Speaking (Piper) | `piper:10200` | `SERVER:10200` |
-| Voice name | Leave empty for the default | Leave empty for the default |
-
-**Save**, then **Test voice**. Either one can be left empty.
+If nothing is found, the page shows how to add them. If they run on another machine, open **Advanced**, enter their addresses, and press **Use these addresses**.
 
 ## Use it
 
