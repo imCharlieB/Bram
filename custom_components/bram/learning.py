@@ -18,7 +18,6 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_ENTITIES,
     CONF_LEARN,
     CONF_WEEKEND_FROM,
     CONF_WEEKEND_TO,
@@ -28,6 +27,7 @@ from .const import (
     DOMAIN,
 )
 from .feed import Feed, kind_of
+from .shared import shared
 
 START = datetime.time(18)  # a night is looked at from 6 PM until noon
 STEP = 5  # minutes
@@ -120,7 +120,7 @@ class Learner:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, feed: Feed) -> None:
         self._hass, self._entry, self._feed = hass, entry, feed
         self._on: bool = entry.options.get(CONF_LEARN, False)
-        self._entities: list[str] = entry.options.get(CONF_ENTITIES, [])
+        self._entities: list[str] = shared(hass, entry.options)
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.learned")
         self.data = empty()
         self._opened: dict[str, datetime.datetime] = {}

@@ -46,9 +46,19 @@ def device_name(hass: HomeAssistant, device: dr.DeviceEntry) -> str:
     return f"{area.name} {base}"[:60] if area and len(base) < 4 else base[:60]
 
 
+def _tidy(name: str) -> str:
+    """As in Heat Pump Water Heater Heat Pump Water Heater_shutoff_valve."""
+    words = name.replace("_", " ").split()
+    for size in range(len(words) // 2, 1, -1):
+        if words[:size] == words[size:2 * size]:
+            words = words[size:]
+            break
+    return " ".join(words)
+
+
 def entity_name(hass: HomeAssistant, state: State) -> str:
     """As Home Assistant shows it, unless that is a machine-made name."""
-    name = _plain(state.name)
+    name = _tidy(_plain(state.name))
     if not machine_made(name):
         return name[:100]
     entry = er.async_get(hass).async_get(state.entity_id)

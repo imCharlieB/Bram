@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
@@ -19,6 +19,7 @@ from .outbox import Outbox
 from .printer_watch import PrinterWatch
 from .problem_watch import ProblemWatch
 from .security_watch import SecurityWatch
+from .shared import disabled
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CONVERSATION,
              Platform.SELECT, Platform.SENSOR]
@@ -49,6 +50,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     feed.learner = Learner(hass, entry, feed)
     entry.async_on_unload(await feed.learner.start())
     entry.async_on_unload(await SecurityWatch(hass, entry, feed.note).start())
+    for entity_id in disabled(hass, entry.options):
+        feed.note(f"disabled:{entity_id}", "open", f"{entity_id} is turned off in Home "
+                  "Assistant, so BRAM does not watch it", "problems", "low")
+
+    @callback
+    def changed(event: Event) -> None:
+        # Turned off or on again in Home Assistant: BRAM follows at once.
+        data = event.data
+        if (data.get("action") == "update" and "disabled_by" in data.get("changes", {})
+                and data.get("entity_id") in entry.options.get(CONF_ENTITIES, [])):
+            hass.config_entries.async_schedule_reload(entry.entry_id)
+
+    entry.async_on_unload(hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, changed))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_create_background_task(hass, feed.run(), "bram feed")
     return True

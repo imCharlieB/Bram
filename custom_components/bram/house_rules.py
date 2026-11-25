@@ -13,7 +13,6 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_ENTITIES,
     CONF_PHONES,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
@@ -27,6 +26,7 @@ from .const import (
 from .feed import kind_of
 from .home_alerts import GROUP_MAX, GROUP_MIN, within
 from .notifier import notify
+from .shared import shared
 
 SETTLE = 120  # a door in use, or someone just leaving, is not news
 OFFLINE_AFTER = 300
@@ -46,7 +46,7 @@ class HouseRules:
         self._hass = hass
         options = entry.options
         self._on = {r for r in ("night", "away", "left_open", "offline") if options.get(r)}
-        self._entities: list[str] = options.get(CONF_ENTITIES, [])
+        self._entities: list[str] = shared(hass, options)
         self._phones: list[str] = options.get(CONF_PHONES, [])
         self._quiet = (options.get(CONF_QUIET_FROM), options.get(CONF_QUIET_TO))
         self._night = (options.get("night_from", DEFAULT_NIGHT_FROM),

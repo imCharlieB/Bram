@@ -662,3 +662,20 @@ async def test_leaving_everything_out_shares_nothing(hass, server):
     assert entry.options["entities"] == []
     await hass.config_entries.async_unload(entry.entry_id)
     await until(lambda: not server[0][SOCKETS])
+
+
+async def test_turned_off_in_home_assistant_is_left_out(hass, server):
+    registry = er.async_get(hass)
+    leak = registry.async_get_or_create("binary_sensor", "demo", "leak1").entity_id
+    hass.states.async_set(leak, "off", {"device_class": "moisture"})
+    entry = await start(hass, server)
+    await choose(hass, entry, [leak])
+    world = server[0][HOUSES][entry.data["house_id"]][0]
+    await until(lambda: world.check(leak) == "no")
+    registry.async_update_entity(leak, disabled_by=er.RegistryEntryDisabler.USER)
+    await hass.async_block_till_done()
+    await reconnected(hass, entry)
+    await until(lambda: world.event(leak) is None and world.live)
+    assert entry.runtime_data.entities == [] and entry.options["entities"] == [leak]
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])

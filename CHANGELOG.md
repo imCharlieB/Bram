@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.28.2
+
+- An entity you disable in Home Assistant is no longer watched or shown as unknown. BRAM follows at once, and lists it in Findings.
+- Names that repeat the device name, or use underscores, read normally.
+
 ## 0.28.1
 
 - Names with serial numbers in them, such as `H2D_0947AJ612800457`, show as the model, or the room and type, instead. Names you set in Home Assistant come first.

@@ -46,3 +46,12 @@ async def test_names(hass):
     hass.states.async_set(made.entity_id, "on", {
         "friendly_name": "HLK-LD2410_CAA1B2 Bed radar", "device_class": "occupancy"})
     assert entity_name(hass, hass.states.get(made.entity_id)) == "Bed radar"
+
+
+
+async def test_names_are_tidied(hass):
+    hass.states.async_set("valve.x", "open", {
+        "friendly_name": "Heat Pump Water Heater Heat Pump Water Heater_shutoff_valve"})
+    assert entity_name(hass, hass.states.get("valve.x")) == "Heat Pump Water Heater shutoff valve"
+    hass.states.async_set("light.y", "on", {"friendly_name": "Bye Bye Birdie"})
+    assert entity_name(hass, hass.states.get("light.y")) == "Bye Bye Birdie"

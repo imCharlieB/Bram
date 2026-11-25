@@ -2,6 +2,10 @@
 
 BRAM sees only the devices you choose. Choosing one does not let BRAM control it.
 
+## Turned off in Home Assistant
+
+An entity you disable in Home Assistant is no longer watched or shown, even if it is shared, and comes back if you enable it again. Findings lists each one, so a safety sensor is not dropped without you knowing.
+
 ## Names
 
 BRAM uses the names you see in Home Assistant. A name a device gave itself with a serial number in it, such as `H2D_0947AJ612800457`, is shown as its model, or its room and type, instead: **H2D**, **Master Bedroom presence**. To choose a name, rename the device or entity in Home Assistant.

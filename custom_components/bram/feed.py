@@ -18,10 +18,11 @@ from homeassistant.helpers.event import async_track_state_change_event
 
 from . import gate
 from .client import connect
-from .const import CONF_ENTITIES, CONF_FINGERPRINT, CONF_ROOMS, DOMAIN, MOODS
+from .const import CONF_FINGERPRINT, CONF_ROOMS, DOMAIN, MOODS
 from .details import detail, room_sensors
 from .names import entity_name
 from .queries import answer
+from .shared import shared
 
 _LOGGER = logging.getLogger(__name__)
 HEARTBEAT = 30
@@ -83,7 +84,7 @@ class Feed:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self._hass = hass
         self._entry = entry
-        self._entities: list[str] = entry.options.get(CONF_ENTITIES, [])
+        self._entities: list[str] = shared(hass, entry.options)
         self._kinds: dict[str, str] = {}
         self._rooms: dict[str, str] = entry.options.get(CONF_ROOMS, {})
         self._listeners: list[Callable[[], None]] = []

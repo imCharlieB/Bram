@@ -14,7 +14,6 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_ENTITIES,
     CONF_ESCALATE,
     CONF_PHONES,
     CONF_QUIET_FROM,
@@ -24,6 +23,7 @@ from .const import (
 )
 from .feed import Feed, kind_of
 from .notifier import dismiss, notify
+from .shared import shared
 
 # Seconds after each safety send until the next, until acknowledged (C4).
 REPEAT = (120, 180, 300, 600, 900, 900, 1800, 1800, 3600, 3600, 3600)
@@ -56,7 +56,7 @@ class HomeAlerts:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, feed: Feed) -> None:
         self._hass, self._feed = hass, feed
         options = entry.options
-        self._entities: list[str] = options.get(CONF_ENTITIES, [])
+        self._entities: list[str] = shared(hass, options)
         self._phones: list[str] = options.get(CONF_PHONES, [])
         # These get leak, smoke, and other safety alerts, and nothing else.
         self._safety_phones = [*dict.fromkeys(
