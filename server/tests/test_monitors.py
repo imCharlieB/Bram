@@ -117,6 +117,25 @@ async def test_probe_http():
     assert not await probe("frigate", "http://8.8.8.8", answering(200))
 
 
+async def test_frigate_is_tried_with_and_without_https():
+    def only(scheme, status):
+        def handler(request):
+            if request.url.scheme != scheme:
+                return httpx.Response(400)
+            return httpx.Response(status)
+        return httpx.MockTransport(handler)
+
+    for typed in ("http://127.0.0.1:8971", "https://127.0.0.1:8971"):
+        assert await probe("frigate", typed, only("https", 401))
+        assert await probe("frigate", typed, only("http", 200))
+        assert not await probe("frigate", typed, only("https", 502))
+
+    def down(request):
+        raise httpx.ConnectError("no")
+
+    assert not await probe("frigate", "http://127.0.0.1", httpx.MockTransport(down))
+
+
 async def test_probe_device():
     server = await asyncio.start_server(lambda r, w: w.close(), "127.0.0.1", 0)
     port = server.sockets[0].getsockname()[1]

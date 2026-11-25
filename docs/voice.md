@@ -10,7 +10,18 @@ Optional. Hold a button to talk to BRAM on its home page, and let it read its an
 | Nothing yet, and want a separate stack | Add a stack from `compose.voice.yaml` |
 | Whisper or Piper already, with Wyoming | Use their addresses; add nothing |
 
-In Portainer these are the **Compose path** of a stack from `https://github.com/imCharlieB/Bram`. To move to the full stack, keep the same stack name so your data volume is kept, and redeploy with the new path. If Portainer will not change the path, add the voice stack instead.
+In Portainer these are the **Compose path** of a **Repository** stack from `https://github.com/imCharlieB/Bram`.
+
+### Moving to the full stack in Portainer
+
+Your data is in a volume named after the stack, such as `bram_bram-data`.
+
+1. Under **Volumes**, note the name ending in `bram-data`. The part before `_bram-data` must be the new stack's name.
+2. Delete the stack, but **not its volumes**. Check that the volume is still listed.
+3. Add a stack with the same name and the path `compose.full.yaml`. Deploy.
+4. Sign in with your existing login. If you see **Welcome to BRAM**, the old volume did not attach: do not create a login; check the stack's name.
+
+A separate voice stack avoids all of this.
 
 Their models are downloaded on first start, so allow a few minutes. Optional stack settings (environment variables):
 

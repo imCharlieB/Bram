@@ -54,7 +54,7 @@ On the **Messages** page, add things on your own network.
 | Kind | Address | Counts as up when |
 |---|---|---|
 | Ollama | `http://HOST:11434` | It answers |
-| Frigate | `https://HOST:8971` or `http://HOST:5000` | It answers, or asks for a login |
+| Frigate | `HOST:8971` or `HOST:5000` | It answers, or asks for a login |
 | Computer or device | `HOST:PORT` | It accepts or refuses a connection |
 
 Each is checked every minute. You are told after three failures in a row, and again when it is back. Websites and Docker containers are not supported.
@@ -80,4 +80,5 @@ Buttons can acknowledge, snooze, or stop a routine message. Safety alerts can on
 | Nothing after linking Telegram | Press **Start** in the chat; links last 10 minutes |
 | ntfy test is Sent but nothing arrives | Check the phone can reach port 2586 and that the topic matches exactly |
 | ntfy buttons do nothing | The phone must be able to reach **Address your phone uses** |
+| ntfy suggests WebSockets | Optional; you can enable or dismiss it |
 | Ntfy or monitor address refused | Only addresses on your own network are accepted |

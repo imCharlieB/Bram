@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.6.1
+
+- Frigate monitors work whether or not you type `https://`.
+
 ## 0.6.0
 
 - Voice: hold to talk on the home page, and spoken answers, through your own Whisper and Piper. Off until set up.

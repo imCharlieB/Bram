@@ -33,8 +33,17 @@ async def probe(kind: str, url: str, transport: httpx.AsyncBaseTransport | None 
         frigate = kind == "frigate"
         async with httpx.AsyncClient(timeout=10, transport=transport, trust_env=False,
                                      verify=not frigate, follow_redirects=False) as client:
-            response = await client.get(f"{url}/api/version")
-            return response.status_code in ((200, 401, 403) if frigate else (200,))
+            # People leave off https, so Frigate is tried both ways.
+            host = url.partition("://")[2]
+            urls = [f"https://{host}", f"http://{host}"] if frigate else [url]
+            for address in urls:
+                try:
+                    response = await client.get(f"{address}/api/version")
+                except httpx.HTTPError:
+                    continue
+                if response.status_code in ((200, 401, 403) if frigate else (200,)):
+                    return True
+            return False
     except (ModelError, httpx.HTTPError):
         return False
 
