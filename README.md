@@ -52,6 +52,7 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 - [Chat](docs/chat.md)
 - [Voice](docs/voice.md)
 - [BRAM Server](docs/server.md)
+- [How BRAM watches your home](docs/watching.md)
 - [How BRAM works](docs/architecture.md)
 - [Security](docs/security.md)
 - [Roadmap](docs/roadmap.md)
