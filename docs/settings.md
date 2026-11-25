@@ -9,7 +9,7 @@
 | Recommended setup | Phones, suggested devices, night, left open, offline, history, 8 AM summary | All on, if you submit it |
 | BRAM's suggestions | What it would add | |
 | Add devices quickly | Types and areas to search | |
-| What BRAM can see | People, locks and doors, leak and smoke, motion, lights | None |
+| What BRAM can see | People, locks and doors, leak and smoke, motion, lights, switches and fans, media, voice assistants, climate | None |
 | Phone alerts and quiet hours | Phones that get alerts | None |
 | | Quiet from, quiet until | Off |
 | | Daily summary at | Off |

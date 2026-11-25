@@ -123,7 +123,9 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 return await self.async_step_review()
             errors["base"] = "nothing_found"
         return self.async_show_form(step_id="quick", errors=errors, data_schema=vol.Schema({
-            vol.Required("groups", default=list(GROUPS)): selector.SelectSelector(
+            vol.Required(
+                "groups", default=["people", "doors", "safety", "motion"],
+            ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=list(GROUPS), multiple=True, translation_key="groups",
                     mode=selector.SelectSelectorMode.LIST)),

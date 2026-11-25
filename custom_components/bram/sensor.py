@@ -8,8 +8,9 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.start import async_at_started
 
-from .const import ICON, MEANING
+from .const import ICON, MEANING, READINGS
 from .entity import BramEntity
+from .feed import say
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
@@ -42,6 +43,9 @@ class Belief(BramEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
+        if self._feed.kind(self._source) in READINGS:
+            state = self.hass.states.get(self._source)
+            return say(state) if state and state.state not in ("unavailable", "unknown") else None
         meaning = MEANING.get(self._feed.kind(self._source) or "")
         answer = self._feed.beliefs.get(self._source)
         if meaning is None or answer not in ("yes", "no"):

@@ -53,7 +53,7 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 |---|---|---|
 | [Installing](docs/installation.md) | [Watching your home](docs/watching.md) | [Architecture](docs/architecture.md) |
 | [Devices](docs/devices.md) | [Alerts and messages](docs/messages.md) | [Security](docs/security.md) |
-| [Every setting](docs/settings.md) | [Monitors](docs/monitors.md) | [What BRAM stores](docs/data.md) |
+| [Configuration](docs/configuration.md) | [Monitors](docs/monitors.md) | [What BRAM stores](docs/data.md) |
 | [Roadmap](docs/roadmap.md) | [Chat](docs/chat.md) | [Hard rules](HARD_RULES.md) |
 | [Changes](CHANGELOG.md) | [Voice](docs/voice.md) | [Server commands](docs/server.md) |
 | | [Personality](docs/personality.md) | [Development](docs/development.md) |

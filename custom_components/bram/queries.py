@@ -14,7 +14,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.recorder import get_instance
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_ENTITIES, CONF_HISTORY, CONF_PROBLEMS, MEANING
+from .const import CONF_ENTITIES, CONF_HISTORY, CONF_PROBLEMS, MEANING, READINGS
 
 DAYS = 10
 MAX_CHANGES = 20
@@ -122,7 +122,10 @@ async def history(hass: HomeAssistant, entity_id: str, kind: str) -> dict[str, A
             hass, start, entity_id=entity_id, no_attributes=True,
             include_start_time_state=False))
     yes, no = MEANING.get(kind, ("", ""))
-    words = {"on": yes, "open": yes, "unlocked": yes, "home": yes,
+    if kind in READINGS:
+        return {"error": "refused"}
+    words = {"on": yes, "playing": yes, "listening": yes, "responding": yes, "processing": yes,
+             "idle": no, "paused": no, "standby": no, "open": yes, "unlocked": yes, "home": yes,
              "off": no, "closed": no, "locked": no, "not_home": no}
     runs: list[tuple[float, str]] = []
     for state in found.get(entity_id, []):

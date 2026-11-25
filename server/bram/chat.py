@@ -28,7 +28,7 @@ from .monitors import Monitors
 from .pairing import Pairing
 from .personality import style
 from .settings import Settings
-from .world import Answer, World
+from .world import READINGS, Answer, Event, World
 
 MAX_TEXT = 2000
 MAX_HISTORY = 12
@@ -41,6 +41,8 @@ WORDS = {
     "person": ("home", "away"), "lock": ("unlocked", "locked"), "leak": ("leaking", "dry"),
     "smoke": ("smoke detected", "clear"), "opening": ("open", "closed"),
     "motion": ("motion detected", "no motion"), "light": ("on", "off"),
+    "switch": ("on", "off"), "fan": ("on", "off"), "media": ("on", "off or idle"),
+    "satellite": ("in use", "idle"),
 }
 UNKNOWN = "unknown, cannot tell"
 # Common words say nothing about which device was meant.
@@ -182,15 +184,16 @@ class Chat:
                 lines += problem_lines(name, await self._look_up(home, "problems", ""))
         return lines, facts[:MAX_FACTS]
 
-    def _states(self, house: str | None) -> list[tuple[str, str, str, Answer]]:
+    def _states(self, house: str | None) -> list[tuple[str, str, str]]:
+        """Home, device name, and what it says."""
         names = dict(self._pairing.houses())
-        return [(names[house_id], clean(event.name or event.entity_id, 60), event.kind,
-                 world.check(event.entity_id))
+        return [(names[house_id], clean(event.name or event.entity_id, 60),
+                 _say(world, event))
                 for house_id, world in self._worlds().items()
                 if house_id in names and house in (None, house_id)
-                for event in world.all() if event.kind in WORDS]
+                for event in world.all() if event.kind in WORDS or event.kind in READINGS]
 
-    def _report(self, question: str, states: list[tuple[str, str, str, Answer]],
+    def _report(self, question: str, states: list[tuple[str, str, str]],
                 house: str | None, extra: list[str]) -> str:
         lines = [f"Now: {self._now()}"]
         worlds = self._worlds()
@@ -207,8 +210,8 @@ class Chat:
                          f" Tracked people: {people}")
         wanted = _words(question)
         ranked = sorted(states, key=lambda s: -len(wanted & _words(s[1])))
-        lines += [f"{name} ({house}): {_say(kind, answer)}"
-                  for house, name, kind, answer in ranked[:MAX_ENTITIES]]
+        lines += [f"{name} ({home}): {text}"
+                  for home, name, text in ranked[:MAX_ENTITIES]]
         if len(ranked) > MAX_ENTITIES:
             lines.append(f"{len(ranked) - MAX_ENTITIES} more devices are not listed here")
         if self._monitors is not None and house is None:
@@ -228,15 +231,15 @@ class Chat:
         body = "\n".join(lines).replace("<<<", "").replace(">>>", "")
         return f"<<<REPORT\n{body}\nREPORT>>>"
 
-    def _facts(self, text: str, states: list[tuple[str, str, str, Answer]]) -> list[str]:
+    def _facts(self, text: str, states: list[tuple[str, str, str]]) -> list[str]:
         """What the sensors actually say, shown beside the answer so it can be checked."""
         words = _words(text)
-        scored = [(len(words & _words(name)) / max(len(_words(name)), 1), name, kind, answer)
-                  for _, name, kind, answer in states]
+        scored = [(len(words & _words(name)) / max(len(_words(name)), 1), name, says)
+                  for _, name, says in states]
         # An exact match hides partial ones: "front door" is not about every door.
         top = max((s[0] for s in scored), default=0)
         best = [s for s in scored if s[0] >= 0.5 and s[0] == top][:MAX_FACTS]
-        return [f"{name}: {_say(kind, answer)}" for _, name, kind, answer in best]
+        return [f"{name}: {says}" for _, name, says in best]
 
     def _zone(self) -> ZoneInfo:
         return ZoneInfo(self._settings.all()["timezone"] or "UTC")
@@ -245,10 +248,13 @@ class Chat:
         return datetime.datetime.now(self._zone()).strftime("%A %d %B %Y, %H:%M")
 
 
-def _say(kind: str, answer: Answer) -> str:
+def _say(world: World, event: Event) -> str:
+    if event.kind in READINGS:
+        return clean(world.reading(event.entity_id) or UNKNOWN, 60)
+    answer = world.check(event.entity_id)
     if answer is Answer.UNKNOWN:
         return UNKNOWN
-    return WORDS[kind][0 if answer is Answer.YES else 1]
+    return WORDS[event.kind][0 if answer is Answer.YES else 1]
 
 
 def _words(text: str) -> set[str]:

@@ -15,8 +15,17 @@ MEANING = {
     "opening": {"on": True, "off": False, "open": True, "closed": False},
     "motion": {"on": True, "off": False},
     "light": {"on": True, "off": False},
+    "switch": {"on": True, "off": False},
+    "fan": {"on": True, "off": False},
+    "media": {"on": True, "playing": True, "buffering": True, "off": False, "idle": False,
+              "paused": False, "standby": False},
+    "satellite": {"listening": True, "processing": True, "responding": True, "idle": False},
     "lock": {"unlocked": True, "locked": False},
 }
+
+
+# Kinds that say something other than yes or no.
+READINGS = ("climate", "temperature", "humidity")
 
 
 class Answer(StrEnum):
@@ -83,6 +92,14 @@ class World:
         if meaning is None:
             return Answer.UNKNOWN
         return Answer.YES if meaning else Answer.NO
+
+    def reading(self, entity_id: str) -> str | None:
+        """What a thermostat or sensor says, or None if that is not known."""
+        event = self._events.get(entity_id)
+        if (not self.live or event is None or event.kind not in READINGS
+                or event.state.lower() in UNUSABLE):
+            return None
+        return event.state
 
     def anyone_home(self) -> Answer:
         people = [self.check(i) for i, e in self._events.items() if e.kind == "person"]

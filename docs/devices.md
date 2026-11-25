@@ -30,8 +30,12 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 | Leak and smoke | Moisture and smoke sensors | leak or dry, smoke or clear |
 | Motion | Motion, occupancy, presence, and moving sensors | detected, clear |
 | Lights | `light` | on, off |
+| Switches and fans | `switch`, `fan` | on, off |
+| Media players and speakers | `media_player` | on, off or idle |
+| Voice assistants | `assist_satellite` | in use, idle |
+| Thermostats, temperature, humidity | `climate`, temperature and humidity sensors | The mode and readings |
 
-Anything else, or a state it does not recognize, is *unknown*.
+BRAM sees whether a media player is on, not what is playing. History covers everything here except thermostats and readings. Anything else, or a state it does not recognize, is *unknown*.
 
 ## What to add first
 

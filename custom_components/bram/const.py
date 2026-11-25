@@ -20,11 +20,19 @@ MEANING = {
     "opening": ("open", "closed"),
     "motion": ("detected", "clear"),
     "light": ("on", "off"),
+    "switch": ("on", "off"),
+    "fan": ("on", "off"),
+    "media": ("on", "off or idle"),
+    "satellite": ("in use", "idle"),
 }
+# Kinds that say something other than yes or no.
+READINGS = ("climate", "temperature", "humidity")
 # How BRAM's options group what it may see.
 GROUPS = {
     "people": ("person",), "doors": ("lock", "opening"), "safety": ("leak", "smoke"),
-    "motion": ("motion",), "lights": ("light",),
+    "motion": ("motion",), "lights": ("light",), "switches": ("switch", "fan"),
+    "media": ("media",), "voice": ("satellite",),
+    "climate": ("climate", "temperature", "humidity"),
 }
 MOODS = {
     "professional": "Professional", "friendly": "Friendly", "dry": "Dry", "minimal": "Minimal",
@@ -33,7 +41,9 @@ MOODS = {
 ICON = {
     "person": "mdi:account-eye", "lock": "mdi:lock", "leak": "mdi:water-alert",
     "smoke": "mdi:smoke-detector", "opening": "mdi:door", "motion": "mdi:motion-sensor",
-    "light": "mdi:lightbulb",
+    "light": "mdi:lightbulb", "switch": "mdi:toggle-switch", "fan": "mdi:fan",
+    "media": "mdi:speaker", "satellite": "mdi:account-voice", "climate": "mdi:thermostat",
+    "temperature": "mdi:thermometer", "humidity": "mdi:water-percent",
 }
 DEFAULT_NIGHT_FROM, DEFAULT_NIGHT_TO = "22:00:00", "06:00:00"
 DEFAULT_OPEN_MINUTES = 10

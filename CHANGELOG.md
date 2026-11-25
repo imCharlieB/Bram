@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.13.0
+
+- BRAM can also see media players, voice assistants, thermostats, temperature, humidity, switches, and fans.
+- A configuration guide with every model, engine, port, and file.
+
 ## 0.12.0
 
 - Voice setup in one button: BRAM finds Whisper and Piper, you choose and hear a voice, and test both. It explains what to do if they are missing.

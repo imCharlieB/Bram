@@ -4,6 +4,7 @@
 
 - [Installing](installation.md)
 - [Devices](devices.md)
+- [Configuration](configuration.md)
 - [Every setting](settings.md)
 
 ## Features

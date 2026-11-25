@@ -26,7 +26,9 @@
     "groups": {
       "options": {
         "people": "People", "doors": "Locks and doors", "safety": "Leak and smoke sensors",
-        "motion": "Motion and presence", "lights": "Lights"
+        "motion": "Motion and presence", "lights": "Lights",
+          "switches": "Switches and fans", "media": "Media players and speakers",
+          "voice": "Voice assistants", "climate": "Thermostats, temperature, and humidity"
       }
     }
   },
@@ -66,7 +68,9 @@
         "description": "Only what you choose here is shared with BRAM. It cannot control any of it.",
         "data": {
           "people": "People", "doors": "Locks and doors", "safety": "Leak and smoke sensors",
-          "motion": "Motion and presence", "lights": "Lights"
+          "motion": "Motion and presence", "lights": "Lights",
+          "switches": "Switches and fans", "media": "Media players and speakers",
+          "voice": "Voice assistants", "climate": "Thermostats, temperature, and humidity"
         }
       },
       "chat": {

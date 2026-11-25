@@ -37,8 +37,14 @@ _COVER = {"door", "garage", "gate", "window"}
 def kind_of(entity_id: str, device_class: str | None) -> str | None:
     """The kind BRAM understands, or None."""
     domain = entity_id.split(".", 1)[0]
-    if domain in ("person", "lock", "light"):
+    if domain in ("person", "lock", "light", "switch", "fan", "climate"):
         return domain
+    if domain == "media_player":
+        return "media"
+    if domain == "assist_satellite":
+        return "satellite"
+    if domain == "sensor" and device_class in ("temperature", "humidity"):
+        return device_class
     if domain == "binary_sensor":
         return _BINARY.get(device_class or "")
     if domain == "cover" and device_class in _COVER:
@@ -48,6 +54,21 @@ def kind_of(entity_id: str, device_class: str | None) -> str | None:
 
 def _key(version: str) -> tuple[int, ...]:
     return tuple(int(n) for n in re.findall(r"\d+", version))
+
+
+def say(state: State) -> str:
+    """The state, with the numbers that matter for thermostats and readings."""
+    if state.state in ("unavailable", "unknown"):
+        return state.state
+    if state.entity_id.startswith("climate."):
+        parts = [state.state]
+        for key, word in (("current_temperature", "now"), ("temperature", "set to")):
+            if isinstance(value := state.attributes.get(key), (int, float)):
+                parts.append(f"{word} {value:g}")
+        return ", ".join(parts)
+    if state.entity_id.startswith("sensor."):
+        return f"{state.state} {state.attributes.get('unit_of_measurement') or ''}".strip()[:60]
+    return state.state
 
 
 class Feed:
@@ -196,7 +217,7 @@ class Feed:
                 self._kinds[entity_id] = kind
         # A missing entity is reported as unavailable, never left out (B2).
         return {"entity_id": entity_id, "kind": self._kinds.get(entity_id, "unsupported"),
-                "state": state.state if state is not None else "unavailable",
+                "state": say(state) if state is not None else "unavailable",
                 "name": state.name[:100] if state is not None else ""}
 
     def _snapshot(self, entities: Iterable[str]) -> dict:

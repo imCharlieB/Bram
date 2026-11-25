@@ -8,7 +8,7 @@ import pytest
 from aiohttp import web
 from homeassistant.components import conversation
 from homeassistant.const import EntityCategory
-from homeassistant.core import Context, CoreState
+from homeassistant.core import Context, CoreState, State
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
@@ -27,7 +27,7 @@ from custom_components.bram import gate
 from custom_components.bram.client import InvalidCode, parse_code
 from custom_components.bram.const import GROUPS
 from custom_components.bram.discover import find, suggest
-from custom_components.bram.feed import Feed, kind_of
+from custom_components.bram.feed import Feed, kind_of, say
 
 pytestmark = pytest.mark.usefixtures("custom")
 
@@ -82,7 +82,7 @@ async def options(hass, entry, step, values):
 
 
 async def choose(hass, entry, entities):
-    groups = {"people": [], "doors": [], "safety": [], "motion": [], "lights": []}
+    groups = {g: [] for g in GROUPS}
     for entity in entities:
         state = hass.states.get(entity)
         kind = kind_of(entity, state and state.attributes.get("device_class"))
@@ -534,9 +534,22 @@ def test_rest_of_integration_has_no_way_to_call_a_service():
     ("binary_sensor.a", "moisture", "leak"), ("binary_sensor.a", "motion", "motion"),
     ("binary_sensor.a", "occupancy", "motion"), ("binary_sensor.a", "battery", None),
     ("cover.a", "garage", "opening"), ("cover.a", "blind", None),
-    ("light.a", None, "light"), ("switch.a", None, None)])
+    ("light.a", None, "light"), ("switch.a", None, "switch"), ("media_player.a", None, "media"),
+    ("assist_satellite.a", None, "satellite"), ("sensor.a", "temperature", "temperature"),
+    ("sensor.a", "battery", None), ("climate.a", None, "climate"), ("camera.a", None, None)])
 def test_kinds(entity, device_class, kind):
     assert kind_of(entity, device_class) == kind
+
+
+@pytest.mark.parametrize(("entity", "state", "attrs", "text"), [
+    ("sensor.t", "71.2", {"unit_of_measurement": "F"}, "71.2 F"),
+    ("climate.a", "heat", {"current_temperature": 70, "temperature": 72.5},
+     "heat, now 70, set to 72.5"),
+    ("climate.a", "off", {"temperature": None}, "off"),
+    ("climate.a", "unavailable", {"temperature": 70}, "unavailable"),
+    ("media_player.a", "playing", {}, "playing")])
+def test_say(entity, state, attrs, text):
+    assert say(State(entity, state, attrs)) == text
 
 
 def test_code_format():
