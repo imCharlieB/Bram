@@ -27,6 +27,7 @@ The connection token, BRAM's options, open alerts, stopped messages, and which d
 | What | Until |
 |---|---|
 | Live device state | The connection drops or the server restarts |
+| Pictures of people and media | Restart, or 60 newer ones |
 | Conversations | Cleared, 30 idle minutes, sign-out, or restart |
 | Recordings | Turned into text |
 | Sessions | Sign-out, expiry, or restart |

@@ -8,7 +8,7 @@ from aiohttp import web
 
 from bram.audit import Audit
 from bram.pairing import Pairing, ensure_certificate
-from bram.server import HOUSES, _log_house, make_app
+from bram.server import HOUSES, _detail, _log_house, make_app
 
 
 class Running:
@@ -108,6 +108,13 @@ async def test_feed_logs_what_it_would_say(srv):
         world = srv.app[HOUSES][house["house_id"]][0]
         assert world.check("binary_sensor.x") == "yes"
     await until(lambda: world.check("binary_sensor.x") == "unknown")
+
+
+def test_details_are_limited():
+    good = {"area": "Den", "text": "x" * 500, "picture": "a" * 99, "since": 5, "evil": "y"}
+    assert _detail(good) == {"area": "Den", "text": "x" * 160, "picture": "a" * 16, "since": 5.0}
+    for bad in (None, [], "x", {"area": 5, "since": "now"}, {"since": -1}, {"since": True}):
+        assert _detail(bad) == {}
 
 
 async def test_house_comes_from_token(srv):

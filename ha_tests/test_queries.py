@@ -73,7 +73,9 @@ async def test_problems_are_grouped_cleaned_and_limited(hass):
     ({"share_history": True, "entities": []}, "history", DOOR, "refused"),
     ({"share_history": True, "share_problems": True}, "states", None, "refused"),
     ({"share_problems": True}, "history", DOOR, "off"), ({}, None, None, "refused"),
-    ({"share_history": True, "entities": [DOOR]}, "history", ["x"], "refused")])
+    ({"share_history": True, "entities": [DOOR]}, "history", ["x"], "refused"),
+    ({"entities": []}, "picture", "person.a", "refused"),
+    ({"entities": ["person.a"]}, "picture", "person.a", "none")])
 async def test_everything_else_is_refused(hass, options, what, entity, error):
     entry = MockConfigEntry(domain="bram", options=options)
     assert await answer(hass, entry, {}, what, entity) == {"error": error}

@@ -36,7 +36,9 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 | Thermostats, temperature, humidity | `climate`, temperature and humidity sensors | The mode and readings |
 | Anything else | Other sensors, weather, vacuums, water heaters, alarm panels, updates, and more; choose one by one | Its state as Home Assistant shows it; no alerts |
 
-BRAM sees whether a media player is on, not what is playing. History covers everything here except thermostats and readings. Anything else, or a state it does not recognize, is *unknown*.
+"How long" restarts when Home Assistant restarts. BRAM also sees, for shared devices only: their room, how long they have been that way, brightness, position, battery, what a media player is playing and how loud, what a thermostat is doing, and the picture Home Assistant shows for a person or media player. It never gets a person's coordinates, or pictures from outside Home Assistant. Pictures are kept in memory only.
+
+ History covers everything here except thermostats and readings. Anything else, or a state it does not recognize, is *unknown*.
 
 ## What to add first
 

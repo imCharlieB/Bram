@@ -10,6 +10,8 @@ const deck = (() => {
   };
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   const TAU = Math.PI * 2;
+  const photos = new Map();
+  let speed = 1, spun = 0, lastTime = 0;
   let sectors = [], nodes = [], chosen = null, hover = null, frame = 0, color = {}, sparks = [], mood = "ok";
 
   function colors() {
@@ -59,10 +61,44 @@ const deck = (() => {
     const shown = group ? group.devices : nodes.filter((node) => node.state !== "off");
     $("hud-detail-title").textContent = group ? group.title : "Active now";
     $("hud-detail").replaceChildren(...(shown.length ? shown.slice(0, 60).map((device) => {
-      const row = make("li", undefined, device.state);
-      row.append(make("span", device.name), make("b", device.state === "unknown" ? "unknown" : device.says));
+      const row = make("li", undefined, device.state), left = make("span", device.name);
+      const more = [device.text, device.area, device.age].filter(Boolean).join(" \u00b7 ");
+      if (more) left.append(make("small", more));
+      row.append(left, make("b", device.state === "unknown" ? "unknown" : device.says));
       return row;
     }) : [make("li", "Nothing active")]));
+  }
+
+  // --- people ---
+
+  function photo(source) {
+    if (!source) return null;
+    if (!photos.has(source)) {
+      const image = new Image();
+      image.addEventListener("error", () => { image.failed = true; });
+      image.src = source;
+      photos.set(source, image);
+    }
+    const image = photos.get(source);
+    return image.complete && image.naturalWidth && !image.failed ? image : null;
+  }
+
+  function people(list) {
+    $("people-pane").hidden = !list.length;
+    $("hud-people").replaceChildren(...list.map((person) => {
+      const card = make("div", undefined, `face ${person.state}`);
+      if (person.photo) {
+        const image = make("img");
+        image.alt = "";
+        image.src = person.photo;
+        image.addEventListener("error", () => image.replaceWith(make("i", [...person.name][0])));
+        card.append(image);
+      } else {
+        card.append(make("i", [...person.name][0]));
+      }
+      card.append(make("b", person.name), make("span", person.state === "unknown" ? "unknown" : person.says), make("small", person.age));
+      return card;
+    }));
   }
 
   // --- gauges ---
@@ -135,7 +171,10 @@ const deck = (() => {
     if (!box) return;
     const g = canvas().getContext("2d"), view = layout(box), { x, y, r } = view;
     if (r < 60) return;
-    const t = still.matches ? 0 : time / 1000;
+    // Spins faster while BRAM thinks, without jumping.
+    if (time && lastTime) spun += Math.max(0, Math.min(time - lastTime, 100)) / 1000 * speed;
+    if (time) lastTime = time;
+    const t = still.matches ? 0 : spun;
     const base = mood === "bad" ? color.bad : color.main;
     g.clearRect(0, 0, box.w, box.h);
     g.lineCap = "butt";
@@ -249,9 +288,25 @@ const deck = (() => {
       g.strokeStyle = tint(node);
       g.lineWidth = 1.2;
       if (!faded) g.globalAlpha = node.state === "off" ? .45 + lit * .55 : 1;
+      const face = photo(node.photo);
+      if (face) {
+        g.save();
+        g.beginPath();
+        g.arc(spot.x, spot.y, 15, 0, TAU);
+        g.clip();
+        g.globalAlpha *= node.state === "on" ? 1 : .45;
+        g.drawImage(face, spot.x - 15, spot.y - 15, 30, 30);
+        g.restore();
+        g.beginPath();
+        g.arc(spot.x, spot.y, 15, 0, TAU);
+        g.lineWidth = 2;
+        g.stroke();
+      }
       g.beginPath();
       g.arc(spot.x, spot.y, big, 0, TAU);
-      if (node.state === "unknown") {
+      if (face) {
+        // the photo is the mark
+      } else if (node.state === "unknown") {
         g.setLineDash([2, 2]);
         g.stroke();
         g.setLineDash([]);
@@ -262,7 +317,7 @@ const deck = (() => {
         g.shadowBlur = 0;
       }
       if (node === hover || node.state === "alert" || node.state === "warn" || (chosen && node.group === chosen && nodes.length < 60)) {
-        const label = `${node.name}  ${node.state === "unknown" ? "unknown" : node.says}`;
+        const label = [node.name, node.state === "unknown" ? "unknown" : node.says, node === hover && node.text, node === hover && node.age].filter(Boolean).join("  ");
         const right = spot.x >= x;
         g.globalAlpha = faded ? .15 : 1;
         g.font = "600 11px ui-monospace, Consolas, monospace";
@@ -273,12 +328,12 @@ const deck = (() => {
         g.lineTo(spot.x + (right ? 12 : -12), ly);
         g.lineTo(lx, ly);
         g.stroke();
-        const width = Math.min(g.measureText(label).width, 220) + 12;
+        const width = Math.min(g.measureText(label).width, 300) + 12;
         g.fillStyle = "rgb(2 8 18 / .82)";
         g.fillRect(right ? lx : lx - width, ly - 9, width, 18);
         g.strokeRect(right ? lx : lx - width, ly - 9, width, 18);
         g.fillStyle = tint(node) === color.dim ? color.text : tint(node);
-        g.fillText(label, lx + (right ? 6 : -6), ly + 1, 220);
+        g.fillText(label, lx + (right ? 6 : -6), ly + 1, 300);
       }
     }
     g.globalAlpha = 1;
@@ -316,5 +371,5 @@ const deck = (() => {
     if (!frame && !still.matches) frame = requestAnimationFrame(loop);
   }
 
-  return { start, update, gauge, activity, colors, draw };
+  return { start, update, gauge, activity, colors, draw, people, think: (on) => { speed = on ? 5 : 1; } };
 })();

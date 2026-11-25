@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import io
 import ipaddress
@@ -34,6 +35,7 @@ SESSION_LIFE, IDLE_LIFE = 12 * 3600, 1800
 MAX_FAILURES, MAX_FAILURES_ALL, LOCKOUT = 5, 20, 900
 # The first visitor may create the login, but only this long after the server starts.
 SETUP_WINDOW = 900
+MAX_PICTURES = 60
 # Invented, so a sample never contains anything about the house.
 SAMPLE = "The garage door has been open for 40 minutes."
 
@@ -60,6 +62,8 @@ class ConfigPage:
         self._fingerprint, self._connected = fingerprint, connected
         self._disconnect, self._clock = disconnect, clock
         self._started = clock()
+        self._look_up = look_up
+        self._pictures: dict[tuple[str, str, str], tuple[bytes, str]] = {}
         self._mood_changed = mood_changed
         self._alerts = alerts
         self.monitors = Monitors(settings, alerts) if alerts is not None else None
@@ -92,6 +96,7 @@ class ConfigPage:
             web.post("/api/hear", self._private(self._hear)),
             web.post("/api/speak", self._private(self._speak)),
             web.get("/api/house", self._private(self._house)),
+            web.get("/api/picture", self._private(self._picture)),
             web.get("/api/chat", self._private(self._chat_history)),
             web.post("/api/chat", self._private(self._chat_ask)),
             web.post("/api/chat-clear", self._private(self._chat_clear)),
@@ -527,6 +532,27 @@ class ConfigPage:
         return _json({"homes": self.chat.house(),
                       "alerts": self._alerts.open() if self._alerts else []})
 
+    async def _picture(self, request: web.Request) -> web.Response:
+        house_id, entity_id = request.query.get("home", ""), request.query.get("id", "")
+        world = self._worlds().get(house_id)
+        event = world.event(entity_id) if world is not None else None
+        tag = event.detail.get("picture") if event is not None else None
+        if not tag or self._look_up is None:
+            raise web.HTTPNotFound
+        key = (house_id, entity_id, tag)
+        if key not in self._pictures:
+            result = await self._look_up(house_id, "picture", entity_id) or {}
+            found = _image(result.get("data"))
+            while len(self._pictures) >= MAX_PICTURES:
+                self._pictures.pop(next(iter(self._pictures)))
+            self._pictures[key] = found
+        data, kind = self._pictures[key]
+        if not data:
+            raise web.HTTPNotFound
+        return web.Response(body=data, content_type=kind, headers={
+            **HEADERS, "Cache-Control": "private, max-age=3600",
+            "Content-Security-Policy": "default-src 'none'; sandbox"})
+
     @staticmethod
     def _chat_key(request: web.Request) -> str:
         return f"web:{_key(request.cookies.get(COOKIE, ''))}"
@@ -616,6 +642,23 @@ class ConfigPage:
         except (ValueError, ModelError) as err:
             return _json({"error": str(err)}, 400)
         return _json({"facts": SAMPLE, "text": reply.text.strip()[:2000]})
+
+
+def _image(data: object) -> tuple[bytes, str]:
+    """Only real pictures, judged by their first bytes."""
+    if not isinstance(data, str) or len(data) > 600_000:
+        return b"", ""
+    try:
+        raw = base64.b64decode(data, validate=True)
+    except ValueError:
+        return b"", ""
+    for magic, kind in ((b"\xff\xd8\xff", "image/jpeg"), (b"\x89PNG\r\n\x1a\n", "image/png"),
+                        (b"GIF8", "image/gif")):
+        if raw.startswith(magic):
+            return raw, kind
+    if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return raw, "image/webp"
+    return b"", ""
 
 
 async def _valid(body: dict) -> dict:

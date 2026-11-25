@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.16.0
+
+- Richer devices: people's photos, what is playing, brightness, battery, room, and how long, on the deck and in chat.
+- Getting started and BRAM's reactions show on the command deck.
+
 ## 0.15.0
 
 - A real command deck: a full-screen live map of the house with gauges, sectors, activity, and an event log, in four colors.

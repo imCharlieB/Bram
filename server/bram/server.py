@@ -35,9 +35,24 @@ ALERTS = web.AppKey("alerts", Alerts)
 MONITORS = web.AppKey("monitors", Monitors)
 TASKS = web.AppKey("tasks", list)
 CHAT = web.AppKey("chat", Chat)
+CONFIG = web.AppKey("config", ConfigPage)
 ASKED = web.AppKey("asked", dict)
 SETTINGS = web.AppKey("settings", Settings)
 ASK_TIMEOUT = 12
+
+
+def _detail(raw: object) -> dict:
+    """Only what is expected, and short."""
+    if not isinstance(raw, dict):
+        return {}
+    found: dict = {}
+    for key, limit in (("area", 40), ("text", 160), ("picture", 16)):
+        if isinstance(raw.get(key), str):
+            found[key] = raw[key][:limit]
+    since = raw.get("since")
+    if isinstance(since, (int, float)) and not isinstance(since, bool) and 0 < since < 1e11:
+        found["since"] = float(since)
+    return found
 
 
 def _event(house_id: str, raw: object) -> Event:
@@ -48,7 +63,8 @@ def _event(house_id: str, raw: object) -> Event:
         raise ValueError("bad state")
     # The house comes from the token, never from the message (E4).
     name = raw.get("name")
-    return Event(house_id, *values, name[:100] if isinstance(name, str) else "")
+    return Event(house_id, *values, name[:100] if isinstance(name, str) else "",
+                 _detail(raw.get("detail")))
 
 
 async def _pair(request: web.Request) -> web.Response:
@@ -284,7 +300,7 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
             app[MONITORS] = page.monitors
             app.on_startup.append(_start)
             app.on_cleanup.append(_stop)
-        app[CHAT] = page.chat
+        app[CHAT], app[CONFIG] = page.chat, page
         app.add_routes(page.routes())
     app.on_shutdown.append(_shutdown)
     return app

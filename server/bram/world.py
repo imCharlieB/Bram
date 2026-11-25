@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 
 UNUSABLE = {"unknown", "unavailable", "none", ""}
@@ -46,6 +46,7 @@ class Event:
     kind: str
     state: str
     name: str = ""
+    detail: dict = field(default_factory=dict, compare=False)
 
 
 class World:

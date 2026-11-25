@@ -19,6 +19,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 from . import gate
 from .client import connect
 from .const import CONF_ENTITIES, CONF_FINGERPRINT, DOMAIN, MOODS
+from .details import detail
 from .queries import answer
 
 _LOGGER = logging.getLogger(__name__)
@@ -225,7 +226,8 @@ class Feed:
         # A missing entity is reported as unavailable, never left out (B2).
         return {"entity_id": entity_id, "kind": self._kinds.get(entity_id, "unsupported"),
                 "state": say(state) if state is not None else "unavailable",
-                "name": state.name[:100] if state is not None else ""}
+                "name": state.name[:100] if state is not None else "",
+                "detail": detail(self._hass, state)}
 
     def _snapshot(self, entities: Iterable[str]) -> dict:
         return {"type": "snapshot", "version": self.version or "",

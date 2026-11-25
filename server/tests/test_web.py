@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import re
 
@@ -13,9 +14,10 @@ from bram.local_model import _is_remote, _keep_alive, check_local
 from bram.models.base import ModelError, Reply
 from bram.pairing import Pairing, ensure_certificate
 from bram.personality import MODES, messages
-from bram.server import CHAT, make_app
+from bram.server import CHAT, CONFIG, make_app
 from bram.settings import Settings
 from bram.web import COOKIE, HEADERS, SAMPLE, STATIC
+from bram.world import Event, World
 from fakes import FakeModel
 
 PASSWORD = "correct horse battery"  # noqa: S105
@@ -61,7 +63,8 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("GET", "speech"), ("POST", "speech"), ("POST", "speech-find"),
            ("POST", "speech-voices"), ("POST", "speech-preview"),
            ("POST", "hear"), ("POST", "speak"),
-           ("GET", "house"), ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
+           ("GET", "house"),
+           ("GET", "picture"), ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
            ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),
            ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
            ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),
@@ -326,6 +329,35 @@ async def test_voice_on_the_page(page, monkeypatch):
     assert (await page.post("speak", {"text": 5})).status == 400
     # Everything else keeps the small limit.
     assert (await page.post("speak", {"text": "x" * 5000})).status == 413
+
+
+async def test_pictures(page, monkeypatch):
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    png, asked = b"\x89PNG\r\n\x1a\n" + b"0" * 20, []
+    result = [{"data": base64.b64encode(png).decode(), "kind": "text/html"}]
+    world = World("h", clock=lambda: 0)
+    world.update(Event("h", "person.a", "person", "home", "A", {"picture": "tag1"}))
+    world.update(Event("h", "light.a", "light", "on", "L"))
+
+    async def look_up(*args):
+        asked.append(args)
+        return result[0]
+
+    monkeypatch.setattr(page.app[CONFIG], "_look_up", look_up)
+    monkeypatch.setattr(page.app[CONFIG], "_worlds", lambda: {"h": world})
+    for _ in range(2):
+        response = await page.get("/api/picture?home=h&id=person.a")
+        assert response.content_type == "image/png" and await response.read() == png
+        assert "sandbox" in response.headers["Content-Security-Policy"]
+    assert asked == [("h", "picture", "person.a")]  # kept, in memory only
+    for query in ("home=h&id=light.a", "home=h&id=person.b", "home=x&id=person.a", ""):
+        assert (await page.get("/api/picture?" + query)).status == 404
+    for bad in ({"data": base64.b64encode(b"<svg onload=1>").decode()}, {"data": "!!"}, None,
+                {"error": "none"}, {"data": 5}):
+        result[0] = bad
+        page.app[CONFIG]._pictures.clear()
+        assert (await page.get("/api/picture?home=h&id=person.a")).status == 404
 
 
 async def test_monitors_page(page):

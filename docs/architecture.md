@@ -27,7 +27,7 @@ The config page makes a one-time code holding the server certificate's fingerpri
 
 On connecting, the integration sends a snapshot, then each change, and a heartbeat every 30 seconds. After 90 seconds of silence, or a lost connection, every device is *unknown* until a fresh snapshot. Unknown is never treated as safe, locked, closed, dry, or empty. State is not stored on disk.
 
-The server sends back what it believes, for the device page, and answers to Assist questions. It may also ask two read-only questions, for history and for problems, which the integration answers only if the owner turned them on. The integration refuses anything else.
+The server sends back what it believes, for the device page, and answers to Assist questions. It may also ask three read-only questions: history and problems, answered only if the owner turned them on, and pictures of shared devices. The integration refuses anything else.
 
 ## Alerts
 

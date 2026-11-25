@@ -339,6 +339,7 @@ function headline(problem) {
   const down = [...world.houses.filter((house) => !house.connected), ...world.monitors.filter((item) => item.up === false)];
   $("hero").classList.toggle("worried", Boolean(problem) || down.length > 0 || world.urgent > 0);
   $("hud-pulse").textContent = problem ? "No signal" : world.urgent ? "Alert" : down.length ? "Attention" : "Watching";
+  document.body.classList.toggle("worried-deck", Boolean(problem) || down.length > 0 || world.urgent > 0);
   $("hud-pulse").className = problem || world.urgent ? "bad" : down.length ? "amber" : "";
   if (world.urgent && !problem) {
     $("headline").textContent = world.urgent === 1 ? "A safety sensor needs you" : `${world.urgent} safety sensors need you`;
@@ -568,11 +569,13 @@ async function loadHouse() {
       if (device.state === "alert") urgent.push(`${device.name}: ${device.says}`);
       const title = TITLES[device.kind] || "Other";
       if (!groups.has(title)) groups.set(title, []);
-      groups.get(title).push({ ...device, home: homes.length > 1 ? home.name : "" });
+      const photo = device.picture ? `/api/picture?${new URLSearchParams({ home: home.id, id: device.id, v: device.picture })}` : "";
+      groups.get(title).push({ ...device, photo, age: device.since && device.state !== "unknown" ? ago(device.since) : "" });
     }
   }
   const devices = [...groups.values()].flat();
   deck.update(ORDER.filter((title) => groups.has(title)).map((title) => ({ title, devices: groups.get(title) })));
+  deck.people(devices.filter((device) => device.kind === "person"));
   deck.gauge("g-seen", total - unseen, total, "Seen");
   const shut = devices.filter((device) => device.kind === "lock" || device.kind === "opening");
   deck.gauge("g-secure", shut.filter((device) => device.state === "off").length, shut.length, "Secured");
@@ -595,9 +598,9 @@ function setLook(look) {
   // One chat and one alert list, moved to where the look wants them.
   if (command) {
     $("slot-chat").append($("chat"));
-    $("slot-alerts").append($("alerts-panel"));
+    $("slot-alerts").append($("start"), $("alerts-panel"));
   } else {
-    $("start").before($("alerts-panel"), $("chat"));
+    $("hero").after($("alerts-panel"), $("chat"), $("start"));
   }
   for (const chip of document.querySelectorAll("#looks button")) chip.classList.toggle("on", chip.dataset.look === (command ? "command" : "classic"));
   deck.draw();
@@ -742,7 +745,8 @@ onSubmit("chat-form", "chat-send", "chat-message", async () => {
   if (!text) return "";
   const mine = bubble("user", text);
   $("chat-text").value = "";
-  $("hero").classList.add("thinking");
+  document.body.classList.add("thinking");
+  deck.think(true);
   try {
     const reply = await api("chat", { text, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
     bubble("assistant", reply.text, reply.facts);
@@ -752,7 +756,8 @@ onSubmit("chat-form", "chat-send", "chat-message", async () => {
     if (!$("chat-text").value) $("chat-text").value = text;
     throw error;
   } finally {
-    $("hero").classList.remove("thinking");
+    document.body.classList.remove("thinking");
+    deck.think(false);
     $("chat-text").focus();
   }
 });

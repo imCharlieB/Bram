@@ -164,10 +164,13 @@ class Chat:
         for house_id, name in self._pairing.houses():
             world = self._worlds().get(house_id)
             devices = [{"name": clean(e.name or e.entity_id, 60), "kind": e.kind,
-                        "says": _say(world, e), "state": _look(world, e)}
+                        "says": _say(world, e), "state": _look(world, e), "id": e.entity_id,
+                        "area": clean(e.detail.get("area", ""), 40),
+                        "text": _more(world, e), "since": e.detail.get("since"),
+                        "picture": e.detail.get("picture", "")}
                        for e in (world.all() if world else [])
                        if e.kind in WORDS or e.kind in READINGS]
-            homes.append({"name": name, "live": world is not None and world.live,
+            homes.append({"id": house_id, "name": name, "live": world is not None and world.live,
                           "devices": sorted(devices, key=lambda d: (d["kind"], d["name"]))})
         return homes
 
@@ -203,7 +206,7 @@ class Chat:
         """Home, device name, and what it says."""
         names = dict(self._pairing.houses())
         return [(names[house_id], clean(event.name or event.entity_id, 60),
-                 _say(world, event))
+                 _full(world, event))
                 for house_id, world in self._worlds().items()
                 if house_id in names and house in (None, house_id)
                 for event in world.all() if event.kind in WORDS or event.kind in READINGS]
@@ -270,6 +273,40 @@ def _say(world: World, event: Event) -> str:
     if answer is Answer.UNKNOWN:
         return UNKNOWN
     return WORDS[event.kind][0 if answer is Answer.YES else 1]
+
+
+def _more(world: World, event: Event) -> str:
+    """What it is doing, such as a brightness or a song. Names of songs are data."""
+    known = event.kind in READINGS or world.check(event.entity_id) is not Answer.UNKNOWN
+    return clean(event.detail.get("text", ""), 160) if known and world.live else ""
+
+
+def _full(world: World, event: Event) -> str:
+    """For the model: the state, what it is doing, where, and for how long."""
+    says = _say(world, event)
+    if says == UNKNOWN:
+        return says
+    if more := _more(world, event):
+        says += f" ({more})"
+    if area := clean(event.detail.get("area", ""), 40):
+        says += f", in {area}"
+    since = event.detail.get("since")
+    # Lengths are worked out here, because models are bad at it.
+    if since is not None and event.kind not in READINGS:
+        says += f", for {length(time.time() - since)}"
+    return says
+
+
+def length(seconds: float) -> str:
+    minutes = max(0, round(seconds / 60))
+    if minutes < 1:
+        return "less than a minute"
+    if minutes < 60:
+        return f"{minutes} minute{'s' * (minutes != 1)}"
+    if minutes < 2880:
+        hours, rest = divmod(minutes, 60)
+        return f"{hours} hour{'s' * (hours != 1)}" + (f" {rest} min" if rest else "")
+    return f"{round(minutes / 1440)} days"
 
 
 def _look(world: World, event: Event) -> str:

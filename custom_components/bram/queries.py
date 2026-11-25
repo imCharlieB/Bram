@@ -1,4 +1,6 @@
-"""The only questions the server may ask. Both read, both are off by default.
+"""The only questions the server may ask. All only read.
+
+History and problems are off by default. Pictures are only of shared devices.
 
 Problems are cleaned here, before anything leaves Home Assistant. Log text is data.
 """
@@ -15,6 +17,7 @@ from homeassistant.helpers.recorder import get_instance
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_ENTITIES, CONF_HISTORY, CONF_PROBLEMS, MEANING, READINGS
+from .details import picture
 
 DAYS = 10
 MAX_CHANGES = 20
@@ -56,6 +59,11 @@ async def answer(hass: HomeAssistant, entry: ConfigEntry, kinds: dict[str, str],
                  what: object, entity_id: object) -> dict[str, Any]:
     if what == "problems":
         return problems(hass) if entry.options.get(CONF_PROBLEMS) else {"error": "off"}
+    if what == "picture":
+        # Only of a device the owner chose to share.
+        if entity_id not in entry.options.get(CONF_ENTITIES, []):
+            return {"error": "refused"}
+        return await picture(hass, entity_id)
     if what == "history":
         if not entry.options.get(CONF_HISTORY):
             return {"error": "off"}
