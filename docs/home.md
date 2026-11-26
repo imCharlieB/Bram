@@ -6,14 +6,14 @@ In the middle is BRAM's brain, a knot of light threads. Your home's systems orbi
 
 Under the brain is what BRAM is saying, written out as it says it, and what it is doing now: **Watching**, **Listening**, **Thinking**, or **Speaking**. The ring around the brain moves with its voice. With [voice](voice.md) on, the ring follows the real sound, both when BRAM speaks and while you hold to talk.
 
-Screens down both sides each have a tab. They lean in toward the brain; point at one, or tab into it, and it turns flat so it is easy to read.
+Screens down both sides each have a tab. Point at one, or tab into it, and it lights up.
 
 | Screen | Shows |
 |---|---|
 | **Today** | The date and time |
 | **House** | Your rooms, taken from Home Assistant's areas. A room lights up when someone moves there, turns amber when a door or window in it is open, and shows who is in it |
 | **System** | How much BRAM can see, how much is shut and locked, nights learned, and messages sent today. Below that, each link to Home Assistant and your monitors, and why one is down |
-| **3D printers** | Only while a print is running or paused, or a printer has a problem: progress, time left, file, and nozzle, bed, and chamber temperatures against target. See [3D printers](printers.md) |
+| **3D printers** | Only while a print is running or paused: progress, time left, file, and nozzle, bed, and chamber temperatures against target. See [3D printers](printers.md) |
 | **Watching** | What is counting down: a door left open with the minutes until you are told, a print until it finishes, and when night starts. Each says why |
 | **Looking at** | The picture BRAM is reading. Until cameras come, it says there is nothing to look at |
 | **Climate** | Outside temperature, the last 24 hours inside and outside, and how long each thermostat has run today. Needs [Keep history](history.md) |

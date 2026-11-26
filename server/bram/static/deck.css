@@ -255,7 +255,8 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 
 /* --- screens that fit any height: each side scrolls when it has more than fits --- */
 .side { overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--hud-dim) transparent; padding: 0 0 8px; }
-#hud-left { left: 10px; padding-left: 16px; }
+#hud-left { left: 10px; padding-left: 16px; direction: rtl; }
+#hud-left > * { direction: ltr; }
 #hud-right { right: 10px; padding-right: 16px; }
 #hud-left::before { left: 2px; }
 #hud-right::before { right: 2px; }
@@ -267,3 +268,13 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 #slot-chat #aloud-box[hidden] { display: none; }
 #slot-chat #aloud-box:has(:checked) { border-style: solid; border-color: var(--hud); color: var(--hud); }
 .side { padding-bottom: 36px; mask-image: linear-gradient(#000 calc(100% - 36px), transparent); }
+/* 0.32.3: flat, readable side screens and an even dock. */
+#hud-left .glass, #hud-right .glass { transform: none; }
+#hud .side .glass:hover, #hud .side .glass:focus-within { box-shadow: 0 0 24px color-mix(in srgb, var(--hud) 30%, transparent); }
+.side { gap: 14px; }
+.side .glass { padding: 28px 16px 12px; }
+#hud #chat-send, #slot-chat #aloud-box, #dock > a { width: 66px; height: 66px; }
+#slot-chat #aloud-box { position: relative; gap: 2px; border: 2px solid var(--hud-line); background: rgb(0 10 22 / .8); color: var(--hud-text); opacity: .75; font: 700 .56rem var(--mono); letter-spacing: .08em; line-height: 1.2; }
+#slot-chat #aloud-box input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+#slot-chat #aloud-box:has(:checked) { opacity: 1; border-color: var(--hud); background: radial-gradient(circle, color-mix(in srgb, var(--hud) 35%, transparent), rgb(0 10 22 / .85) 70%); box-shadow: 0 0 16px color-mix(in srgb, var(--hud) 40%, transparent); }
+#slot-chat #aloud-box:has(:focus-visible) { outline: 2px solid var(--hud-warn); outline-offset: 3px; }

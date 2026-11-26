@@ -19,7 +19,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_PHONES,
     CONF_PRINTERS,
-    CONF_PRINTERS_OFF,
+    CONF_PRINTERS_CHOSEN,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
     DOMAIN,
@@ -56,7 +56,8 @@ class PrinterWatch:
         self._teller = teller or Teller(hass, entry)
         self._on: bool = entry.options.get(CONF_PRINTERS, False)
         self._phones: list[str] = entry.options.get(CONF_PHONES, [])
-        self._off: list[str] = entry.options.get(CONF_PRINTERS_OFF, [])
+        # Only a printer the owner switched on is watched or shown.
+        self._chosen: list[str] = entry.options.get(CONF_PRINTERS_CHOSEN, [])
         self._quiet = (entry.options.get(CONF_QUIET_FROM), entry.options.get(CONF_QUIET_TO))
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.printers")
         self._jobs: dict[str, dict[str, Any]] = {}
@@ -107,7 +108,7 @@ class PrinterWatch:
             now = dt_util.utcnow().timestamp()
             items = []
             for printer in find(self._hass):
-                if printer.id in self._off:
+                if printer.id not in self._chosen:
                     continue
                 says = read(self._hass, printer)
                 self._job(printer, says, now)

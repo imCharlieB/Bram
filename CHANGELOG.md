@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.32.3
+
+- Home: the 3D printers screen shows only printers that are printing or paused. A printer whose integration is failing is still under Needs you.
+- Home: the left side's scroll bar is on its outer edge, away from the brain.
+- Home: the side screens sit flat instead of leaning in, so they are easier to read, and the dock's round buttons are all one size. Speak answers lights up when on, with no checkbox.
+- 3D printers: only the printers you switch on in **Configure > 3D printers** are watched, shown on Home, or mentioned. A printer starts off. **After updating, switch on the printers you want.**
+
 ## 0.32.2
 
 - Home: on a shorter screen, each side scrolls when its screens do not all fit, instead of running off the bottom.

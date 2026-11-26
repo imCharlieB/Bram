@@ -832,7 +832,7 @@ function needActs(need) {
 
 // Printers only while they print, or when one has a problem.
 function showPrinters(list) {
-  const shown = list.filter((p) => ["printing", "paused", "failed", "failing"].includes(p.state) || p.problem);
+  const shown = list.filter((p) => ["printing", "paused"].includes(p.state));
   $("printers-pane").hidden = !shown.length;
   $("printers-count").textContent = shown.length > 1 ? String(shown.length) : "";
   $("hud-printers").replaceChildren(...shown.map((p) => {

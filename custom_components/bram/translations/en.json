@@ -217,7 +217,7 @@
           "printers": "Watch 3D printers"
         },
         "data_description": {
-          "printers": "On: progress on Home, and you are told when a print finishes, fails, or pauses, or a heater is left on. Turn off any printer below that you do not want watched."
+          "printers": "On: progress on Home, and you are told when a print finishes, fails, or pauses, or a heater is left on. Only the printers you switch on below are watched or shown."
         }
       },
       "devices": {

@@ -26,7 +26,7 @@ from .const import (
     CONF_LEARN,
     CONF_PHONES,
     CONF_PRINTERS,
-    CONF_PRINTERS_OFF,
+    CONF_PRINTERS_CHOSEN,
     CONF_PROBLEM_WATCH,
     CONF_PROBLEMS,
     CONF_QUIET_FROM,
@@ -267,16 +267,17 @@ class BramOptionsFlow(OptionsFlowWithReload):
         found = {p.name: p.id for p in printers.find(self.hass)}
         if not found:
             return self.async_abort(reason="no_printers")
-        off = options.get(CONF_PRINTERS_OFF, [])
+        chosen = options.get(CONF_PRINTERS_CHOSEN, [])
         if user_input is not None:
             # A printer missing right now keeps its choice.
-            kept = [p for p in off if p not in found.values()]
+            kept = [p for p in chosen if p not in found.values()]
+            options.pop("printers_off", None)
             return self.async_create_entry(data={
                 **options, CONF_PRINTERS: user_input.pop(CONF_PRINTERS),
-                CONF_PRINTERS_OFF: kept + [found[n] for n, on in user_input.items() if not on]})
+                CONF_PRINTERS_CHOSEN: kept + [found[n] for n, on in user_input.items() if on]})
         return self.async_show_form(step_id="printers", data_schema=vol.Schema({
             vol.Required(CONF_PRINTERS, default=options.get(CONF_PRINTERS, False)): bool,
-            **{vol.Required(name, default=device not in off): bool
+            **{vol.Required(name, default=device in chosen): bool
                for name, device in found.items()}}))
 
     async def async_step_learn(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
