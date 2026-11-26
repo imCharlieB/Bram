@@ -28,6 +28,7 @@ from .feed import kind_of
 from .home_alerts import GROUP_MAX, GROUP_MIN, within
 from .notifier import notify
 from .shared import shared
+from .teller import EACH_TIME, Teller
 
 SETTLE = 120  # a door in use, or someone just leaving, is not news
 OFFLINE_AFTER = 300
@@ -41,8 +42,10 @@ URGENT = ("night", "away")
 
 class HouseRules:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry,
-                 note: Callable[..., None] = lambda *a: None) -> None:
+                 note: Callable[..., None] = lambda *a: None,
+                 teller: Teller | None = None) -> None:
         self._note = note
+        self._teller = teller or Teller(hass, entry)
         self._noted: set[str] = set()
         self._hass = hass
         options = entry.options
@@ -180,6 +183,7 @@ class HouseRules:
                 self._save()
             for key in self._noted - facts.keys():
                 self._note(f"rules:{key}", "closed", "Over", "rules", "low")
+                self._teller.ended(f"rule:{key}")
             self._noted &= facts.keys()
             for key, (rule, wait, text) in facts.items():
                 if now - self._since[key] >= wait:
@@ -193,6 +197,9 @@ class HouseRules:
                 if (key in self._told or key in self._muted or now - self._since[key] < wait
                         or (quiet and rule not in URGENT) or not self._phones):
                     continue
+                if rule not in URGENT and not self._teller.allow(f"rule:{key}", text, EACH_TIME):
+                    self._told.add(key)  # held back: one event, listed in Findings
+                    continue
                 due.append((rule in URGENT, key, text))
             routine = [d for d in due if not d[0]]
             # Several routine messages at once become one. Urgent ones stay on their own.
@@ -204,14 +211,17 @@ class HouseRules:
                 if len(self._sent) >= DAILY:
                     break
                 key = batch[0][1]
-                actions = [{"action": MUTE + key, "title": "Stop these"}
+                actions = [{"action": MUTE + key, "title": "Stop these"},
+                           *([] if batch[0][0] else self._teller.actions(f"rule:{key}"))
                            ] if len(batch) == 1 else []
                 if await notify(self._hass, self._phones, "BRAM watch",
                                 "\n".join(text for _, _, text in batch), f"bram_{key}",
                                 safety=False, actions=actions):
                     self._told.update(k for _, k, _ in batch)
-                    for _, k, text in batch:
+                    for urgent, k, text in batch:
                         self._note(f"rules:{k}", "sent", f"Phone: {text}", "rules", "low")
+                        if not urgent:
+                            self._teller.told(f"rule:{k}", text)
                     self._sent.append(now)
                     self._save()
 

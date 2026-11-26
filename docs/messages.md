@@ -54,14 +54,7 @@ Three or more routine messages at once become one, without a button. Night and a
 
 ### How often
 
-| Grade | Phone | Examples |
-|---|---|---|
-| Urgent | Repeats until acknowledged | Leak, smoke, carbon monoxide, gas |
-| Each time | Once each time it happens | Print finished, door left open, unlocked at night |
-| Once until fixed | Once; again only after it has been fixed for a day | Integration failed, device offline, heater left on |
-| Once, then on BRAM's page | Once a month at most, and always in Findings | Maintenance reminders, such as lubricating a printer |
-
-Something that goes off and on again within half an hour is the same event. A different problem on the same device is new.
+See [How often BRAM tells you](how-often.md): urgent, each time, once until fixed, and reminders, with **Less often** when you want it.
 
 You are told once each time, at most 20 times a day. **Stop these** stops one message for one device; undo it with **Allow stopped messages** on the device page.
 

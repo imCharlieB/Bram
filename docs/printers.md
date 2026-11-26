@@ -19,7 +19,7 @@ State, progress, time left, file, and the nozzle, bed, and chamber temperatures 
 | Not printing, but a heater is still set and hot | 20 minutes |
 | Printing, but the nozzle or bed is far below its target | 15 minutes |
 
-- A maintenance reminder, such as lubricating the rods, is sent once a month at most and stays in Findings. A problem that comes and goes is told once, and again only after it has been fixed for a day.
+- A maintenance reminder, such as lubricating the rods, is sent once a month at most and stays in Findings. A problem that comes and goes is told once, and again only after it has been fixed for a day. See [How often BRAM tells you](how-often.md).
 - Out of filament usually shows as paused or as a problem.
 - Off while idle is normal and never a message. Cooling down after a print is not a heater left on.
 - Quiet hours hold messages until they end. **Stop these** stops one kind for one printer; undo it with **Allow stopped messages**.

@@ -134,6 +134,9 @@ HACS > three dots > **Custom repositories** > add `https://github.com/imCharlieB
 | Safety alert | **Acknowledge**. It repeats until you do |
 | Lock, door, or silent sensor | **Stop these**. Undo with **Allow stopped messages** on BRAM's device page |
 | Several routine messages at once | Arrive as one |
+| The same thing again and again | **Less often**, from the third time in a week |
+
+Maintenance reminders reach your phone once a month at most. See [How often BRAM tells you](https://github.com/imCharlieB/Bram/blob/main/docs/how-often.md).
 
 Quiet hours hold routine messages. Safety alerts, and locks and doors at night or while away, are never held.
 
@@ -207,7 +210,8 @@ Update both; BRAM warns you when they differ. [Changes](https://github.com/imCha
 | [Configuration](https://github.com/imCharlieB/Bram/blob/main/docs/configuration.md) | [Monitors](https://github.com/imCharlieB/Bram/blob/main/docs/monitors.md) | [What BRAM stores](https://github.com/imCharlieB/Bram/blob/main/docs/data.md) |
 | [Every setting](https://github.com/imCharlieB/Bram/blob/main/docs/settings.md) | [Chat](https://github.com/imCharlieB/Bram/blob/main/docs/chat.md) | [Hard rules](https://github.com/imCharlieB/Bram/blob/main/HARD_RULES.md) |
 | [Plan](https://github.com/imCharlieB/Bram/blob/main/docs/roadmap.md) | [Voice](https://github.com/imCharlieB/Bram/blob/main/docs/voice.md) | [Server commands](https://github.com/imCharlieB/Bram/blob/main/docs/server.md) |
-| [Changes](https://github.com/imCharlieB/Bram/blob/main/CHANGELOG.md) | [Personality](https://github.com/imCharlieB/Bram/blob/main/docs/personality.md) | [Development](https://github.com/imCharlieB/Bram/blob/main/docs/development.md) |
+| [Changes](https://github.com/imCharlieB/Bram/blob/main/CHANGELOG.md) | [How often BRAM tells you](https://github.com/imCharlieB/Bram/blob/main/docs/how-often.md) | |
+| | [Personality](https://github.com/imCharlieB/Bram/blob/main/docs/personality.md) | [Development](https://github.com/imCharlieB/Bram/blob/main/docs/development.md) |
 | | [Problems with Home Assistant](https://github.com/imCharlieB/Bram/blob/main/docs/problems.md) | |
 | | [3D printers](https://github.com/imCharlieB/Bram/blob/main/docs/printers.md) | |
 | | [Security check](https://github.com/imCharlieB/Bram/blob/main/docs/security-check.md) | [Testing your model](https://github.com/imCharlieB/Bram/blob/main/docs/benchmark.md) |

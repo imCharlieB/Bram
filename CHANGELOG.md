@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.29.0
+
+- One set of rules decides how often every routine message reaches your phone: each time, once until fixed, or a reminder at most once a month. Maintenance wording, such as lubricate, clean, filter, or firmware, makes it a reminder from any device.
+- A **Less often** button, from the third time in a week, sends that message at most once a day. Nothing becomes quieter unless you tap it.
+- Safety alerts, and locks and doors at night or while away, are never held back.
+
 ## 0.28.6
 
 - Printer messages are graded: a maintenance reminder is sent once a month at most, and a problem that comes and goes is told once, then again only after a day fixed. Everything still shows in Findings.

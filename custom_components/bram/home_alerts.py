@@ -138,6 +138,8 @@ class HomeAlerts:
         self._silent.pop(entity_id, None)
         if self._told_silent.pop(entity_id, None):
             self._feed.note(f"silent:{entity_id}", "closed", now_text, "silent", "high")
+            if self._feed.teller is not None:
+                self._feed.teller.ended(f"silent:{entity_id}")
             self._notice(f"{entity_id} back", f"Reporting again: {now_text}", entity_id, False)
 
     @callback
@@ -257,7 +259,9 @@ class HomeAlerts:
                 text = (f"{name} stopped reporting, so I cannot check for "
                         f"{SILENT[self._kinds[entity_id]]}.")
                 self._feed.note(f"silent:{entity_id}", "open", text, "silent", "high")
-                self._notice(f"{entity_id} silent", text, entity_id, True)
+                teller = self._feed.teller
+                if teller is None or teller.allow(f"silent:{entity_id}", text):
+                    self._notice(f"{entity_id} silent", text, entity_id, True)
         if (self._server_lost is not None and now - self._server_lost >= SERVER_AFTER
                 and not self._told_server):
             self._told_server = True
@@ -281,6 +285,8 @@ class HomeAlerts:
                             f"bram_{first['key']}", safety=False, actions=actions):
                 self._sent_notices.append(now)
                 for item in batch:
+                    if item["key"].endswith(" silent") and self._feed.teller is not None:
+                        self._feed.teller.told(f"silent:{item['entity_id']}", item["text"])
                     if item["key"].endswith(" silent"):
                         self._feed.note(f"silent:{item['entity_id']}", "sent",
                                         f"Phone: {item['text']}", "silent", "high")

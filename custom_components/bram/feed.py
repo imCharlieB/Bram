@@ -104,6 +104,7 @@ class Feed:
         self.outbox: Any = None
         self.problems: Any = None
         self.printers: Any = None
+        self.teller: Any = None
         self._queue: asyncio.Queue[dict] | None = None
         self._queries: set[asyncio.Task] = set()
         self._asked: dict[str, asyncio.Future[str]] = {}

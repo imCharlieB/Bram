@@ -17,6 +17,7 @@ from .const import CONF_PHONES, CONF_PROBLEM_WATCH, CONF_QUIET_FROM, CONF_QUIET_
 from .home_alerts import GROUP_MAX, GROUP_MIN, within
 from .notifier import notify
 from .problems import Finder, Problem
+from .teller import Teller
 
 EVERY = datetime.timedelta(minutes=10)
 DAILY = 8
@@ -34,8 +35,10 @@ def mark(key: str) -> str:
 
 class ProblemWatch:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, is_night: Callable[[], bool],
-                 note: Callable[..., None] = lambda *a: None) -> None:
+                 note: Callable[..., None] = lambda *a: None,
+                 teller: Teller | None = None) -> None:
         self._hass, self._note, self._is_night = hass, note, is_night
+        self._teller = teller or Teller(hass, entry)
         self._on: bool = entry.options.get(CONF_PROBLEM_WATCH, False)
         self._phones: list[str] = entry.options.get(CONF_PHONES, [])
         self._quiet = (entry.options.get(CONF_QUIET_FROM), entry.options.get(CONF_QUIET_TO))
@@ -95,6 +98,7 @@ class ProblemWatch:
                 found = {**self._open, **found}
             for key in self._open.keys() - found.keys():
                 self._note(f"problems:{key}", "closed", "Fixed", "problems", "low")
+                self._teller.ended(f"problem:{key}")
             self._open = found
             for key, told in list(self._told.items()):
                 if key not in found and now - self._started >= STARTING:
@@ -109,7 +113,7 @@ class ProblemWatch:
         if not self._phones or within(self._quiet, dt_util.now().time()):
             return
         new = [p for p in self._open.values() if p.tell and p.key not in self._told
-               and p.key not in self._muted]
+               and p.key not in self._muted and self._teller.allow(f"problem:{p.key}", p.text)]
         new.sort(key=lambda p: p.level != "medium")
         # Fixed is told only for what was told, and only once it has stayed fixed a while.
         fixed = [k for k, t in self._told.items()
@@ -140,13 +144,15 @@ class ProblemWatch:
 
     def _mark(self, problem: Problem, now: float) -> None:
         self._told[problem.key] = [problem.text, now, None]
+        self._teller.told(f"problem:{problem.key}", problem.text)
         self._note(f"problems:{problem.key}", "sent", f"Phone: {problem.text}", "problems",
                    problem.level)
 
     async def _send(self, now: float, text: str, tag: str, key: str | None) -> bool:
         if len(self._sent) >= DAILY:
             return False
-        actions = [] if key is None else [{"action": MUTE + mark(key), "title": "Stop these"}]
+        actions = [] if key is None else [{"action": MUTE + mark(key), "title": "Stop these"},
+                                          *self._teller.actions(f"problem:{key}")]
         if not await notify(self._hass, self._phones, "BRAM", text, tag, safety=False,
                             actions=actions):
             return False

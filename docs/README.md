@@ -11,6 +11,7 @@
 
 - [How BRAM watches your home](watching.md)
 - [Alerts and messages](messages.md)
+- [How often BRAM tells you](how-often.md)
 - [Monitors](monitors.md)
 - [Chat](chat.md)
 - [Voice](voice.md)

@@ -20,6 +20,7 @@ from .printer_watch import PrinterWatch
 from .problem_watch import ProblemWatch
 from .security_watch import SecurityWatch
 from .shared import disabled, missing
+from .teller import Teller
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CONVERSATION,
              Platform.SELECT, Platform.SENSOR]
@@ -38,14 +39,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             registry.async_remove(item.entity_id)
     feed.outbox = Outbox(hass, entry, feed.send, feed.takes_notes)
     entry.async_on_unload(await feed.outbox.start())
+    feed.teller = Teller(hass, entry, feed.note)
+    entry.async_on_unload(await feed.teller.start())
     feed.alerts = HomeAlerts(hass, entry, feed)
     entry.async_on_unload(await feed.alerts.start())
     entry.async_on_unload(Digest(hass, entry, feed).start())
-    feed.rules = HouseRules(hass, entry, feed.note)
+    feed.rules = HouseRules(hass, entry, feed.note, feed.teller)
     entry.async_on_unload(await feed.rules.start())
-    feed.problems = ProblemWatch(hass, entry, feed.rules.is_night, feed.note)
+    feed.problems = ProblemWatch(hass, entry, feed.rules.is_night, feed.note,
+                                 feed.teller)
     entry.async_on_unload(await feed.problems.start())
-    feed.printers = PrinterWatch(hass, entry, feed.send_printers, feed.note)
+    feed.printers = PrinterWatch(hass, entry, feed.send_printers, feed.note,
+                                 feed.teller)
     entry.async_on_unload(await feed.printers.start())
     feed.learner = Learner(hass, entry, feed)
     entry.async_on_unload(await feed.learner.start())
@@ -95,5 +100,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Delete everything BRAM kept here."""
     for part in ("", ".rules", ".security", ".learned", ".outbox", ".problems",
-                 ".printers"):
+                 ".printers", ".told"):
         await Store(hass, 1, f"{DOMAIN}.{entry.entry_id}{part}").async_remove()
