@@ -2,6 +2,10 @@
 
 BRAM sees only the devices you choose. Choosing one does not let BRAM control it.
 
+## Renamed in Home Assistant
+
+If you change an entity's ID in Home Assistant, BRAM follows it.
+
 ## Turned off in Home Assistant
 
 An entity you disable in Home Assistant is no longer watched or shown, even if it is shared, and comes back if you enable it again. Findings lists each one, so a safety sensor is not dropped without you knowing.

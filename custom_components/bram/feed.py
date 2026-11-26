@@ -36,8 +36,9 @@ _BINARY = {"moisture": "leak", "smoke": "smoke", "carbon_monoxide": "co", "gas":
            "door": "opening", "window": "opening",
            "opening": "opening", "garage_door": "opening",
            "motion": "motion", "occupancy": "motion", "presence": "motion", "moving": "motion"}
-_OTHER = ("sensor", "weather", "vacuum", "lawn_mower", "water_heater", "humidifier", "valve",
-          "alarm_control_panel", "siren", "input_boolean", "input_select", "update", "sun")
+_APPLIANCES = ("water_heater", "vacuum", "lawn_mower", "humidifier")
+_OTHER = ("sensor", "weather", "alarm_control_panel", "siren", "input_boolean", "input_select",
+          "update", "sun")
 _COVER = {"door", "garage", "gate", "window"}
 
 
@@ -50,6 +51,10 @@ def kind_of(entity_id: str, device_class: str | None) -> str | None:
         return "media"
     if domain == "assist_satellite":
         return "satellite"
+    if domain == "valve":
+        return "valve"
+    if domain in _APPLIANCES:
+        return "appliance"
     if domain == "sensor" and device_class in ("temperature", "humidity"):
         return device_class
     if domain in _OTHER:
@@ -75,6 +80,10 @@ def say(state: State) -> str:
             if isinstance(value := state.attributes.get(key), (int, float)):
                 parts.append(f"{word} {value:g}")
         return ", ".join(parts)
+    if state.entity_id.startswith("water_heater."):
+        temperature = state.attributes.get("temperature")
+        return (f"{state.state}, set to {temperature:g}" if isinstance(temperature, (int, float))
+                else state.state)[:60]
     if state.entity_id.startswith(("sensor.", "weather.")):
         return f"{state.state} {state.attributes.get('unit_of_measurement') or ''}".strip()[:60]
     return state.state[:60]

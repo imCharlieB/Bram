@@ -23,7 +23,7 @@ State, progress, time left, file, and the nozzle, bed, and chamber temperatures 
 - Off while idle is normal and never a message. Cooling down after a print is not a heater left on.
 - Quiet hours hold messages until they end. **Stop these** stops one kind for one printer; undo it with **Allow stopped messages**.
 - Some printers do not say how a print ended. Then 99% or more counts as finished, and less as stopped.
-- The same printer connected through two integrations appears twice; disable one device in Home Assistant.
+- The same printer connected through two integrations appears twice. Turn one off in **BRAM > Configure > 3D printers**, or remove or disable it in Home Assistant.
 
 ## Remembered
 

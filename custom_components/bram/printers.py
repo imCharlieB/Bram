@@ -74,7 +74,8 @@ def find(hass: HomeAssistant) -> list[Printer]:
     entities, devices, areas = er.async_get(hass), dr.async_get(hass), ar.async_get(hass)
     found: dict[str, dict[str, list[str]]] = {}
     for entry in entities.entities.values():
-        if entry.platform not in PRINTERS or entry.device_id is None or entry.disabled_by:
+        if (entry.platform not in PRINTERS or entry.device_id is None or entry.disabled_by
+                or hass.config_entries.async_get_entry(entry.config_entry_id or "") is None):
             continue
         if role := _role(str(entry.unique_id), entry.platform):
             found.setdefault(entry.device_id, {}).setdefault(role, []).append(entry.entity_id)
@@ -82,7 +83,7 @@ def find(hass: HomeAssistant) -> list[Printer]:
     for device_id, roles in found.items():
         device = devices.async_get(device_id)
         # Only a device that says what it is printing is a printer.
-        if device is None or "status" not in roles:
+        if device is None or device.disabled_by is not None or "status" not in roles:
             continue
         area = areas.async_get_area(device.area_id) if device.area_id else None
         name = device_name(hass, device)[:40]

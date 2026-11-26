@@ -25,11 +25,12 @@ MEANING = {
               "paused": False, "standby": False},
     "satellite": {"listening": True, "processing": True, "responding": True, "idle": False},
     "lock": {"unlocked": True, "locked": False},
+    "valve": {"open": True, "opening": True, "closed": False, "closing": False},
 }
 
 
 # Kinds that say something other than yes or no.
-READINGS = ("climate", "temperature", "humidity", "other")
+READINGS = ("climate", "temperature", "humidity", "appliance", "other")
 SAFETY = ("leak", "smoke", "co", "gas", "heat", "hazard")
 
 

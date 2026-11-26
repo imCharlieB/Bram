@@ -239,3 +239,13 @@ async def test_what_the_problem_is(hass, freezer):
         "Count": 1, "1-Code": "HMS_0300", "1-Error": "The nozzle\nis clogged", "1-Url": "x"})
     now = env.now()
     assert now["problem"] and now["problem_text"] == "The nozzle is clogged"
+
+
+async def test_removed_or_disabled_printers_are_gone(hass, freezer):
+    env = Env(hass, freezer)
+    (printer,) = find(hass)
+    dr.async_get(hass).async_update_device(printer.id, disabled_by=dr.DeviceEntryDisabler.USER)
+    assert find(hass) == []
+    dr.async_get(hass).async_update_device(printer.id, disabled_by=None)
+    await hass.config_entries.async_remove(env.entry.entry_id)
+    assert find(hass) == []

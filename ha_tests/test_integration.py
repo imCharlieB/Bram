@@ -679,3 +679,20 @@ async def test_turned_off_in_home_assistant_is_left_out(hass, server):
     assert entry.runtime_data.entities == [] and entry.options["entities"] == [leak]
     await hass.config_entries.async_unload(entry.entry_id)
     await until(lambda: not server[0][SOCKETS])
+
+
+async def test_renamed_in_home_assistant_is_followed(hass, server):
+    registry = er.async_get(hass)
+    lock = registry.async_get_or_create("lock", "demo", "l1", suggested_object_id="front").entity_id
+    hass.states.async_set(lock, "locked")
+    entry = await start(hass, server)
+    await choose(hass, entry, [lock])
+    registry.async_update_entity(lock, new_entity_id="lock.front_door")
+    hass.states.async_set("lock.front_door", "unlocked")
+    await hass.async_block_till_done()
+    await reconnected(hass, entry)
+    world = server[0][HOUSES][entry.data["house_id"]][0]
+    assert entry.options["entities"] == ["lock.front_door"]
+    await until(lambda: world.check("lock.front_door") == "yes")
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])

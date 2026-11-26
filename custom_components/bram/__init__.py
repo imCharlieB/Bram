@@ -58,6 +58,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     def changed(event: Event) -> None:
         # Turned off or on again in Home Assistant: BRAM follows at once.
         data = event.data
+        old, new = data.get("old_entity_id"), data.get("entity_id")
+        chosen = entry.options.get(CONF_ENTITIES, [])
+        if data.get("action") == "update" and old in chosen and new not in chosen:
+            # Renamed in Home Assistant: the new name is the same device.
+            hass.config_entries.async_update_entry(entry, options={
+                **entry.options, CONF_ENTITIES: [new if e == old else e for e in chosen]})
+            hass.config_entries.async_schedule_reload(entry.entry_id)
+            return
         if (data.get("action") == "update" and "disabled_by" in data.get("changes", {})
                 and data.get("entity_id") in entry.options.get(CONF_ENTITIES, [])):
             hass.config_entries.async_schedule_reload(entry.entry_id)

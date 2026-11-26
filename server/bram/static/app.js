@@ -555,18 +555,20 @@ const TITLES = {
   leak: "Safety", smoke: "Safety", co: "Safety", gas: "Safety", heat: "Safety", hazard: "Safety",
   lock: "Locks and doors", opening: "Locks and doors", person: "People", motion: "Motion", light: "Lights",
   switch: "Switches and fans", fan: "Switches and fans", media: "Media", satellite: "Voice",
-  climate: "Climate", temperature: "Climate", humidity: "Climate", other: "Other",
+  climate: "Climate", temperature: "Climate", humidity: "Climate", appliance: "Appliances", valve: "Appliances", other: "Other",
 };
-const ORDER = ["Safety", "Locks and doors", "People", "Motion", "Climate", "Lights", "Switches and fans", "Media", "Voice", "Other"];
+const ORDER = ["Safety", "Locks and doors", "People", "Motion", "Climate", "Lights", "Switches and fans", "Media", "Voice", "Appliances", "Other"];
 
 let byRoom = false;
 
 function arrange() {
   $("hud-by").textContent = byRoom ? "by room" : "by type";
   $("hud-by").title = byRoom ? "Show by type" : "Show by room";
-  if (!byRoom) return deck.update(world.groups);
+  // People have their own panel, with their faces and rooms.
+  const things = world.groups.filter((group) => group.title !== "People");
+  if (!byRoom) return deck.update(things);
   const rooms = new Map();
-  for (const device of world.groups.flatMap((group) => group.devices)) {
+  for (const device of things.flatMap((group) => group.devices)) {
     const floor = device.floor || "", room = device.area || (device.kind === "person" ? (device.state === "on" ? "Home" : "Away") : "No room");
     if (!rooms.has(room)) rooms.set(room, { title: room, floor, devices: [] });
     if (floor) rooms.get(room).floor = floor;

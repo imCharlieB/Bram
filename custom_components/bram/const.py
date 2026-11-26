@@ -38,9 +38,10 @@ MEANING = {
     "fan": ("on", "off"),
     "media": ("on", "off or idle"),
     "satellite": ("in use", "idle"),
+    "valve": ("open", "closed"),
 }
 # Kinds that say something other than yes or no.
-READINGS = ("climate", "temperature", "humidity", "other")
+READINGS = ("climate", "temperature", "humidity", "appliance", "other")
 # These alert until someone answers.
 SAFETY = ("leak", "smoke", "co", "gas", "heat", "hazard")
 # How BRAM's options group what it may see.
@@ -48,7 +49,8 @@ GROUPS = {
     "people": ("person",), "doors": ("lock", "opening"), "safety": SAFETY,
     "motion": ("motion",), "lights": ("light",), "switches": ("switch", "fan"),
     "media": ("media",), "voice": ("satellite",),
-    "climate": ("climate", "temperature", "humidity"), "other": ("other",),
+    "climate": ("climate", "temperature", "humidity"), "appliances": ("appliance", "valve"),
+    "other": ("other",),
 }
 MOODS = {
     "professional": "Professional", "friendly": "Friendly", "dry": "Dry", "minimal": "Minimal",
@@ -62,6 +64,7 @@ ICON = {
     "light": "mdi:lightbulb", "switch": "mdi:toggle-switch", "fan": "mdi:fan",
     "media": "mdi:speaker", "satellite": "mdi:account-voice", "climate": "mdi:thermostat",
     "temperature": "mdi:thermometer", "humidity": "mdi:water-percent",
+    "appliance": "mdi:water-boiler", "valve": "mdi:valve",
 }
 DEFAULT_NIGHT_FROM, DEFAULT_NIGHT_TO = "22:00:00", "06:00:00"
 DEFAULT_OPEN_MINUTES = 10

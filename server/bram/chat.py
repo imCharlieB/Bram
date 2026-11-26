@@ -54,7 +54,7 @@ WORDS = {
     "hazard": ("safety problem", "clear"), "opening": ("open", "closed"),
     "motion": ("motion detected", "no motion"), "light": ("on", "off"),
     "switch": ("on", "off"), "fan": ("on", "off"), "media": ("on", "off or idle"),
-    "satellite": ("in use", "idle"),
+    "satellite": ("in use", "idle"), "valve": ("open", "closed"),
 }
 UNKNOWN = "unknown, cannot tell"
 PRINTS = re.compile(r"\b(print\w*|filament|spool)\b", re.I)

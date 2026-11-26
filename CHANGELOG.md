@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.28.3
+
+- Water heaters, valves, vacuums, mowers, and humidifiers have their own section, Appliances. A water heater shows its mode and setting.
+- An entity renamed in Home Assistant keeps being watched under its new name instead of showing unknown.
+- A 3D printer removed or disabled in Home Assistant leaves BRAM's Home page.
+- People show only in the People panel on Home, not again in Active now, the radar, or Sectors.
+
 ## 0.28.2
 
 - An entity you disable in Home Assistant is no longer watched or shown as unknown. BRAM follows at once, and lists it in Findings.
