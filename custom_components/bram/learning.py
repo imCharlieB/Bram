@@ -1,19 +1,20 @@
 """Works out better hours from daily summaries. Suggests; the owner decides (F4).
 
-Code does all the arithmetic. Nothing here uses a model or the server. Off by default.
+The summaries come from the server's history, the one record of what happened: the quiet
+stretch of each night and how long doors stayed open. Code checks them and does all the
+arithmetic; no model. A suggestion changes nothing until the owner approves it. Off by default.
 """
 from __future__ import annotations
 
 import datetime
-import json
 from collections.abc import Callable
 from statistics import median
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import issue_registry as ir
-from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -26,19 +27,18 @@ from .const import (
     DEFAULT_OPEN_MINUTES,
     DOMAIN,
 )
-from .feed import Feed, kind_of
-from .shared import shared
+from .feed import Feed
 
 START = datetime.time(18)  # a night is looked at from 6 PM until noon
 STEP = 5  # minutes
 STEPS = 18 * 60 // STEP
-MIN_SEEN = STEPS * 9 // 10  # otherwise the night was not watched well enough
 MIN_QUIET, MAX_QUIET = 180, 720
 KEEP_DAYS, MIN_DAYS, MIN_WEEKEND, MIN_OPENS = 60, 14, 5, 20
 MIN_CHANGE = 30  # minutes
 EVERY = datetime.timedelta(days=30)
 EXPIRES = datetime.timedelta(days=30)
 ISSUE = "suggestion"
+MAX_OPENS = 200
 
 
 def clock(minutes: float) -> str:
@@ -112,114 +112,84 @@ def suggest(learned: dict[str, Any], options: dict[str, Any]) -> dict[str, Any] 
 
 
 def empty() -> dict[str, Any]:
-    return {"nights": {}, "opens": {}, "pending": {}, "never": [], "last": None,
-            "suggestion": None, "undo": None}
+    return {"nights": {}, "opens": {}, "never": [], "last": None, "suggestion": None,
+            "undo": None, "since": None}
+
+
+def _day(text: object, today: datetime.date) -> bool:
+    if not isinstance(text, str) or len(text) != 10:
+        return False
+    try:
+        day = datetime.date.fromisoformat(text)
+    except ValueError:
+        return False
+    return today - datetime.timedelta(days=KEEP_DAYS) <= day < today
+
+
+def checked(nights: object, opens: object, today: datetime.date) -> tuple[dict, dict] | None:
+    """The server's summaries, only if every part is what a summary can be."""
+    if not (isinstance(nights, dict) and isinstance(opens, dict)
+            and len(nights) <= KEEP_DAYS + 1 and len(opens) <= KEEP_DAYS + 1):
+        return None
+    for day, gap in nights.items():
+        if not (_day(day, today) and isinstance(gap, list)
+                and len(gap) == 2 and all(type(v) is int for v in gap)
+                and 0 <= gap[0] < gap[1] <= STEPS * STEP
+                and MIN_QUIET <= gap[1] - gap[0] <= MAX_QUIET):
+            return None
+    for day, minutes in opens.items():
+        if not (_day(day, today) and isinstance(minutes, list) and len(minutes) <= MAX_OPENS
+                and all(type(v) is int and 1 <= v <= 1440 for v in minutes)):
+            return None
+    return nights, opens
 
 
 class Learner:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, feed: Feed) -> None:
         self._hass, self._entry, self._feed = hass, entry, feed
         self._on: bool = entry.options.get(CONF_LEARN, False)
-        self._entities: list[str] = shared(hass, entry.options)
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.learned")
         self.data = empty()
-        self._opened: dict[str, datetime.datetime] = {}
 
     async def start(self) -> Callable[[], None]:
-        self.data = {**empty(), **(await self._store.async_load() or {})}
+        saved = await self._store.async_load() or {}
+        # Notes kept here before the server's history was the one record are dropped.
+        self.data = {**empty(), **{k: v for k, v in saved.items() if k in empty()}}
         if not self._on:
             return lambda: None
         self._show()
-        stops = [
-            async_track_state_change_event(self._hass, self._entities, self._changed),
-            async_track_time_interval(self._hass, self._tick, datetime.timedelta(minutes=STEP)),
-        ]
+        stop_tick = async_track_time_interval(self._hass, self._tick, datetime.timedelta(hours=1))
 
         @callback
         def stop() -> None:
-            for item in stops:
-                item()
+            stop_tick()
             ir.async_delete_issue(self._hass, DOMAIN, ISSUE)
         return stop
 
-    # --- noticing ---
-
-    def _now(self) -> tuple[str, int] | None:
-        """Which night it is, and how far in. None in the afternoon."""
-        now = dt_util.now()
-        day = (now - datetime.timedelta(hours=12)).date()
-        if 12 <= now.hour < START.hour:
-            return None
-        minutes = ((now.hour - START.hour) % 24) * 60 + now.minute
-        return day.isoformat(), minutes // STEP
+    # --- the server's summaries ---
 
     @callback
-    def _changed(self, event: Event[EventStateChangedData]) -> None:
-        entity_id, new, old = (event.data[k] for k in ("entity_id", "new_state", "old_state"))
-        if new is None or old is None or new.state == old.state:
-            return
-        kind = self._feed.kind(entity_id) or kind_of(
-            entity_id, new.attributes.get("device_class"))
-        known = {"on", "off", "open", "closed", "locked", "unlocked"}
-        if kind not in ("motion", "opening", "lock") or new.state not in known:
-            self._opened.pop(entity_id, None)
-            return
-        if old.state in known and not (kind == "motion" and new.state == "off"):
-            self._active()
-        if kind != "opening":
-            return
-        now = dt_util.utcnow()
-        if new.state in ("on", "open") and old.state in known:
-            self._opened[entity_id] = now
-        elif since := self._opened.pop(entity_id, None):
-            day = dt_util.now().date().isoformat()
-            day_list = self.data["opens"].setdefault(day, [])
-            if len(day_list) < 200:
-                day_list.append(max(1, round((now - since).total_seconds() / 60)))
-
-    def _night(self, day: str) -> dict[str, Any]:
-        if self.data["pending"].get("night") != day:
-            self._finish()
-            self.data["pending"] = {"night": day, "active": [], "seen": 0}
-        return self.data["pending"]
-
-    @callback
-    def _active(self) -> None:
-        if place := self._now():
-            active = self._night(place[0])["active"]
-            if place[1] not in active:
-                active.append(place[1])
+    def received(self, nights: object, opens: object) -> bool:
+        """Summaries worked out from history. Refused unless each one is well formed."""
+        if not self._on:
+            return False
+        found = checked(nights, opens, dt_util.now().date())
+        if found is None:
+            return False
+        since = self.data["since"] or ""
+        self.data["nights"] = {d: v for d, v in found[0].items() if d >= since}
+        self.data["opens"] = {d: v for d, v in found[1].items() if d >= since}
+        self._consider()
+        self._store.async_delay_save(lambda: self.data, 10)
+        return True
 
     async def _tick(self, now: datetime.datetime) -> None:
         self.tick()
 
     @callback
     def tick(self) -> None:
-        if place := self._now():
-            self._night(place[0])["seen"] += 1
-        else:
-            self._finish()
-            self._consider()
+        self._consider()
         self._store.async_delay_save(lambda: self.data, 10)
-
-    @callback
-    def _finish(self) -> None:
-        """Keep one line about the night, and forget the rest."""
-        pending, self.data["pending"] = self.data["pending"], {}
-        if pending.get("seen", 0) >= MIN_SEEN and (gap := quiet_gap(pending["active"])):
-            self.data["nights"][pending["night"]] = gap
-            self._keep("night", pending["night"], gap)
-        yesterday = (dt_util.now().date() - datetime.timedelta(days=1)).isoformat()
-        if pending and yesterday in self.data["opens"]:
-            self._keep("open", yesterday, self.data["opens"][yesterday])
-        oldest = (dt_util.now().date() - datetime.timedelta(days=KEEP_DAYS)).isoformat()
-        for key in ("nights", "opens"):
-            self.data[key] = {d: v for d, v in self.data[key].items() if d >= oldest}
-
-    @callback
-    def _keep(self, kind: str, day: str, value: list[int]) -> None:
-        """A copy for the server's database."""
-        self._feed.note(f"{kind}:{day}", "learned", json.dumps(value), "learning")
 
     # --- suggesting ---
 
@@ -290,8 +260,7 @@ class Learner:
         return options
 
     async def forget(self) -> None:
-        self.data = empty()
-        self._opened = {}
-        self._feed.note("learned", "forgot", "Forgotten", "learning")
+        """Start again: nights before today are not counted. History itself is kept."""
+        self.data = {**empty(), "since": dt_util.now().date().isoformat()}
         ir.async_delete_issue(self._hass, DOMAIN, ISSUE)
-        await self._store.async_remove()
+        await self._store.async_save(self.data)

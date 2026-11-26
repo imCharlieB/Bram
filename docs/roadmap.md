@@ -58,7 +58,7 @@ Today the server's database logs connections, sign-ins, monitors, what the serve
 | Climate: every run of heating, cooling, and fan, with start, end, target, mode, preset, inside and outside temperature | ✅ |
 | Readings: temperature, humidity, air quality, power, energy, and water | ✅ |
 | Past readings brought in from Home Assistant's own statistics, so trends do not start from nothing | ✅ |
-| Learned hours copied here from Home Assistant, which keeps its own so suggestions work without the server | ✅ |
+| Learning reads quiet nights and door times from history, the one record; Home Assistant keeps none of its own (0.34) | ✅ |
 | Size limit and total size on the page | ✅ |
 | Each thermostat compared with the room's other temperature sensors | ✅ |
 | Size by device, and [cleaning up](#cleaning-up) by asking you or when you say so | ✅ |

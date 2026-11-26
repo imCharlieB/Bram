@@ -35,7 +35,7 @@ BRAM watches the devices you choose, tells your phone when something matters, re
 | **Chat** | On its page, in Assist, and in Telegram. Answers from live state, with the facts listed underneath |
 | **Voice** | Hold to talk and spoken answers, with your own Whisper and Piper |
 | **Personality** | Professional, friendly, dry, minimal, unhinged, or your own |
-| **Learning** | Suggests better night hours. Nothing changes until you approve |
+| **Learning** | Suggests better night hours from BRAM's history. Needs Keep history. Nothing changes until you approve |
 | **Outside Home Assistant** | Telegram or ntfy if Home Assistant, Ollama, Frigate, or another device goes down |
 
 Everything that shares or stores more is off until you turn it on.

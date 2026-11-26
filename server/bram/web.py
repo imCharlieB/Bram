@@ -558,8 +558,8 @@ class ConfigPage:
                       for r in (found.list("open", limit=50) if found else [])
                       if r["severity"] in ("high", "medium")][:8],
             "sent_today": found.sent_since(today) if found else 0,
-            "nights": max((found.learned(h, "night") for h, _ in houses), default=0)
-            if found else 0,
+            "nights": max((len(history.learning(h, zone)["nights"]) for h, _ in houses),
+                          default=0) if history else 0,
             "history": history is not None,
             "series": history.series(houses[0][0]) if history and houses else [],
             "climate": history.climate_days(houses[0][0], 1, zone) if history and houses else [],
@@ -623,7 +623,8 @@ class ConfigPage:
         homes = [{"name": name, "days": self.history.climate_days(house, 7, zone),
                   "compare": self.history.compare(house),
                   "prints": self.findings.prints(house) if self.findings is not None else [],
-                  "nights": self.findings.learned(house, "night") if self.findings else 0,
+                  "nights": len(self.history.learning(house, zone)["nights"])
+                  if self.history.on else 0,
                   "suggestion": self._suggestion(house)}
                  for house, name in self._pairing.houses()]
         return _json({**self.history.summary(), "homes": homes})

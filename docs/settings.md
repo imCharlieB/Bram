@@ -18,7 +18,7 @@
 | | Use Telegram and ntfy after 5 unanswered minutes | Off |
 | Watching | Problems with Home Assistant | Off; on in Quick setup |
 | | 3D printers | Off; on in Quick setup if any are found |
-| 3D printers | One switch for each printer | On |
+| 3D printers | One switch for each printer | Off: only printers you switch on are watched or shown |
 | | Unlocked at night | Off |
 | | Open or unlocked while away | Off |
 | | Left open: doors, windows, garage doors and gates | On, once Left open is on |

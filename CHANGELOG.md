@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.34.0
+
+Update both: BRAM in HACS and the server in Portainer.
+
+- Learning reads its quiet nights and door times from BRAM's history instead of keeping its own notes, so there is one record. It needs **Keep history** on. Nights already in history count, so a suggestion can come without another two-week wait. Notes Learning kept before are dropped.
+- Docs: 3D printers start switched off.
+
 ## 0.33.0
 
 Update both: BRAM in HACS and the server in Portainer.

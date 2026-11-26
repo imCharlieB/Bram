@@ -8,7 +8,7 @@ from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.bram.house_rules import HouseRules
-from custom_components.bram.learning import ISSUE, MIN_SEEN, Learner, empty, quiet_gap, suggest
+from custom_components.bram.learning import ISSUE, Learner, empty, quiet_gap, suggest
 from custom_components.bram.repairs import async_create_fix_flow
 
 pytestmark = pytest.mark.usefixtures("custom")
@@ -76,39 +76,31 @@ def test_longest_quiet_stretch():
     assert quiet_gap([0, 200]) is None  # nobody home
 
 
-async def test_a_night_becomes_one_line(env):
-    await env.flip()
-    env.at(23, 45)
-    await env.flip()
-    env.now += datetime.timedelta(days=1)
-    env.at(7)
-    await env.flip()
-    env.learner.data["pending"]["seen"] = MIN_SEEN
-    env.at(12, 5)
-    env.learner.tick()
-    assert env.learner.data["nights"] == {"2026-01-04": [345, 780]}
-    assert env.learner.data["pending"] == {}
+GOOD = {"2026-01-03": [345, 780]}
 
 
-async def test_a_night_not_watched_is_left_out(env):
-    await env.flip()
-    env.learner.data["pending"]["active"] = [0, 69, 156]
-    env.learner.data["pending"]["seen"] = MIN_SEEN - 1
-    env.at(12, 5)
-    env.learner.tick()
-    assert env.learner.data["nights"] == {}
+async def test_summaries_from_the_servers_history_are_used(env):
+    assert env.learner.received(GOOD, {"2026-01-03": [7, 2]})
+    assert env.learner.data["nights"] == GOOD
+    assert env.learner.data["opens"] == {"2026-01-03": [7, 2]}
 
 
-async def test_open_lengths_are_kept_and_unknown_is_not_a_closing(env):
-    await env.flip(DOOR)
-    env.now += datetime.timedelta(minutes=7)
-    env.hass.states.async_set(DOOR, "off")
-    await env.hass.async_block_till_done()
-    await env.flip(DOOR)
-    for value in ("unavailable", "off"):
-        env.hass.states.async_set(DOOR, value)
-        await env.hass.async_block_till_done()
-    assert env.learner.data["opens"] == {"2026-01-04": [7]}
+@pytest.mark.parametrize(("nights", "opens"), [
+    ({"2026-01-04": [345, 780]}, {}),  # tonight is not over
+    ({"2025-01-03": [345, 780]}, {}),  # too old
+    ({"2026-01-03": [345, 1200]}, {}),  # past noon
+    ({"2026-01-03": [345, 400]}, {}),  # too short to be a night
+    ({"2026-01-03": [345.0, 780]}, {}),
+    ({"2026-01-03": "345,780"}, {}),
+    ({"tomorrow": [345, 780]}, {}),
+    ({}, {"2026-01-03": [0]}),
+    ({}, {"2026-01-03": [5] * 201}),
+    ({}, {"2026-01-04": [5]}),  # today is not over
+    ([], {}), ({}, None)])
+async def test_bad_summaries_change_nothing(env, nights, opens):
+    env.learner.received(GOOD, {})
+    assert not env.learner.received(nights, opens)
+    assert env.learner.data["nights"] == GOOD and env.learner.data["opens"] == {}
 
 
 async def test_nothing_before_enough_days_and_nothing_for_small_changes(env):
@@ -185,15 +177,15 @@ async def test_no_is_respected(env, word):
     assert env.learner.data["never"] == (["night"] if word == "never" else [])
 
 
-async def test_off_notices_nothing_and_forget_deletes(hass, env):
+async def test_off_takes_nothing_and_forget_starts_again(hass, env):
     env.fill()
     await env.learner.forget()
-    assert env.learner.data == empty()
+    assert env.learner.data == {**empty(), "since": "2026-01-04"}
+    assert env.learner.received(GOOD, {}) and env.learner.data["nights"] == {}
     off = MockConfigEntry(domain="bram", options={"entities": [MOTION]})
     learner = Learner(hass, off, Feed())
     (await learner.start())()
-    await env.flip()
-    assert learner.data == empty()
+    assert not learner.received(GOOD, {}) and learner.data == empty()
 
 
 @pytest.mark.parametrize(("day", "hour", "minute", "night"), [

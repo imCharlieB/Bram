@@ -12,6 +12,7 @@ import time
 from collections.abc import Callable
 from importlib.metadata import version
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from aiohttp import WSCloseCode, WSMsgType, web
 
@@ -26,7 +27,7 @@ from .pairing import CODE_LIFETIME, Pairing, ensure_certificate
 from .personality import MODES
 from .settings import Settings
 from .watch import NOTABLE, Watcher, named
-from .web import ConfigPage
+from .web import ConfigPage, _older
 from .world import Event, World
 
 PAIRING = web.AppKey("pairing", Pairing)
@@ -255,6 +256,7 @@ def _remember(app: web.Application, event: Event, world: World) -> None:
 async def _keep(app: web.Application) -> None:
     """Once a minute, note the readings. Now and then, bring in what is already known."""
     tries: dict[int, float] = {}
+    told: dict[str, tuple] = {}
     while True:
         await asyncio.sleep(60)
         try:
@@ -262,6 +264,7 @@ async def _keep(app: web.Application) -> None:
             mind_space(app)
             for house_id in list(app[SOCKETS]):
                 await bring_past(app, house_id, tries)
+                await tell_learning(app, house_id, told)
         except Exception as err:  # noqa: BLE001 - history must never stop the server
             print(f"History could not be kept: {type(err).__name__}", file=sys.stderr)
 
@@ -278,6 +281,26 @@ def mind_space(app: web.Application) -> None:
         alerts.raise_alert("server", "storage", text, safety=False)
     else:
         alerts.clear("server", "storage", safety=False)
+
+
+async def tell_learning(app: web.Application, house_id: str, told: dict[str, tuple]) -> None:
+    """Quiet nights and door times from history, for Learning in Home Assistant to judge."""
+    ws, house = app[SOCKETS].get(house_id), app[HOUSES].get(house_id)
+    if ws is None or house is None or _older(house[0].version, (0, 34)):
+        return
+    history = app[HISTORY]
+    zone = ZoneInfo(app[SETTINGS].all()["timezone"] or "UTC") if SETTINGS in app else ZoneInfo(
+        "UTC")
+    found = history.learning(house_id, zone) if history.on else {"nights": {}, "opens": {}}
+    # Again when it changes, when Home Assistant reconnects, and once an hour.
+    mark = (id(ws), int(time.time() // 3600), json.dumps(found, sort_keys=True))
+    if told.get(house_id) == mark:
+        return
+    try:
+        await ws.send_json({"type": "learned", **found})
+    except ConnectionError:
+        return
+    told[house_id] = mark
 
 
 async def bring_past(app: web.Application, house_id: str, tries: dict[int, float]) -> None:

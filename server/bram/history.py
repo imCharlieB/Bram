@@ -12,6 +12,8 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from .nights import KEEP_DAYS, summarize
+from .nights import KINDS as LEARN_KINDS
 from .world import MEANING, UNUSABLE, Event, World
 
 SLOT, HOUR = 300, 3600
@@ -41,6 +43,8 @@ CREATE TABLE IF NOT EXISTS run (
     action TEXT, mode TEXT, preset TEXT, fan TEXT, target REAL, low REAL, high REAL,
     inside0 REAL, inside1 REAL, outside0 REAL, outside1 REAL);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value REAL);
+CREATE TABLE IF NOT EXISTS seen (
+    house_id TEXT NOT NULL, slot INTEGER NOT NULL, PRIMARY KEY (house_id, slot)) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS run_device ON run (device, start);
 """
 TABLES = ("reading", "hourly", "change", "run")
@@ -70,6 +74,7 @@ class History:
         self.reload()
         self._ids: dict[tuple[str, str, str], tuple[int, tuple]] = {}
         self._slots: dict[tuple[int, int], list[float]] = {}
+        self._learning: dict[str, tuple[tuple[int, str], dict]] = {}
         self._last: dict[int, str] = {}
         self._rolled = 0
         alive = self._db.execute("SELECT value FROM meta WHERE key = 'alive'").fetchone()
@@ -204,6 +209,10 @@ class History:
         for world in worlds:
             if not world.live:
                 continue
+            with self._db:
+                # Which 5-minute spans were watched, so a gap is never read as a quiet night.
+                self._db.execute("INSERT OR IGNORE INTO seen VALUES (?, ?)",
+                                 (world.house_id, slot))
             for event in world.all():
                 values = event.detail.get("values")
                 if not values or event.state.lower() in UNUSABLE:
@@ -243,6 +252,9 @@ class History:
                     "ROUND(AVG(avg), 3), MAX(hi) FROM reading WHERE at >= ? AND at < ? "
                     "GROUP BY device, at / 3600", (since, hour))
             self._fit()
+            with self._db:
+                self._db.execute("DELETE FROM seen WHERE slot < ?",
+                                 (hour - (KEEP_DAYS + 10) * 86400,))
 
     def _fit(self) -> None:
         """At the limit, the oldest 5-minute readings give way. Their hours are already kept."""
@@ -362,6 +374,24 @@ class History:
             "WHERE a.house_id = ? AND a.kind = 'climate' AND a.metric = 'now' AND a.area != '' "
             "AND x.at >= ? GROUP BY a.id, b.id ORDER BY a.area", (house_id, since))]
 
+    def learning(self, house_id: str, zone: ZoneInfo) -> dict[str, dict[str, list[int]]]:
+        """Quiet nights and door openings for Learning, worked out at most once an hour."""
+        hour = int(self._clock() // HOUR)
+        cached = self._learning.get(house_id)
+        if cached is not None and cached[0] == (hour, str(zone)):
+            return cached[1]
+        since = self._clock() - (KEEP_DAYS + 2) * 86400
+        changes = [(r[0], r[1], r[2], r[3]) for r in self._db.execute(
+            "SELECT change.device, device.kind, change.at, change.state FROM change "
+            "JOIN device ON device.id = change.device WHERE device.house_id = ? "
+            "AND device.kind IN (?, ?, ?) AND change.at >= ? "
+            "ORDER BY change.device, change.at", (house_id, *LEARN_KINDS, since))]
+        seen = [r[0] for r in self._db.execute(
+            "SELECT slot FROM seen WHERE house_id = ? AND slot >= ?", (house_id, since))]
+        found = summarize(changes, seen, zone, self._clock())
+        self._learning[house_id] = ((hour, str(zone)), found)
+        return found
+
     # --- forgetting ---
 
     def forget(self, house_id: str | None = None) -> None:
@@ -372,6 +402,8 @@ class History:
                 self._db.execute(f"DELETE FROM {table} WHERE device IN "  # noqa: S608
                                  f"(SELECT id FROM device {where})", values)
             self._db.execute(f"DELETE FROM device {where}", values)  # noqa: S608
+            self._db.execute(f"DELETE FROM seen {where}", values)  # noqa: S608
+        self._learning.clear()
         self._ids.clear()
         self.reload()
         self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")

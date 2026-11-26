@@ -262,6 +262,11 @@ class Feed:
                 if part is not None:
                     part.answered(pressed)
             return
+        if (isinstance(data, dict) and data.keys() == {"type", "nights", "opens"}
+                and data["type"] == "learned" and self.learner is not None):
+            # Summaries for suggestions only; the owner approves any change (F4).
+            self.learner.received(data["nights"], data["opens"])
+            return
         if (isinstance(data, dict) and data.keys() == {"type", "mode"}
                 and data["type"] == "mood" and data["mode"] in tuple(MOODS)):
             self.mood = data["mode"]

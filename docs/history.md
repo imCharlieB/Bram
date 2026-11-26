@@ -4,7 +4,7 @@ BRAM can remember what your shared devices did, in its own database. Off until y
 
 It records as things happen: each reading every minute, and each change when it happens. Nothing from before you turned it on is recorded, except the past readings below.
 
-This is separate from **Learning** in Home Assistant, which notes quiet nights and door times by itself to suggest better hours. See [Learning](learning.md).
+[Learning](learning.md) reads its quiet nights and door times from this history, so it needs **Keep history** on.
 
 ## What it keeps
 
