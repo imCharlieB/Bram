@@ -826,8 +826,29 @@ function needActs(need) {
       hide.textContent = error.message;
     }
   });
-  box.append(story, hide);
+  box.append(story, ...pressButtons(need, loadBrain), hide);
   return box;
+}
+
+// The same Stop these and Less often the phone was given. Home Assistant checks each press.
+const PRESS_TIP = { "Stop these": "No more messages like this. Undo in Home Assistant with the BRAM button Allow stopped messages.", "Less often": "At most once a day from now on." };
+function pressButtons(item, reload) {
+  return (item.buttons || []).map((offered) => {
+    const button = element("button", offered.title, "quiet small");
+    button.type = "button";
+    button.title = PRESS_TIP[offered.title] || "";
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        await api("press", { id: item.id, action: offered.action });
+        await reload();
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = error.message;
+      }
+    });
+    return button;
+  });
 }
 
 // Printers only while they print, or when one has a problem.
@@ -1206,7 +1227,7 @@ function findingRow(item) {
     await api("finding-ignore", { id: item.id, on: !item.ignored });
     return loadFindings();
   }));
-  side.append(story, hide);
+  side.append(story, ...pressButtons(item, loadFindings), hide);
   head.append(element("b", item.text), side);
   row.append(head, element("span", `${FROM[item.source] || item.source}${item.home ? ", " + item.home : ""}: ${item.times === 1 ? "once" : item.times + " times"}, first ${ago(item.first)}, last ${ago(item.last)}, ${told}${item.acked ? ", acknowledged" : ""}${item.stopped ? ", messages stopped" : ""}${over}`, "note"), list);
   return row;

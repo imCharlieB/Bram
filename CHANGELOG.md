@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.33.0
+
+Update both: BRAM in HACS and the server in Portainer.
+
+- **Stop these** and **Less often** on BRAM's page: under Needs you on Home and beside findings, whenever your phone was given them. Home Assistant accepts only a button it offered for that message, once. Acknowledge stays on the phone only.
+
 ## 0.32.4
 
 - History: while it is off, the History page starts with a large **Start keeping history** button, and the Keep history switch is larger.

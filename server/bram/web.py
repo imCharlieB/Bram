@@ -7,6 +7,7 @@ import datetime
 import hashlib
 import io
 import ipaddress
+import json
 import secrets
 import time
 from collections.abc import Awaitable, Callable
@@ -70,7 +71,9 @@ class ConfigPage:
                  history: History | None = None,
                  findings: Findings | None = None,
                  printers: dict[str, list[dict]] | None = None,
-                 watching: dict[str, list[dict]] | None = None) -> None:
+                 watching: dict[str, list[dict]] | None = None,
+                 send_house: Callable[[str, dict], Awaitable[bool]] | None = None) -> None:
+        self._send_house = send_house
         self.printers = printers if printers is not None else {}
         self.watching = watching if watching is not None else {}
         self.history, self.findings = history, findings
@@ -122,6 +125,7 @@ class ConfigPage:
             web.get("/api/findings", self._private(self._findings)),
             web.get("/api/finding", self._private(self._finding)),
             web.post("/api/finding-ignore", self._private(self._ignore_finding)),
+            web.post("/api/press", self._private(self._press)),
             web.get("/api/cleanup", self._private(self._cleanup_list)),
             web.post("/api/cleanup-plan", self._private(self._cleanup_plan)),
             web.post("/api/cleanup-drop", self._private(self._cleanup_drop)),
@@ -550,7 +554,7 @@ class ConfigPage:
                                key=lambda w: w.get("due", 9e10)),
             "decisions": found.decisions(today - 86400) if found else [],
             "needs": [{k: r[k] for k in ("id", "source", "severity", "text", "first", "times",
-                                         "told")}
+                                         "told")} | {"buttons": json.loads(r["buttons"])}
                       for r in (found.list("open", limit=50) if found else [])
                       if r["severity"] in ("high", "medium")][:8],
             "sent_today": found.sent_since(today) if found else 0,
@@ -577,7 +581,8 @@ class ConfigPage:
         return _json({"findings": [
             {k: r[k] for k in ("id", "source", "severity", "text", "is_open", "ignored", "first",
                                "last", "times", "told", "acked", "stopped", "closed")}
-            | {"home": names.get(r["house_id"], "")} for r in rows]})
+            | {"home": names.get(r["house_id"], ""), "buttons": json.loads(r["buttons"])}
+            for r in rows]})
 
     async def _finding(self, request: web.Request) -> web.Response:
         number = request.query.get("id", "")
@@ -591,6 +596,24 @@ class ConfigPage:
         if (self.findings is None or not isinstance(on, bool)
                 or not self.findings.ignore(body.get("id"), on)):
             return _json({"error": "No such finding"}, 400)
+        return _json({"ok": True})
+
+    async def _press(self, request: web.Request) -> web.Response:
+        """Stop these or Less often, as on the phone. Home Assistant checks it was offered."""
+        body = await _body(request)
+        found = self.findings.button(body.get("id"), body.get("action")) if (
+            self.findings is not None) else None
+        if found is None:
+            return _json({"error": "That button is no longer offered"}, 400)
+        house_id, key = found
+        world = self._worlds().get(house_id)
+        if world is None or _older(getattr(world, "version", ""), (0, 33)):
+            return _json({"error": "Update BRAM in Home Assistant to use this here"}, 409)
+        if self._send_house is None or not await self._send_house(
+                house_id, {"type": "press", "key": key, "action": body["action"]}):
+            return _json({"error": "Home Assistant is not linked right now"}, 503)
+        self.findings.pressed(body["id"], body["action"])
+        self._audit.record(house_id, "config page", "button pressed", key[:80], "ok")
         return _json({"ok": True})
 
     async def _history(self, request: web.Request) -> web.Response:
@@ -965,3 +988,11 @@ async def _body(request: web.Request) -> dict:
 
 def _json(data: dict, status: int = 200) -> web.Response:
     return web.json_response(data, status=status, headers=HEADERS)
+
+
+def _older(version: str, than: tuple[int, int]) -> bool:
+    """True when a version is unknown or older."""
+    try:
+        return tuple(int(x) for x in version.split(".")[:2]) < than
+    except ValueError:
+        return True

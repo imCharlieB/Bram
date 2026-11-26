@@ -39,7 +39,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             registry.async_remove(item.entity_id)
     feed.outbox = Outbox(hass, entry, feed.send, feed.takes_notes)
     entry.async_on_unload(await feed.outbox.start())
-    feed.teller = Teller(hass, entry, feed.note)
+    feed.teller = Teller(hass, entry, feed.note, feed.offer)
     entry.async_on_unload(await feed.teller.start())
     feed.alerts = HomeAlerts(hass, entry, feed)
     entry.async_on_unload(await feed.alerts.start())

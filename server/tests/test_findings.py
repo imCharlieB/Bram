@@ -151,3 +151,33 @@ def test_decisions_are_what_was_told_or_held_and_why(env):
     rows = env.f.decisions(0)
     assert [r["what"] for r in rows] == ["held", "sent"] and rows[0]["about"] == "text open"
     assert env.f.decisions(0, "h2") == [] and env.f.sent_since(0) == 1
+
+
+STOP = {"action": "BRAM_QUIET_night:lock.a", "title": "Stop these"}
+LESS = {"action": "BRAM_LESS_0123456789abcdef", "title": "Less often"}
+
+
+def test_buttons_offered_by_home_assistant(env):
+    env.note("open")
+    env.note("buttons", buttons=[STOP, LESS])
+    row = env.only()
+    assert env.f.button(row["id"], LESS["action"]) == ("h1", KEY)
+    assert env.f.button(row["id"], "BRAM_ACK_x") is None
+    assert env.f.button(str(row["id"]), LESS["action"]) is None
+    env.f.pressed(row["id"], LESS["action"])
+    assert env.f.button(row["id"], LESS["action"]) is None
+    assert env.f.button(row["id"], STOP["action"])
+    env.note("closed")
+    assert env.f.button(row["id"], STOP["action"]) is None
+
+
+@pytest.mark.parametrize("buttons", [
+    [{"action": "BRAM_ACK_a", "title": "Acknowledge"}],
+    [{"action": "BRAM_QUIET_a", "title": "Unlock"}],
+    [{"action": "unlock", "title": "Stop these"}],
+    [{"action": "BRAM_QUIET_a", "title": "Stop these", "x": 1}],
+    [STOP] * 4, "x"])
+def test_only_stop_and_less_buttons_are_kept(env, buttons):
+    env.note("open")
+    with pytest.raises(ValueError):
+        env.note("buttons", buttons=buttons)

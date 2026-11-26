@@ -78,7 +78,7 @@ class HouseRules:
         self._told = set(saved.get("told", []))
         stops = [
             async_track_state_change_event(self._hass, self._entities, self._changed),
-            self._hass.bus.async_listen("mobile_app_notification_action", self._answered),
+            self._hass.bus.async_listen("mobile_app_notification_action", self.answered),
             async_track_time_interval(self._hass, self._tick, datetime.timedelta(seconds=30)),
         ]
 
@@ -96,7 +96,7 @@ class HouseRules:
         await self.run()
 
     @callback
-    def _answered(self, event: Event) -> None:
+    def answered(self, event: Event) -> None:
         action = event.data.get("action")
         if isinstance(action, str) and action.startswith(MUTE):
             key = action[len(MUTE):]
@@ -224,6 +224,8 @@ class HouseRules:
                                 "\n".join(text for _, _, text in batch), f"bram_{key}",
                                 safety=False, actions=actions):
                     self._told.update(k for _, k, _ in batch)
+                    if actions:
+                        self._teller.offer(f"rules:{key}", actions, "rules")
                     for urgent, k, text in batch:
                         self._note(f"rules:{k}", "sent", f"Phone: {text}", "rules", "low")
                         if not urgent:

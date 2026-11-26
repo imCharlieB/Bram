@@ -77,7 +77,7 @@ class PrinterWatch:
         if not self._on:
             return lambda: None
         stops = [async_track_time_interval(self._hass, self._tick, EVERY),
-                 self._hass.bus.async_listen("mobile_app_notification_action", self._answered)]
+                 self._hass.bus.async_listen("mobile_app_notification_action", self.answered)]
 
         @callback
         def stop() -> None:
@@ -90,7 +90,7 @@ class PrinterWatch:
             await self.run()
 
     @callback
-    def _answered(self, event: Event) -> None:
+    def answered(self, event: Event) -> None:
         action = event.data.get("action")
         if isinstance(action, str) and action.startswith(MUTE):
             key = action[len(MUTE):]
@@ -235,6 +235,7 @@ class PrinterWatch:
                             f"bram_printer_{item['key']}", safety=False, actions=actions):
                 self._sent.append(now)
                 self._teller.told(f"printer:{item['key']}", item["text"])
+                self._teller.offer(f"printers:{item['key']}", actions, "printers")
                 self._note(f"printers:{item['key']}", "sent", f"Phone: {item['text']}",
                            "printers", "low")
             elif item["tries"] < 10:

@@ -10,6 +10,7 @@ from aiohttp import web
 from bram import local_model
 from bram.alerts import Alerts
 from bram.audit import Audit
+from bram.findings import Findings
 from bram.local_model import _is_remote, _keep_alive, check_local
 from bram.models.base import ModelError, Reply
 from bram.pairing import Pairing, ensure_certificate
@@ -43,8 +44,9 @@ async def page(tmp_path):
     db = tmp_path / "bram.db"
     p.settings, p.audit, p.pairing = Settings(db), Audit(db), Pairing(db)
     p.now = 0.0
-    p.alerts = Alerts(db, p.audit)
-    p.app = make_app(p.pairing, p.audit, p.settings, fingerprint, p.alerts, clock=lambda: p.now)
+    p.alerts, p.findings = Alerts(db, p.audit), Findings(db)
+    p.app = make_app(p.pairing, p.audit, p.settings, fingerprint, p.alerts, clock=lambda: p.now,
+                     findings=p.findings)
     runner = web.AppRunner(p.app)
     await runner.setup()
     await web.TCPSite(runner, "127.0.0.1", 0, ssl_context=context).start()
@@ -54,7 +56,7 @@ async def page(tmp_path):
     async with aiohttp.ClientSession(cookie_jar=jar) as p.http:
         yield p
     await runner.cleanup()
-    for item in (p.alerts, p.settings, p.audit, p.pairing):
+    for item in (p.alerts, p.settings, p.audit, p.pairing, p.findings):
         item.close()
 
 
@@ -65,6 +67,7 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("POST", "hear"), ("POST", "speak"),
            ("GET", "house"), ("GET", "history"), ("POST", "history"),
            ("GET", "findings"), ("GET", "brain"), ("GET", "finding"), ("POST", "finding-ignore"),
+           ("POST", "press"),
            ("GET", "cleanup"), ("POST", "cleanup-plan"), ("POST", "cleanup-drop"),
            ("POST", "cleanup-apply"), ("POST", "cleanup-later"),
            ("POST", "history-delete"),
@@ -628,3 +631,32 @@ async def test_cleaning_up_needs_the_password_and_the_exact_list(page, tmp_path)
     assert history.summary()["counts"]["change"] == 0
     assert "history cleaned" in json.dumps(page.audit.recent(5))
     history.close()
+
+
+async def test_page_buttons_go_to_home_assistant_only_as_offered(page):
+    await page.post("setup", SETUP)
+    code = (await (await page.post("pair", {"name": "Home", "confirm": PASSWORD})).json())["code"]
+    paired = await (await page.http.post(
+        page.url + "/pair", json={"secret": code.split("-")[2]}, ssl=page.pin)).json()
+    headers = {"Authorization": f"Bearer {paired['token']}"}
+    stop = {"action": "BRAM_QUIET_night:lock.a", "title": "Stop these"}
+    async with page.http.ws_connect(page.url + "/feed", ssl=page.pin, headers=headers) as ws:
+        await ws.receive(timeout=3)  # hello
+        await ws.receive(timeout=3)  # mood
+        await ws.send_json({"type": "snapshot", "states": [], "version": "0.32.0"})
+        for n, (what, extra) in enumerate([("open", {}), ("buttons", {"buttons": [stop]})]):
+            await ws.send_json({"type": "note", "id": f"{n:016x}", "key": "rules:k",
+                                "what": what, "text": "Front lock", "source": "rules",
+                                "severity": "medium", **extra})
+            assert (await ws.receive_json(timeout=3))["type"] == "noted"
+        (need,) = (await (await page.get("/api/brain")).json())["needs"]
+        assert need["buttons"] == [stop]
+        press = {"id": need["id"], "action": stop["action"]}
+        assert (await page.post("press", {**press, "action": "BRAM_ACK_k"})).status == 400
+        assert (await page.post("press", press)).status == 409  # Home Assistant too old
+        await ws.send_json({"type": "snapshot", "states": [], "version": "0.33.0"})
+        await asyncio.sleep(0.2)
+        assert (await page.post("press", press)).status == 200
+        assert await ws.receive_json(timeout=3) == {"type": "press", "key": "rules:k",
+                                                     "action": stop["action"]}
+        assert (await page.post("press", press)).status == 400  # once

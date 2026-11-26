@@ -82,7 +82,7 @@ class HomeAlerts:
         self._alerts = {e: a for e, a in saved.get("alerts", {}).items() if e in self._entities}
         stops = [
             async_track_state_change_event(self._hass, self._entities, self._changed),
-            self._hass.bus.async_listen("mobile_app_notification_action", self._answered),
+            self._hass.bus.async_listen("mobile_app_notification_action", self.answered),
             async_track_time_interval(self._hass, self._tick, datetime.timedelta(seconds=10)),
             self._feed.listen(self._server_changed),
         ]
@@ -166,7 +166,7 @@ class HomeAlerts:
             self._feed.send({"type": "deescalate", "entity_id": entity_id})
 
     @callback
-    def _answered(self, event: Event) -> None:
+    def answered(self, event: Event) -> None:
         action = event.data.get("action")
         if not isinstance(action, str):
             return
@@ -284,6 +284,8 @@ class HomeAlerts:
                             "\n".join(item["text"] for item in batch),
                             f"bram_{first['key']}", safety=False, actions=actions):
                 self._sent_notices.append(now)
+                if actions and first["key"].endswith(" silent"):
+                    self._feed.offer(f"silent:{first['entity_id']}", actions, "silent")
                 for item in batch:
                     if item["key"].endswith(" silent") and self._feed.teller is not None:
                         self._feed.teller.told(f"silent:{item['entity_id']}", item["text"])

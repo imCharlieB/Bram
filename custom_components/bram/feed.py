@@ -148,6 +148,12 @@ class Feed:
             self.outbox.note(key, what, text, source, severity)
 
     @callback
+    def offer(self, key: str, actions: list[dict[str, str]], source: str) -> None:
+        """Buttons a phone was given, so BRAM's page can offer the same ones."""
+        if self.outbox is not None:
+            self.outbox.offer(key, actions, source)
+
+    @callback
     def send_printers(self, items: list[dict]) -> bool:
         if not self.connected or self.server_version is None or _key(
                 self.server_version) < (0, 27):
@@ -246,6 +252,15 @@ class Feed:
                 and data["type"] == "noted" and isinstance(data["id"], str)):
             if self.outbox is not None:
                 self.outbox.confirmed(data["id"])
+            return
+        if (isinstance(data, dict) and data.keys() == {"type", "key", "action"}
+                and data["type"] == "press" and self.outbox is not None
+                and self.outbox.press(data["key"], data["action"])):
+            # Pressed on BRAM's page: handled as the phone button that was offered.
+            pressed = Event("mobile_app_notification_action", {"action": data["action"]})
+            for part in (self.alerts, self.rules, self.problems, self.printers, self.teller):
+                if part is not None:
+                    part.answered(pressed)
             return
         if (isinstance(data, dict) and data.keys() == {"type", "mode"}
                 and data["type"] == "mood" and data["mode"] in tuple(MOODS)):

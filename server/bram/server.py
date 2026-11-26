@@ -304,6 +304,17 @@ async def _tell_mood(app: web.Application) -> None:
             continue
 
 
+async def send_house(app: web.Application, house_id: str, message: dict) -> bool:
+    ws = app[SOCKETS].get(house_id)
+    if ws is None:
+        return False
+    try:
+        await ws.send_json(message)
+    except ConnectionError:
+        return False
+    return True
+
+
 async def ask_house(app: web.Application, house_id: str, what: str,
                     entity_id: str = "") -> dict | None:
     """Ask Home Assistant one of its two allowed questions. None if it did not answer."""
@@ -433,7 +444,8 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
                           disconnect, alerts,
                           lambda: {k: v[0] for k, v in app[HOUSES].items()}, clock,
                           lambda *a: ask_house(app, *a), lambda: _tell_mood(app), history,
-                          findings, app[PRINTERS], app[WATCHING])
+                          findings, app[PRINTERS], app[WATCHING],
+                          lambda *a: send_house(app, *a))
         app[SETTINGS] = settings
         if alerts is not None:
             app[ALERTS], app[TASKS] = alerts, []

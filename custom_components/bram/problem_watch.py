@@ -57,7 +57,7 @@ class ProblemWatch:
         if not self._on:
             return lambda: None
         stops = [async_track_time_interval(self._hass, self._tick, EVERY),
-                 self._hass.bus.async_listen("mobile_app_notification_action", self._answered)]
+                 self._hass.bus.async_listen("mobile_app_notification_action", self.answered)]
 
         @callback
         def stop() -> None:
@@ -70,7 +70,7 @@ class ProblemWatch:
             await self.run()
 
     @callback
-    def _answered(self, event: Event) -> None:
+    def answered(self, event: Event) -> None:
         action = event.data.get("action")
         if not isinstance(action, str) or not action.startswith(MUTE):
             return
@@ -158,6 +158,8 @@ class ProblemWatch:
                             actions=actions):
             return False
         self._sent.append(now)
+        if key is not None:
+            self._teller.offer(f"problems:{key}", actions, "problems")
         return True
 
     @callback

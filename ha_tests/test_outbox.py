@@ -1,4 +1,5 @@
 import datetime
+import json
 from unittest.mock import patch
 
 import pytest
@@ -118,3 +119,57 @@ async def test_rules_note_found_told_and_over(hass):
     key = "rules:offline:lock.a"
     assert [n for n in notes if n[1] != "open"] == [(key, "sent"), (key, "closed")]
     assert notes[0] == (key, "open")
+
+
+STOP = {"action": "BRAM_QUIET_night:lock.a", "title": "Stop these"}
+LESS = {"action": "BRAM_LESS_0123456789abcdef", "title": "Less often"}
+
+
+async def test_offered_buttons_go_to_the_page_but_never_acknowledge(env):
+    env.box.note("rules:k", "open", *NOTE)
+    env.box.offer("rules:k", [STOP, LESS, {"action": "BRAM_ACK_x", "title": "Acknowledge"},
+                              {"action": "BRAM_QUIET_y", "title": "Unlock"}], "rules")
+    assert env.sent[-1]["what"] == "buttons" and env.sent[-1]["buttons"] == [STOP, LESS]
+    env.box.offer("silent:a", [{"action": "BRAM_ACK_a", "title": "Acknowledge"}], "silent")
+    assert env.sent[-1]["key"] == "rules:k"  # nothing pressable, so nothing sent
+
+
+async def test_only_an_offered_button_is_pressed_and_only_once(env):
+    env.box.note("rules:k", "open", *NOTE)
+    env.box.offer("rules:k", [STOP, LESS], "rules")
+    assert not env.box.press("rules:k", "BRAM_ACK_x")
+    assert not env.box.press("rules:other", STOP["action"])
+    assert not env.box.press(["rules:k"], STOP["action"])
+    assert env.box.press("rules:k", LESS["action"])
+    assert env.sent[-1]["buttons"] == [STOP]
+    assert not env.box.press("rules:k", LESS["action"])
+    assert env.box.press("rules:k", STOP["action"])
+    assert env.sent[-1]["buttons"] == []
+    assert not env.box.press("rules:k", STOP["action"])
+
+
+async def test_buttons_end_when_the_finding_is_over(env):
+    env.box.note("rules:k", "open", *NOTE)
+    env.box.offer("rules:k", [STOP], "rules")
+    env.box.note("rules:k", "closed", *NOTE)
+    assert not env.box.press("rules:k", STOP["action"])
+
+
+async def test_a_page_press_acts_like_the_phone_button(hass):
+    feed = Feed(hass, MockConfigEntry(domain="bram"))
+    feed.outbox = Outbox(hass, MockConfigEntry(domain="bram"), lambda m: True, lambda: True)
+    heard = []
+
+    class Part:
+        def answered(self, event):
+            heard.append(event.data)
+
+    feed.rules = feed.teller = Part()
+    feed.outbox.note("rules:k", "open", *NOTE)
+    feed.offer("rules:k", [STOP], "rules")
+    feed.handle_message(json.dumps({"type": "press", "key": "rules:k", "action": "BRAM_ACK_k"}))
+    feed.handle_message(json.dumps({"type": "press", "key": "rules:k",
+                                    "action": STOP["action"], "more": 1}))
+    assert heard == []
+    feed.handle_message(json.dumps({"type": "press", "key": "rules:k", "action": STOP["action"]}))
+    assert heard == [{"action": STOP["action"]}] * 2

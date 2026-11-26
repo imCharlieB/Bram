@@ -31,6 +31,10 @@ BRAM tells your phone about what matters, without repeating what you already kno
 | **Stop these** | No more of this message from this device | **Allow stopped messages** on BRAM's device page |
 | **Less often** | At most once a day. Offered from the third time in a week | **Allow stopped messages** |
 
+The phone shows the buttons when you expand the message: drag it down on Android, or press and hold it on iPhone.
+
+**Stop these** and **Less often** also appear on BRAM's page, under **Needs you** on Home and beside the finding under **Findings**, for as long as the message is open. They are the same buttons the phone was given, and Home Assistant only accepts a button it offered for that message, once. **Acknowledge** is only on the phone, so nothing on BRAM's page or server can quiet a safety alert. Needs Home Assistant's BRAM and the server both on 0.33.0 or later.
+
 BRAM never decides by itself that something told often is unimportant. A door left open every night may be exactly what you want to know.
 
 ## Never held back

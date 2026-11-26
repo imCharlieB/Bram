@@ -46,8 +46,9 @@ def _mark(key: str) -> str:
 
 class Teller:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry,
-                 note: Callable[..., None] = lambda *a: None) -> None:
-        self._hass, self._note = hass, note
+                 note: Callable[..., None] = lambda *a: None,
+                 offer: Callable[..., None] = lambda *a: None) -> None:
+        self._hass, self._note, self.offer = hass, note, offer
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.told")
         self._told: dict[str, dict[str, Any]] = {}
         self._less: list[str] = []
@@ -56,7 +57,7 @@ class Teller:
     async def start(self) -> Callable[[], None]:
         saved = await self._store.async_load() or {}
         self._told, self._less = saved.get("told", {}), saved.get("less", [])
-        return self._hass.bus.async_listen("mobile_app_notification_action", self._answered)
+        return self._hass.bus.async_listen("mobile_app_notification_action", self.answered)
 
     def allow(self, key: str, text: str, usual: str = UNTIL_FIXED, *,
               finding: str | None = None, source: str = "message") -> bool:
@@ -116,7 +117,7 @@ class Teller:
             self._save()
 
     @callback
-    def _answered(self, event: Event) -> None:
+    def answered(self, event: Event) -> None:
         action = event.data.get("action")
         if not isinstance(action, str) or not action.startswith(LESS):
             return

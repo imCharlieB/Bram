@@ -21,6 +21,9 @@ DECIDED = ("sent", "not sent", "acked", "stopped", "snoozed", "held")
 PAGE = 50
 OLDEST = 30 * 86400
 _DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
+# Buttons Home Assistant offered on a phone, which the page may show. Never Acknowledge.
+PRESSABLE = re.compile(r"BRAM_(QUIET|PRINTER|PROBLEM|MUTE|LESS)_[\w:.\-]{1,200}")
+TITLES = ("Stop these", "Less often")
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS finding (
@@ -56,6 +59,10 @@ class Findings:
         self._db = sqlite3.connect(path, timeout=10)
         self._db.row_factory = sqlite3.Row
         self._db.executescript(_SCHEMA)
+        if "buttons" not in [r[1] for r in self._db.execute("PRAGMA table_info(finding)")]:
+            with self._db:
+                self._db.execute("ALTER TABLE finding ADD COLUMN buttons TEXT NOT NULL "
+                                 "DEFAULT '[]'")
         self._clock = clock
 
     # --- writing ---
@@ -78,6 +85,9 @@ class Findings:
             return
         if what == "print":
             self._print(house_id, f"{house_id}:{uid}", data["text"])
+            return
+        if what == "buttons":
+            self._buttons(house_id, key, data.get("buttons"))
             return
         if what not in WHATS or data.get("severity") not in SEVERITIES:
             raise ValueError("bad note")
@@ -120,9 +130,42 @@ class Findings:
                 self._db.execute(f"UPDATE finding SET {column} = ?, last = MAX(last, ?) "  # noqa: S608
                                  "WHERE id = ?", (at, at, finding))
             if what == "closed":
-                self._db.execute("UPDATE finding SET is_open = 0 WHERE id = ?", (finding,))
+                self._db.execute("UPDATE finding SET is_open = 0, buttons = '[]' WHERE id = ?",
+                                 (finding,))
             self._db.execute("INSERT INTO story (finding, uid, at, what, text) "
                              "VALUES (?, ?, ?, ?, ?)", (finding, uid, at, what, text))
+
+    def _buttons(self, house_id: str, key: str, buttons: object) -> None:
+        if (not isinstance(buttons, list) or len(buttons) > 3 or not all(
+                isinstance(b, dict) and b.keys() == {"action", "title"}
+                and isinstance(b["action"], str) and PRESSABLE.fullmatch(b["action"])
+                and b["title"] in TITLES for b in buttons)):
+            raise ValueError("bad buttons")
+        with self._db:
+            self._db.execute("UPDATE finding SET buttons = ? WHERE house_id = ? AND key = ?",
+                             (json.dumps(buttons), house_id, key))
+
+    def button(self, finding: object, action: object) -> tuple[str, str] | None:
+        """The home and key of an open finding that offers this button."""
+        if type(finding) is not int or not isinstance(action, str):
+            return None
+        row = self._db.execute("SELECT house_id, key, buttons FROM finding "
+                               "WHERE id = ? AND is_open = 1", (finding,)).fetchone()
+        if row is None or action not in [b["action"] for b in json.loads(row["buttons"])]:
+            return None
+        return row["house_id"], row["key"]
+
+    def pressed(self, finding: int, action: str) -> None:
+        """Gone from the page at once. Home Assistant sends what is left."""
+        row = self._db.execute("SELECT buttons FROM finding WHERE id = ?", (finding,)).fetchone()
+        if row is None:
+            return
+        buttons = json.loads(row["buttons"])
+        stop = any(b["action"] == action and b["title"] == "Stop these" for b in buttons)
+        left = [] if stop else [b for b in buttons if b["action"] != action]
+        with self._db:
+            self._db.execute("UPDATE finding SET buttons = ? WHERE id = ?",
+                             (json.dumps(left), finding))
 
     def _print(self, house_id: str, uid: str, raw: str) -> None:
         """Kept only with history on (E10)."""
