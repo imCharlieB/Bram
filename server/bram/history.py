@@ -327,6 +327,27 @@ class History:
             entry["outside"] = round(sum(degrees) / len(degrees), 1) if degrees else None
         return [found[k] for k in sorted(found, key=lambda k: (-k[0].toordinal(), k[1]))]
 
+    def series(self, house_id: str, hours: int = 24) -> list[dict]:
+        """Each hour: outside, and the average of the temperature sensors inside."""
+        start = (int(self._clock() // HOUR) - hours + 1) * HOUR
+        rows = self._db.execute(
+            "SELECT r.at / 3600 * 3600 AS hour, d.entity_id, d.kind, AVG(r.avg) AS value "
+            "FROM reading r JOIN device d ON d.id = r.device WHERE d.house_id = ? AND r.at >= ? "
+            "AND d.metric = '' AND (d.kind = 'temperature' OR d.entity_id LIKE 'weather.%') "
+            "GROUP BY hour, d.id", (house_id, start)).fetchall()
+        found: dict[int, dict] = {start + i * HOUR: {"at": start + i * HOUR, "outside": None,
+                                                     "inside": []} for i in range(hours)}
+        for row in rows:
+            if (slot := found.get(row["hour"])) is None:
+                continue
+            if row["entity_id"].startswith("weather."):
+                slot["outside"] = round(row["value"], 1)
+            else:
+                slot["inside"].append(row["value"])
+        return [{"at": s["at"], "outside": s["outside"],
+                 "inside": round(sum(s["inside"]) / len(s["inside"]), 1) if s["inside"] else None}
+                for s in found.values()]
+
     def compare(self, house_id: str, days: int = 7) -> list[dict]:
         """Each thermostat against the other temperature sensors in its room."""
         since = self._clock() - days * 86400

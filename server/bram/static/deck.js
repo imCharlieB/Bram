@@ -1,5 +1,6 @@
 "use strict";
-// The command deck: a live picture of the house. Every mark on it is a real device or event.
+// BRAM's core: rings that turn, gauges that sweep to real values, a voice that breathes,
+// and a pulse each time something happens. Words never sit on the rings.
 const deck = (() => {
   const $ = (id) => document.getElementById(id);
   const make = (tag, text, kind) => {
@@ -11,87 +12,42 @@ const deck = (() => {
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   const TAU = Math.PI * 2;
   const photos = new Map();
-  let speed = 1, spun = 0, lastTime = 0;
-  // Line icons on a 16 by 16 grid.
-  const ICONS = Object.fromEntries(Object.entries({
-    lock: "M4 7h8v6H4z M5.5 7V5a2.5 2.5 0 0 1 5 0v2", opening: "M4 2h8v12H4z M9.8 8v.1", person: "M8 7.2a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8z M3 14c0-3 2-4.6 5-4.6s5 1.6 5 4.6",
-    motion: "M3 8a7 7 0 0 1 10 0 M5 10.2a4.2 4.2 0 0 1 6 0 M8 13v.1", light: "M5.6 10a4 4 0 1 1 4.8 0v1.6H5.6z M6.4 13.8h3.2", switch: "M5 4.5h6a3.5 3.5 0 0 1 0 7H5a3.5 3.5 0 0 1 0-7z M11 8v.1",
-    fan: "M8 8V3 M8 8l4.5 2.5 M8 8l-4.5 2.5 M8 8v.1", media: "M4 2h8v12H4z M8 9.6v.1 M8 5v.1 M5.8 10a2.2 2.2 0 1 0 4.4 0 2.2 2.2 0 0 0-4.4 0", satellite: "M8 2.5a1.8 1.8 0 0 1 1.8 1.8v3a1.8 1.8 0 0 1-3.6 0v-3A1.8 1.8 0 0 1 8 2.5z M4.4 7.4a3.6 3.6 0 0 0 7.2 0 M8 11v2.6",
-    climate: "M7 9V3.6a1.2 1.2 0 0 1 2.4 0V9a2.6 2.6 0 1 1-2.4 0z", temperature: "M7 9V3.6a1.2 1.2 0 0 1 2.4 0V9a2.6 2.6 0 1 1-2.4 0z", humidity: "M8 2.5c2.4 3 3.6 5 3.6 6.8a3.6 3.6 0 0 1-7.2 0C4.4 7.5 5.6 5.5 8 2.5z",
-    leak: "M8 2.5c2.4 3 3.6 5 3.6 6.8a3.6 3.6 0 0 1-7.2 0C4.4 7.5 5.6 5.5 8 2.5z", smoke: "M8 2l5 2v4c0 3-2 5-5 6-3-1-5-3-5-6V4z", co: "M8 2l5 2v4c0 3-2 5-5 6-3-1-5-3-5-6V4z", gas: "M8 2l5 2v4c0 3-2 5-5 6-3-1-5-3-5-6V4z", heat: "M8 2l5 2v4c0 3-2 5-5 6-3-1-5-3-5-6V4z", hazard: "M8 2.5l6 11H2z M8 6.5v3 M8 11.5v.1",
-    appliance: "M5 2h6v12H5z M5 6h6 M8 10v.1", valve: "M2 6v4l6-2z M14 6v4l-6-2z M8 8V4 M6 4h4",
-    other: "M3 8h2l1.5-4 3 8L11 8h2",
-  }).map(([kind, path]) => [kind, new Path2D(path)]));
-  let picked = null;
-  let sectors = [], nodes = [], chosen = null, hover = null, frame = 0, color = {}, sparks = [], mood = "ok";
+  let speed = 1, spun = 0, lastTime = 0, frame = 0, color = {}, sparks = [], mood = "ok";
+  let arcs = [], waves = [], voice = 0;
+  const ARC_COLORS = ["main", "warn", "sky", "violet"];
 
   function colors() {
     const style = getComputedStyle(document.body);
     const read = (name) => style.getPropertyValue(name).trim();
-    color = { main: read("--hud"), dim: read("--hud-dim"), warn: read("--hud-warn"), bad: read("--hud-bad"), text: read("--hud-text") };
+    color = { main: read("--hud"), dim: read("--hud-dim"), warn: read("--hud-warn"), bad: read("--hud-bad"), text: read("--hud-text"), sky: "#7ad7ff", violet: "#b88cff" };
   }
 
   // --- data ---
 
   function update(groups) {
-    sectors = groups.filter((group) => group.devices.length);
-    if (!sectors.some((group) => group.title === chosen)) chosen = null;
-    nodes = [];
-    const total = sectors.reduce((sum, group) => sum + Math.max(group.devices.length, 2), 0) || 1;
-    let at = -Math.PI / 2;
-    for (const group of sectors) {
-      const span = (Math.max(group.devices.length, 2) / total) * TAU;
-      Object.assign(group, { from: at, to: at + span });
-      const rows = Math.min(4, Math.max(1, Math.ceil(group.devices.length / Math.max(1, Math.floor(span * 3.4)))));
-      const across = Math.ceil(group.devices.length / rows);
-      group.devices.forEach((device, i) => {
-        // Every other row is half a step along, so marks sit between their neighbours.
-        const row = i % rows, place = (Math.floor(i / rows) + .5 + (row % 2 ? .5 : 0)) / (across + .5);
-        nodes.push({ ...device, group: group.title, angle: at + span * (.06 + .88 * place), depth: rows === 1 ? .5 : row / (rows - 1) });
-      });
-      at += span;
-    }
-    const bad = nodes.filter((node) => node.state === "alert").length;
-    mood = bad ? "bad" : nodes.some((node) => node.state === "warn") ? "warn" : "ok";
-    list();
+    const all = groups.flatMap((group) => group.devices);
+    mood = all.some((d) => d.state === "alert") ? "bad" : all.some((d) => d.state === "warn") ? "warn" : "ok";
   }
 
-  function list() {
-    $("hud-sectors").replaceChildren(...sectors.map((group) => {
-      const row = make("button", undefined, "sector"), bar = make("span", undefined, "segments");
-      row.type = "button";
-      row.setAttribute("aria-pressed", String(chosen === group.title));
-      bar.append(...group.devices.slice(0, 24).map((device) => make("i", undefined, device.state)));
-      const on = group.devices.filter((device) => device.state !== "off" && device.state !== "unknown").length;
-      const name = make("b", group.title);
-      if (group.floor) name.append(make("small", ` ${group.floor}`));
-      if (group.presence === "occupied") name.append(make("em", "occupied"));
-      row.append(name, make("span", `${on}/${group.devices.length}`, "num"), bar);
-      row.addEventListener("click", () => {
-        picked = null;
-        chosen = chosen === group.title ? null : group.title;
-        list();
-        draw();
-      });
+  // Gauges around the core: [{label, value (0-1), text}]. Their words are listed beside it.
+  function gauges(list) {
+    arcs = list.slice(0, 4).map((item, i) => {
+      const old = arcs.find((arc) => arc.label === item.label);
+      return { ...item, shown: old ? old.shown : 0, color: ARC_COLORS[i] };
+    });
+    $("core-legend").replaceChildren(...arcs.map((arc) => {
+      const row = make("div", undefined, `legend ${arc.color}`);
+      row.append(make("i"), make("span", arc.label), make("b", arc.text));
       return row;
     }));
-    const group = sectors.find((item) => item.title === chosen);
-    if (picked && !nodes.some((node) => node.id === picked)) picked = null;
-    const only = picked && nodes.filter((node) => node.id === picked);
-    const shown = only || (group ? group.devices : nodes.filter((node) => node.state !== "off"));
-    $("hud-detail-title").textContent = only ? "Selected" : group ? group.title : "Active now";
-    $("hud-detail").replaceChildren(...(shown.length ? shown.slice(0, 60).map((device) => {
-      const row = make("li", undefined, `${device.state}${only ? " full" : ""}`), left = make("span", device.name);
-      const more = [device.text, device.area, device.age].filter(Boolean).join(" \u00b7 ");
-      if (more) left.append(make("small", more));
-      // Selected, a device shows its other readings, as on its page in Home Assistant.
-      if (only && device.parts) for (const [name, value] of device.parts) left.append(make("small", `${name}: ${value}`));
-      row.append(left, make("b", device.state === "unknown" ? "unknown" : device.says));
-      return row;
-    }) : [make("li", "Nothing active")]));
   }
 
-  // --- people ---
+  // Something happened: a wave rolls out from the core.
+  function pulse(kind = "main") {
+    waves.push({ born: performance.now(), kind });
+    if (waves.length > 6) waves.shift();
+    if (still.matches) draw();
+  }
 
   function photo(source) {
     if (!source) return null;
@@ -123,10 +79,11 @@ const deck = (() => {
     }));
   }
 
-  // --- gauges ---
+  // --- small gauges ---
 
   function gauge(id, part, whole, label) {
     const box = $(id), share = whole ? part / whole : 0;
+    if (!box) return;
     const kind = !whole ? "" : share === 1 ? "ok" : share >= .75 ? "warn" : "bad";
     const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", "0 0 100 100");
@@ -171,266 +128,137 @@ const deck = (() => {
     if (node.width !== Math.round(box.width * ratio) || node.height !== Math.round(box.height * ratio)) {
       node.width = Math.round(box.width * ratio);
       node.height = Math.round(box.height * ratio);
-      sparks = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random(), v: .00012 + Math.random() * .0003, s: Math.random() * 1.6 + .3 }));
+      sparks = Array.from({ length: 90 }, () => ({ x: Math.random(), y: Math.random(), v: .00008 + Math.random() * .00025, s: Math.random() * 1.5 + .3, a: Math.random() * TAU }));
     }
     node.getContext("2d").setTransform(ratio, 0, 0, ratio, 0, 0);
     return { w: box.width, h: box.height };
   }
 
-  function place(node, view) {
-    const r = view.inner + (view.outer - view.inner) * (.16 + .68 * node.depth);
-    return { x: view.x + Math.cos(node.angle) * r, y: view.y + Math.sin(node.angle) * r };
-  }
-
-  function layout(box) {
-    const r = Math.min(box.w * .5 - 92, box.h * .5 - 44);
-    const mark = Math.max(9, Math.min(15, r / (nodes.length > 60 ? 30 : 22)));
-    return { x: box.w / 2, y: box.h / 2, r, inner: r * .4, outer: r * .9, mark, names: r > 170 };
-  }
-
-  function tint(node) {
-    return { alert: color.bad, warn: color.warn, on: color.main }[node.state] || color.dim;
-  }
-
   function draw(time = 0) {
     const box = size();
     if (!box) return;
-    const g = canvas().getContext("2d"), view = layout(box), { x, y, r } = view;
-    if (r < 60) return;
-    // Spins faster while BRAM thinks, without jumping.
+    const g = canvas().getContext("2d"), x = box.w / 2, y = box.h / 2, r = Math.min(box.w, box.h) * .46;
+    if (r < 50) return;
     if (time && lastTime) spun += Math.max(0, Math.min(time - lastTime, 100)) / 1000 * speed;
     if (time) lastTime = time;
-    const t = still.matches ? 0 : spun;
-    const base = mood === "bad" ? color.bad : color.main;
+    const t = still.matches ? 0 : spun, now = performance.now();
+    const base = mood === "bad" ? color.bad : mood === "warn" ? color.warn : color.main;
     g.clearRect(0, 0, box.w, box.h);
-    g.lineCap = "butt";
-    const ring = (radius, width, alpha, from = 0, to = TAU, stroke = base) => {
+    g.lineCap = "round";
+
+    // drifting dust
+    for (const spark of sparks) {
+      if (!still.matches) { spark.y = (spark.y - spark.v + 1) % 1; spark.a += .01; }
+      g.globalAlpha = .25 + .25 * Math.sin(spark.a);
+      g.fillStyle = color.main;
+      g.fillRect(spark.x * box.w, spark.y * box.h, spark.s, spark.s);
+    }
+
+    const ring = (radius, width, alpha, from = 0, to = TAU, stroke = base, dash = null) => {
       g.globalAlpha = alpha;
       g.strokeStyle = stroke;
       g.lineWidth = width;
+      g.setLineDash(dash || []);
       g.beginPath();
       g.arc(x, y, radius, from, to);
       g.stroke();
+      g.setLineDash([]);
     };
-    // drifting motes
-    g.fillStyle = base;
-    for (const spark of sparks) {
-      if (!still.matches) spark.y = (spark.y - spark.v + 1) % 1;
-      g.globalAlpha = .12 + .25 * Math.abs(Math.sin(spark.x * 40 + t));
-      g.fillRect(spark.x * box.w, spark.y * box.h, spark.s, spark.s);
-    }
-    // glow
-    const halo = g.createRadialGradient(x, y, r * .05, x, y, r * 1.05);
-    halo.addColorStop(0, base);
-    halo.addColorStop(1, "transparent");
-    g.globalAlpha = .13;
-    g.fillStyle = halo;
-    g.beginPath();
-    g.arc(x, y, r * 1.05, 0, TAU);
-    g.fill();
-    // rings
-    for (const [scale, alpha] of [[.4, .35], [.58, .16], [.74, .16], [.9, .35]]) ring(r * scale, 1, alpha);
+
+    // outer scales, turning at different speeds and directions
+    ring(r, 1, .25);
+    g.save();
+    g.translate(x, y);
+    g.rotate(t * .05);
     for (let i = 0; i < 180; i += 1) {
-      const angle = (i / 180) * TAU, long = i % 15 === 0;
-      g.globalAlpha = long ? .7 : .28;
+      const a = (i / 180) * TAU, long = i % 15 === 0, inner = r * (long ? .925 : .95);
+      g.globalAlpha = long ? .8 : .35;
       g.strokeStyle = base;
-      g.lineWidth = 1;
+      g.lineWidth = long ? 2 : 1;
       g.beginPath();
-      g.moveTo(x + Math.cos(angle) * r * .95, y + Math.sin(angle) * r * .95);
-      g.lineTo(x + Math.cos(angle) * r * (long ? 1 : .975), y + Math.sin(angle) * r * (long ? 1 : .975));
+      g.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+      g.lineTo(Math.cos(a) * r * .98, Math.sin(a) * r * .98);
       g.stroke();
     }
-    ring(r * .36, 5, .8, t * .5, t * .5 + 1.5);
-    ring(r * .36, 5, .8, t * .5 + Math.PI, t * .5 + Math.PI + 1.5);
-    ring(r * .32, 2, .6, -t * .8, -t * .8 + 2.4);
-    ring(r * .28, 1, .5, t * 1.2, t * 1.2 + 4.4);
-    ring(r * 1.03, 2, .5, -t * .15, -t * .15 + .9);
-    ring(r * 1.03, 2, .5, -t * .15 + 2.2, -t * .15 + 2.7);
-    ring(r * 1.03, 2, .5, -t * .15 + 4, -t * .15 + 5.2);
-    // sweep
-    const sweep = t * .7;
-    for (let i = 0; i < 26; i += 1) {
-      g.globalAlpha = .11 * (1 - i / 26);
-      g.fillStyle = base;
+    g.restore();
+    ring(r * 1.03, 3, .6, -t * .12, -t * .12 + 1.1);
+    ring(r * 1.03, 3, .6, -t * .12 + 2.4, -t * .12 + 2.9);
+    ring(r * 1.03, 3, .6, -t * .12 + 4.1, -t * .12 + 5.3);
+    ring(r * .9, 1, .4, 0, TAU, base, [2, 10]);
+
+    // gauges sweep toward their values
+    arcs.forEach((arc, i) => {
+      arc.shown += (arc.value - arc.shown) * (still.matches ? 1 : .04);
+      const radius = r * (.82 - i * .075), stroke = color[arc.color] || base;
+      ring(radius, 9, .12, 0, TAU, stroke);
+      const end = -Math.PI / 2 + Math.max(.002, arc.shown) * TAU;
+      ring(radius, 9, .95, -Math.PI / 2, end, stroke);
+      g.globalAlpha = 1;
+      g.fillStyle = stroke;
+      g.shadowColor = stroke;
+      g.shadowBlur = 14;
       g.beginPath();
-      g.moveTo(x + Math.cos(sweep - i * .03) * view.inner, y + Math.sin(sweep - i * .03) * view.inner);
-      g.arc(x, y, view.outer, sweep - i * .03, sweep - i * .03 - .032, true);
-      g.arc(x, y, view.inner, sweep - i * .03 - .032, sweep - i * .03);
+      g.arc(x + Math.cos(end) * radius, y + Math.sin(end) * radius, 5, 0, TAU);
+      g.fill();
+      g.shadowBlur = 0;
+    });
+
+    // inner turning arcs
+    const inner = r * .42;
+    ring(inner, 5, .9, t * .6, t * .6 + 1.6);
+    ring(inner, 5, .9, t * .6 + Math.PI, t * .6 + Math.PI + 1.6);
+    ring(inner * .86, 2, .6, -t * .9, -t * .9 + 2.6);
+    ring(inner * .72, 1, .45, t * 1.3, t * 1.3 + 4.2);
+
+    // a sweep of light
+    if (!still.matches) {
+      const a = t * .7, grad = g.createRadialGradient(x, y, inner, x, y, r * .9);
+      grad.addColorStop(0, "transparent");
+      grad.addColorStop(1, base);
+      g.globalAlpha = .08;
+      g.fillStyle = grad;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.arc(x, y, r * .9, a, a + .5);
+      g.closePath();
       g.fill();
     }
-    // sectors
-    g.font = "600 11px ui-monospace, Consolas, monospace";
-    for (const group of sectors) {
-      const picked = chosen === group.title;
-      g.globalAlpha = .3;
-      g.strokeStyle = base;
-      g.lineWidth = 1;
-      g.beginPath();
-      g.moveTo(x + Math.cos(group.from) * view.inner, y + Math.sin(group.from) * view.inner);
-      g.lineTo(x + Math.cos(group.from) * view.outer, y + Math.sin(group.from) * view.outer);
-      g.stroke();
-      if (picked || group.presence === "occupied") {
-        g.globalAlpha = picked ? .12 : .07;
-        g.fillStyle = base;
-        g.beginPath();
-        g.arc(x, y, view.outer, group.from, group.to);
-        g.arc(x, y, view.inner, group.to, group.from, true);
-        g.fill();
-      }
-      const mid = (group.from + group.to) / 2, lx = x + Math.cos(mid) * r * 1.09, ly = y + Math.sin(mid) * r * 1.09;
-      const worst = group.devices.some((d) => d.state === "alert") ? color.bad : group.devices.some((d) => d.state === "warn") ? color.warn : color.text;
-      g.globalAlpha = picked ? 1 : .85;
-      g.fillStyle = worst;
-      g.textAlign = Math.abs(Math.cos(mid)) < .25 ? "center" : Math.cos(mid) > 0 ? "left" : "right";
-      g.textBaseline = "middle";
-      // Long names take two lines, so none runs off the edge.
-      const parts = group.title.toUpperCase().split(" AND ");
-      parts.forEach((part, i) => g.fillText(i ? `& ${part}` : part, lx, ly + (i - (parts.length - 1) / 2) * 13));
+
+    // the voice: breathing when idle, lively while thinking or speaking
+    voice += ((speed > 1 ? 1 : .22) - voice) * .05;
+    const bars = 19, width = inner * 1.15, step = width / bars;
+    for (let i = 0; i < bars; i += 1) {
+      const middle = 1 - Math.abs(i - (bars - 1) / 2) / (bars / 2);
+      const wave = still.matches ? .5 : .35 + .65 * Math.abs(Math.sin(now / 420 * (1 + i % 4 * .3) + i * 1.7));
+      const h = Math.max(4, inner * 1.1 * middle * wave * voice + 4);
+      g.globalAlpha = .55 + .45 * middle;
+      g.fillStyle = base;
+      g.shadowColor = base;
+      g.shadowBlur = 10;
+      g.fillRect(x - width / 2 + i * step + step * .2, y - h / 2, step * .6, h);
     }
-    // devices
-    for (const node of nodes) {
-      const spot = place(node, view), faded = chosen && node.group !== chosen && node.state !== "alert";
-      const passed = ((sweep - node.angle) % TAU + TAU) % TAU;
-      const lit = still.matches ? .4 : Math.max(0, 1 - passed / 1.6);
-      g.globalAlpha = faded ? .15 : 1;
-      if (node.state === "alert") {
-        g.strokeStyle = color.bad;
-        g.lineWidth = 1.5;
-        g.beginPath();
-        g.moveTo(x, y);
-        g.lineTo(spot.x, spot.y);
-        g.stroke();
-        for (const wave of [0, .5]) {
-          const grow = (t * .9 + wave) % 1;
-          g.globalAlpha = (1 - grow) * (faded ? .2 : .9);
-          g.beginPath();
-          g.arc(spot.x, spot.y, 5 + grow * 26, 0, TAU);
-          g.stroke();
-        }
-        g.globalAlpha = 1;
-      }
-      const over = node === hover || node.id === picked;
-      const big = view.mark * (over ? 1.3 : node.state === "alert" ? 1.15 : 1);
-      g.fillStyle = tint(node);
-      g.strokeStyle = tint(node);
-      g.lineWidth = 1.2;
-      if (!faded) g.globalAlpha = node.state === "off" ? .45 + lit * .55 : 1;
-      const face = photo(node.photo);
-      if (face) {
-        g.save();
-        g.beginPath();
-        g.arc(spot.x, spot.y, big * 1.25, 0, TAU);
-        g.clip();
-        g.globalAlpha *= node.state === "on" ? 1 : .45;
-        g.drawImage(face, spot.x - big * 1.25, spot.y - big * 1.25, big * 2.5, big * 2.5);
-        g.restore();
-        g.beginPath();
-        g.arc(spot.x, spot.y, big * 1.25, 0, TAU);
-        g.lineWidth = over ? 3 : 2;
-        g.stroke();
-      }
-      g.beginPath();
-      g.arc(spot.x, spot.y, big, 0, TAU);
-      if (!face) {
-        const solid = node.state !== "off" && node.state !== "unknown";
-        g.save();
-        g.globalAlpha = faded ? .15 : 1;
-        g.fillStyle = "rgb(2 8 18 / .92)";
-        g.fill();
-        g.fillStyle = tint(node);
-        g.globalAlpha = faded ? .06 : solid || over ? .32 : .1 + lit * .15;
-        g.shadowColor = tint(node);
-        g.shadowBlur = over ? 22 : solid ? 12 : lit * 12;
-        g.fill();
-        g.shadowBlur = 0;
-        g.globalAlpha = faded ? .15 : solid || over ? 1 : .65 + lit * .35;
-        g.lineWidth = over ? 2.4 : 1.4;
-        if (node.state === "unknown") g.setLineDash([3, 3]);
-        g.stroke();
-        g.setLineDash([]);
-        const scale = (big * 1.2) / 16;
-        g.translate(spot.x - 8 * scale, spot.y - 8 * scale);
-        g.scale(scale, scale);
-        g.strokeStyle = solid || over ? color.text : tint(node);
-        g.lineWidth = 1.4;
-        g.lineCap = "round";
-        g.lineJoin = "round";
-        g.stroke(ICONS[node.kind] || ICONS.other);
-        g.restore();
-      }
-      // A name under each mark, so it is plain what it is.
-      // Names only where they help: what is on, the chosen sector, or a quiet radar.
-      const named = node.state === "on" || node.group === chosen || nodes.length <= 16;
-      if (view.names && named && !over && node.state !== "alert" && node.state !== "warn") {
-        g.globalAlpha = faded ? .12 : .8;
-        g.fillStyle = color.text;
-        g.font = "500 10px system-ui, sans-serif";
-        g.textAlign = "center";
-        const short = node.name.length > 18 ? `${node.name.slice(0, 17)}\u2026` : node.name;
-        g.fillText(short, spot.x, spot.y + big * (face ? 1.25 : 1) + 9);
-      }
-      if (over || node.state === "alert" || node.state === "warn") {
-        const label = [node.name, node.state === "unknown" ? "unknown" : (node.kind === "person" && node.area) || node.says, node === hover && node.text, node === hover && node.age].filter(Boolean).join("  ");
-        const right = spot.x >= x;
-        g.globalAlpha = faded ? .15 : 1;
-        g.font = "600 11px ui-monospace, Consolas, monospace";
-        g.textAlign = right ? "left" : "right";
-        const lx = spot.x + (right ? big + 14 : -big - 14), ly = spot.y - big - 8;
-        g.strokeStyle = tint(node);
-        g.lineWidth = 1.2;
-        g.beginPath();
-        g.moveTo(spot.x + (right ? big * .7 : -big * .7), spot.y - big * .7);
-        g.lineTo(spot.x + (right ? big + 4 : -big - 4), ly);
-        g.lineTo(lx, ly);
-        g.stroke();
-        const width = Math.min(g.measureText(label).width, 300) + 12;
-        g.fillStyle = "rgb(2 8 18 / .82)";
-        g.fillRect(right ? lx : lx - width, ly - 9, width, 18);
-        g.strokeRect(right ? lx : lx - width, ly - 9, width, 18);
-        g.fillStyle = tint(node) === color.dim ? color.text : tint(node);
-        g.fillText(label, lx + (right ? 6 : -6), ly + 1, 300);
-      }
+    g.shadowBlur = 0;
+
+    // pulses from things that happened
+    waves = waves.filter((wave) => now - wave.born < 2600);
+    for (const wave of waves) {
+      const life = (now - wave.born) / 2600;
+      ring(inner + (r - inner) * life, 3 * (1 - life), 1 - life, 0, TAU, color[wave.kind] || base);
     }
     g.globalAlpha = 1;
   }
 
   function loop(time) {
-    frame = requestAnimationFrame(loop);
-    if (document.hidden || !canvas().offsetParent) return;
     draw(time);
-  }
-
-  function point(event) {
-    const box = canvas().getBoundingClientRect(), view = layout({ w: box.width, h: box.height });
-    const px = event.clientX - box.left, py = event.clientY - box.top;
-    let best = null, near = view.mark * 1.6;
-    for (const node of nodes) {
-      const spot = place(node, view), far = Math.hypot(spot.x - px, spot.y - py);
-      if (far < near) { near = far; best = node; }
-    }
-    return best;
+    frame = requestAnimationFrame(loop);
   }
 
   function start() {
     colors();
-    canvas().addEventListener("pointermove", (event) => {
-      hover = point(event);
-      canvas().style.cursor = hover ? "pointer" : "default";
-      if (still.matches) draw();
-    });
-    canvas().addEventListener("pointerleave", () => { hover = null; });
-    canvas().addEventListener("click", (event) => {
-      // A device shows its details; empty space lets go.
-      const node = point(event);
-      picked = node && node.id !== picked ? node.id : null;
-      if (!node) chosen = null;
-      list();
-      draw();
-    });
     addEventListener("resize", () => draw());
     if (still.matches) draw();
     if (!frame && !still.matches) frame = requestAnimationFrame(loop);
   }
 
-  return { start, update, gauge, activity, colors, draw, people, think: (on) => { speed = on ? 5 : 1; } };
+  return { start, update, gauge, gauges, pulse, activity, colors, draw, people, think: (on) => { speed = on ? 4 : 1; } };
 })();

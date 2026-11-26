@@ -43,8 +43,12 @@ URGENT = ("night", "away")
 class HouseRules:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry,
                  note: Callable[..., None] = lambda *a: None,
-                 teller: Teller | None = None) -> None:
+                 teller: Teller | None = None,
+                 report: Callable[[list[dict]], bool] = lambda items: True) -> None:
         self._note = note
+        self._report = report
+        self._held: set[str] = set()
+        self._last_report: list[dict] | None = None
         self._teller = teller or Teller(hass, entry)
         self._noted: set[str] = set()
         self._hass = hass
@@ -197,10 +201,12 @@ class HouseRules:
                 if (key in self._told or key in self._muted or now - self._since[key] < wait
                         or (quiet and rule not in URGENT) or not self._phones):
                     continue
-                if rule not in URGENT and not self._teller.allow(f"rule:{key}", text, EACH_TIME):
+                if rule not in URGENT and not self._teller.allow(
+                        f"rule:{key}", text, EACH_TIME, finding=f"rules:{key}", source="rules"):
                     self._told.add(key)  # held back: one event, listed in Findings
                     continue
                 due.append((rule in URGENT, key, text))
+            self._watching(facts, now, quiet)
             routine = [d for d in due if not d[0]]
             # Several routine messages at once become one. Urgent ones stay on their own.
             alone = [d for d in due if d[0]] + (routine if len(routine) < GROUP_MIN else [])
@@ -224,6 +230,43 @@ class HouseRules:
                             self._teller.told(f"rule:{k}", text)
                     self._sent.append(now)
                     self._save()
+
+    def _watching(self, facts: dict, now: float, quiet: bool) -> None:
+        """What is counting down, for BRAM's page. Holds are written down once, with why."""
+        items = []
+        names = {"left_open": "open", "night": "unlocked at night",
+                 "away": "open while everyone is away", "offline": "offline"}
+        for key, (rule, wait, _text) in facts.items():
+            if key in self._muted:
+                continue
+            name = self._name(key.partition(":")[2])
+            item = {"kind": "rule", "text": f"{name} {names[rule]}", "since": self._since[key]}
+            if key in self._told:
+                item["told"] = True
+            else:
+                item["due"] = self._since[key] + wait
+                if quiet and rule not in URGENT and now >= item["due"] and key not in self._held:
+                    self._held.add(key)
+                    self._note(f"rules:{key}", "held", "Quiet hours: told when they end",
+                               "rules", "low")
+            items.append(item)
+        self._held &= facts.keys()
+        if "night" in self._on and not within(self._night, dt_util.now().time()):
+            start = dt_util.parse_time(self._night[0])
+            if start is not None:
+                at = dt_util.now().replace(hour=start.hour, minute=start.minute, second=0,
+                                           microsecond=0)
+                if at <= dt_util.now():
+                    at += datetime.timedelta(days=1)
+                items.append({"kind": "night", "text": "Night starts: every lock is checked",
+                              "due": at.timestamp()})
+        if items != self._last_report and self._report(items):
+            self._last_report = items
+
+    def _name(self, entity_id: str) -> str:
+        state = self._hass.states.get(entity_id)
+        name = state.name if state is not None else entity_id
+        return " ".join("".join(c if c.isprintable() else " " for c in name).split())[:60]
 
     @callback
     def _save(self) -> None:

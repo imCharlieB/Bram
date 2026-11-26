@@ -223,3 +223,13 @@ def test_values_from_home_assistant_are_checked():
     found = _detail({"values": {"now": 70, "target": float("inf"), "low": "x", "high": True,
                                 "mode": "cool" * 50, "action": 5, "evil": "x"}})
     assert found["values"] == {"now": 70.0, "mode": ("cool" * 50)[:40]}
+
+
+
+def test_hourly_series_inside_and_outside(env):
+    env.say("weather.home", "other", "sunny", values={"now": 50.0, "unit": "F"})
+    for entity, value in (("sensor.a", 70.0), ("sensor.b", 72.0)):
+        env.say(entity, "temperature", str(value), values={"now": value, "unit": "F"})
+    env.minutes(130)
+    rows = env.h.series("h1", 3)
+    assert len(rows) == 3 and rows[0]["inside"] == 71 and rows[0]["outside"] == 50

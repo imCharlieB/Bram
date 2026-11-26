@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import datetime
 import hashlib
 import io
 import ipaddress
@@ -68,8 +69,10 @@ class ConfigPage:
                  mood_changed: Callable[[], Awaitable[None]] | None = None,
                  history: History | None = None,
                  findings: Findings | None = None,
-                 printers: dict[str, list[dict]] | None = None) -> None:
+                 printers: dict[str, list[dict]] | None = None,
+                 watching: dict[str, list[dict]] | None = None) -> None:
         self.printers = printers if printers is not None else {}
+        self.watching = watching if watching is not None else {}
         self.history, self.findings = history, findings
         self.cleanup = Cleanup(history, findings) if history is not None else None
         self._settings, self._pairing, self._audit = settings, pairing, audit
@@ -115,6 +118,7 @@ class ConfigPage:
             web.post("/api/speech-preview", self._private(self._preview)),
             web.post("/api/hear", self._private(self._hear)),
             web.post("/api/speak", self._private(self._speak)),
+            web.get("/api/brain", self._private(self._brain)),
             web.get("/api/findings", self._private(self._findings)),
             web.get("/api/finding", self._private(self._finding)),
             web.post("/api/finding-ignore", self._private(self._ignore_finding)),
@@ -530,6 +534,32 @@ class ConfigPage:
         if self._alerts is not None:
             self._alerts.clear("server", "storage", safety=False)
         return _json({"ok": True})
+
+    async def _brain(self, request: web.Request) -> web.Response:
+        """What BRAM is watching, what it decided and why, and what needs the owner."""
+        saved = self._settings.all()
+        zone = ZoneInfo(saved["timezone"] or "UTC")
+        today = datetime.datetime.now(zone).replace(hour=0, minute=0, second=0,
+                                                    microsecond=0).timestamp()
+        houses = self._pairing.houses()
+        found = self.findings
+        history = self.history if self.history is not None and self.history.on else None
+        return _json({
+            "now": wall(),
+            "watching": sorted((w for house, _ in houses for w in self.watching.get(house, [])),
+                               key=lambda w: w.get("due", 9e10)),
+            "decisions": found.decisions(today - 86400) if found else [],
+            "needs": [{k: r[k] for k in ("id", "source", "severity", "text", "first", "times",
+                                         "told")}
+                      for r in (found.list("open", limit=50) if found else [])
+                      if r["severity"] in ("high", "medium")][:8],
+            "sent_today": found.sent_since(today) if found else 0,
+            "nights": max((found.learned(h, "night") for h, _ in houses), default=0)
+            if found else 0,
+            "history": history is not None,
+            "series": history.series(houses[0][0]) if history and houses else [],
+            "climate": history.climate_days(houses[0][0], 1, zone) if history and houses else [],
+            "model": saved["model"]})
 
     async def _findings(self, request: web.Request) -> web.Response:
         which = request.query.get("show", "open")

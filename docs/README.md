@@ -9,6 +9,7 @@
 
 ## Features
 
+- [BRAM's Home page](home.md)
 - [How BRAM watches your home](watching.md)
 - [Alerts and messages](messages.md)
 - [How often BRAM tells you](how-often.md)

@@ -113,7 +113,8 @@ class ProblemWatch:
         if not self._phones or within(self._quiet, dt_util.now().time()):
             return
         new = [p for p in self._open.values() if p.tell and p.key not in self._told
-               and p.key not in self._muted and self._teller.allow(f"problem:{p.key}", p.text)]
+               and p.key not in self._muted and self._teller.allow(
+                   f"problem:{p.key}", p.text, finding=f"problems:{p.key}", source="problems")]
         new.sort(key=lambda p: p.level != "medium")
         # Fixed is told only for what was told, and only once it has stayed fixed a while.
         fixed = [k for k, t in self._told.items()

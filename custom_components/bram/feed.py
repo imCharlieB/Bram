@@ -155,6 +155,17 @@ class Feed:
         return self.send({"type": "printers", "items": items[:20]})
 
     @callback
+    def send_watching(self, items: list[dict]) -> bool:
+        """What is counting down. Display only."""
+        if not self.connected or self.server_version is None or _key(
+                self.server_version) < (0, 31):
+            return False
+        mine = list(items)
+        if self.printers is not None:
+            mine += self.printers.pending()
+        return self.send({"type": "watching", "items": mine[:30]})
+
+    @callback
     def takes_notes(self) -> bool:
         return (self.connected and self.server_version is not None
                 and _key(self.server_version) >= (0, 24))

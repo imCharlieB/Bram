@@ -44,7 +44,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     feed.alerts = HomeAlerts(hass, entry, feed)
     entry.async_on_unload(await feed.alerts.start())
     entry.async_on_unload(Digest(hass, entry, feed).start())
-    feed.rules = HouseRules(hass, entry, feed.note, feed.teller)
+    feed.rules = HouseRules(hass, entry, feed.note, feed.teller, feed.send_watching)
     entry.async_on_unload(await feed.rules.start())
     feed.problems = ProblemWatch(hass, entry, feed.rules.is_night, feed.note,
                                  feed.teller)

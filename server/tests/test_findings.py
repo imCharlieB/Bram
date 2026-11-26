@@ -142,3 +142,12 @@ def test_prints_are_kept_only_with_history_on(env):
             env.note("print", key="print:x", source="printers", text=bad)
     env.f.forget_house("h1")
     assert env.f.prints("h1") == []
+
+
+
+def test_decisions_are_what_was_told_or_held_and_why(env):
+    for what in ("open", "sent", "held", "closed"):
+        env.note(what)
+    rows = env.f.decisions(0)
+    assert [r["what"] for r in rows] == ["held", "sent"] and rows[0]["about"] == "text open"
+    assert env.f.decisions(0, "h2") == [] and env.f.sent_since(0) == 1

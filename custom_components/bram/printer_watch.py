@@ -195,11 +195,21 @@ class PrinterWatch:
                 self._told.add(key)
                 self._note(f"printers:{key}", "open", text, "printers", KINDS[kind])
                 if self._teller.allow(f"printer:{key}", text,
-                                      EACH_TIME if kind in ("paused",) else UNTIL_FIXED):
+                                      EACH_TIME if kind in ("paused",) else UNTIL_FIXED,
+                                      finding=f"printers:{key}", source="printers"):
                     self._queue(kind, printer, text)
         if state == "printing":
             self._note(f"printers:failed:{printer.id}", "closed", "Printing again", "printers",
                        "low")
+
+    def pending(self) -> list[dict]:
+        """Prints counting down to their end, for BRAM's page."""
+        now = dt_util.utcnow().timestamp()
+        return [{"kind": "printer", "text": f"{says['name']}: {says.get('file') or 'print'}",
+                 "since": self._jobs.get(says["id"], {}).get("start", now),
+                 "due": now + says["left"]}
+                for says in (self._last or []) if says.get("state") == "printing"
+                and "left" in says]
 
     # --- telling ---
 

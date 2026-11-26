@@ -184,3 +184,15 @@ def test_log_house_choice():
 def test_certificate_is_kept(tmp_path):
     context, first = ensure_certificate(tmp_path)
     assert isinstance(context, ssl.SSLContext) and ensure_certificate(tmp_path)[1] == first
+
+
+
+def test_watching_items_are_checked():
+    from bram.server import _watching
+
+    item = _watching({"kind": "rule", "text": "Back  door\nopen", "since": 5, "due": 9e99,
+                      "told": "yes", "evil": 1})
+    assert item == {"kind": "rule", "text": "Back door open", "told": False, "since": 5.0}
+    for bad in (None, {}, {"kind": "x", "text": "a"}, {"kind": "rule", "text": 5}):
+        with pytest.raises(ValueError):
+            _watching(bad)

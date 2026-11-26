@@ -58,7 +58,7 @@ On the device page: **Mood**, **Visit**, **Send test message**, and **Allow stop
 
 | Page | Use it to |
 |---|---|
-| Home | See how things are, chat, and change the mood |
+| Home | [What BRAM is doing](home.md), chat, and the mood |
 | Messages | Set up Telegram, ntfy, and [monitors](monitors.md) |
 | Settings | Connect homes; choose the model, personality, and [voice](voice.md) |
 | Log | See what BRAM noticed, sent, and changed |

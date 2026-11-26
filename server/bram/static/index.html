@@ -90,36 +90,32 @@
       </div>
       <div id="hud" class="command-only">
         <div class="hud-side">
-          <div class="pane"><h2>Systems</h2><div class="gauges"><div id="g-seen"></div><div id="g-secure"></div><div id="g-up"></div></div></div>
+          <div class="pane grow" id="watch-pane"><h2>Watching <span id="watch-count"></span></h2><ul id="hud-watch" class="scroller"></ul></div>
+          <div class="pane" id="people-pane" hidden><h2>Home <span id="home-count"></span></h2><div id="hud-people"></div><div id="hud-counts"></div></div>
           <div id="slot-alerts"></div>
-          <div class="pane" id="people-pane" hidden><h2>People</h2><div id="hud-people"></div></div>
-          <div class="pane" id="printers-pane" hidden><h2>3D printers</h2><ul id="hud-printers"></ul></div>
-          <div class="pane grow"><h2>Sectors <button type="button" id="hud-by" class="by"></button></h2><div id="hud-sectors" class="scroller"></div></div>
+          <div class="pane" id="needs-pane" hidden><h2>Needs you <span id="needs-count"></span></h2><ul id="hud-needs"></ul></div>
         </div>
         <div class="scope-box">
-          <div class="hud-top"><span id="clock"></span><span id="hud-pulse"></span></div>
-          <div id="hud-strip" aria-label="Readings"></div>
-          <div class="scope-wrap"><canvas id="scope" role="img" aria-label="Map of the devices BRAM can see. The same information is listed under Sectors."></canvas>
-            <svg class="butler" viewBox="0 0 200 200" aria-hidden="true">
-          <defs><linearGradient id="neon2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ff"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs>
-          <g class="ring" fill="none" stroke="url(#neon)" stroke-width="8" stroke-linecap="round">
-            <path d="M 120 37 A 38 38 0 1 1 66 55"/><path d="M 78 41 A 38 38 0 0 1 99 34"/>
-          </g>
-          <circle class="core" cx="100" cy="71" r="15"/>
-          <g fill="url(#neon)"><path d="M92 128 L71 116 L71 148 L92 136 Z"/><path d="M108 128 L129 116 L129 148 L108 136 Z"/></g>
-          <circle class="knot" cx="100" cy="132" r="7"/>
-          <g fill="none" stroke="url(#neon)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M64 126 L48 142 L40 170"/><path d="M136 126 L152 142 L160 170"/></g>
-        </svg>
+          <div class="hud-top"><span id="clock"></span><div id="hud-days" aria-hidden="true"></div><span id="hud-pulse"></span></div>
+          <div class="scope-wrap">
+            <canvas id="scope" role="img" aria-label="BRAM's core. What it shows is listed beside it."></canvas>
+            <div id="core-legend"></div>
+            <div id="hud-events" aria-live="polite"></div>
           </div>
           <div class="hud-head"><h1 id="hud-headline"></h1><p id="hud-sub"></p></div>
+          <div id="hud-ticker"><ul id="hud-term"></ul></div>
           <div id="slot-chat"></div>
         </div>
         <div class="hud-side">
-          <div class="pane grow"><h2 id="hud-detail-title">Active now</h2><ul id="hud-detail" class="scroller"></ul></div>
-          <div class="pane"><h2>Activity <span id="hud-activity-total"></span></h2><div id="hud-activity"></div></div>
-          <div class="pane grow"><h2>Event log</h2><ul id="hud-term" class="scroller"></ul></div>
-          <div class="pane"><h2>Links</h2><ul id="hud-systems"></ul></div>
-          <div class="pane"><h2>Mood</h2><div id="hud-moods"></div></div>
+          <div class="pane" id="climate-pane" hidden><h2>Climate <span id="climate-now"></span></h2><div id="hud-climate"></div></div>
+          <div class="pane" id="printers-pane" hidden><h2>3D printers</h2><ul id="hud-printers"></ul></div>
+          <div class="pane grow"><h2>What I did <span id="did-count"></span></h2><ul id="hud-did" class="scroller"></ul></div>
+          <div class="pane" id="health-pane"><h2>My health <span id="hud-activity-total"></span></h2>
+            <div class="gauges"><div id="g-seen"></div><div id="g-secure"></div><div id="g-up"></div></div>
+            <ul id="hud-systems"></ul>
+            <div id="hud-activity"></div>
+            <div id="hud-moods"></div>
+          </div>
         </div>
       </div>
       <div class="card notice" id="outdated" hidden>

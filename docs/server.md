@@ -31,7 +31,7 @@ To set it up, see [Installing](installation.md) and [Alerts and messages](messag
 
 | Page | For |
 |---|---|
-| Home | How everything is right now, and [chat](chat.md) |
+| Home | [What BRAM is doing](home.md): watching, decisions, what needs you, and [chat](chat.md) |
 | Messages | Telegram, ntfy, and monitors |
 | Settings | Homes, model, personality, and [voice](voice.md) |
 | Findings | [What BRAM found](findings.md) and its story |

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.31.0
+
+- A new Home page built around what BRAM is doing: what it is watching, with live countdowns; what it told you or held back, and why; what needs you; and the day's climate, printers, and its own health. When something happens, a card appears beside BRAM's core and drifts away, and the core pulses. Its rings show who is home, climate running, a print, and nights learned, with the words beside them.
+- BRAM keeps a short note each time it holds a message back, with why: quiet hours, already told this month, or the same problem still going.
+- Home Assistant tells the server what is counting down, such as a door open for 7 of its 10 minutes, a print's end, and when night starts.
+
 ## 0.30.0
 
 - BRAM's options in Home Assistant are six pages instead of ten: Quick setup, Devices, Messages, Watching, Server access, and Learning, each with a line saying what it is for. Every switch says what it does when on.

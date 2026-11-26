@@ -51,32 +51,45 @@ class Teller:
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.told")
         self._told: dict[str, dict[str, Any]] = {}
         self._less: list[str] = []
+        self._held: set[str] = set()
 
     async def start(self) -> Callable[[], None]:
         saved = await self._store.async_load() or {}
         self._told, self._less = saved.get("told", {}), saved.get("less", [])
         return self._hass.bus.async_listen("mobile_app_notification_action", self._answered)
 
-    def allow(self, key: str, text: str, usual: str = UNTIL_FIXED) -> bool:
-        """Whether to send it now. The caller says told() once it is sent."""
+    def allow(self, key: str, text: str, usual: str = UNTIL_FIXED, *,
+              finding: str | None = None, source: str = "message") -> bool:
+        """Whether to send it now, and if not, why is written down once."""
+        reason = self._decide(key, text, usual)
+        if reason is None:
+            self._held.discard(key)
+            return True
+        if finding is not None and key not in self._held:
+            self._held.add(key)
+            self._note(finding, "held", reason, source, "low")
+        return False
+
+    def _decide(self, key: str, text: str, usual: str) -> str | None:
         now = dt_util.utcnow().timestamp()
         kind = grade(text, usual)
         before = self._told.get(key)
         if before is None or before["text"] != text:
-            return True  # never told, or something new
+            return None  # never told, or something new
         if kind == MONTHLY:
-            return now - before["last"] >= MONTH
+            return None if now - before["last"] >= MONTH else (
+                "A reminder: already told this month")
         if key in self._less and now - before["last"] < DAY:
-            return False  # the owner asked for this once a day at most
+            return "You asked for this at most once a day"
         if kind == EACH_TIME:
-            return True  # its own rule already waits for it to last
+            return None  # its own rule already waits for it to last
         if before["ended"] is None:
-            return False  # still going is one event
+            return "Still the same problem: already told"
         if now - before["ended"] < FIXED_FOR:
             before["ended"] = None  # came back: still the same event
             self._save()
-            return False
-        return True
+            return "Came back within a day: the same problem"
+        return None
 
     def actions(self, key: str) -> list[dict[str, str]]:
         """A Less often button, once something has been told a few times this week."""

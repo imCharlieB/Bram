@@ -16,7 +16,8 @@ from .history import number
 SOURCES = ("safety", "silent", "rules", "security", "monitors", "connection", "message",
            "learning", "problems", "printers")
 SEVERITIES = ("high", "medium", "low")
-WHATS = ("open", "closed", "sent", "not sent", "acked", "stopped", "snoozed")
+WHATS = ("open", "closed", "sent", "not sent", "acked", "stopped", "snoozed", "held")
+DECIDED = ("sent", "not sent", "acked", "stopped", "snoozed", "held")
 PAGE = 50
 OLDEST = 30 * 86400
 _DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -188,6 +189,21 @@ class Findings:
         return [dict(r) for r in self._db.execute(
             "SELECT at, what, text FROM story WHERE finding = ? ORDER BY at DESC, id DESC "
             "LIMIT 100", (finding,))]
+
+    def decisions(self, since: float, house_id: str | None = None,
+                  limit: int = 12) -> list[dict]:
+        """What BRAM told, held back, or was told to stop, newest first, with what it was about."""
+        marks = ",".join("?" * len(DECIDED))
+        return [dict(r) for r in self._db.execute(
+            "SELECT story.at, story.what, story.text, finding.text AS about, finding.source "  # noqa: S608
+            "FROM story JOIN finding ON finding.id = story.finding "
+            f"WHERE story.what IN ({marks}) AND story.at >= ? "
+            "AND (? IS NULL OR finding.house_id = ?) ORDER BY story.at DESC LIMIT ?",
+            (*DECIDED, since, house_id, house_id, limit))]
+
+    def sent_since(self, since: float) -> int:
+        return self._db.execute("SELECT COUNT(*) FROM story WHERE what = 'sent' AND at >= ?",
+                                (since,)).fetchone()[0]
 
     def learned(self, house_id: str, kind: str | None = None) -> int:
         return self._db.execute(

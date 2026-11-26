@@ -559,26 +559,9 @@ const TITLES = {
 };
 const ORDER = ["Safety", "Locks and doors", "People", "Motion", "Climate", "Lights", "Switches and fans", "Media", "Voice", "Appliances", "Other"];
 
-let byRoom = false;
-
 function arrange() {
-  $("hud-by").textContent = byRoom ? "by room" : "by type";
-  $("hud-by").title = byRoom ? "Show by type" : "Show by room";
   // People have their own panel, with their faces and rooms.
-  const things = world.groups.filter((group) => group.title !== "People");
-  if (!byRoom) return deck.update(things);
-  const rooms = new Map();
-  for (const device of things.flatMap((group) => group.devices)) {
-    const floor = device.floor || "", room = device.area || (device.kind === "person" ? (device.state === "on" ? "Home" : "Away") : "No room");
-    if (!rooms.has(room)) rooms.set(room, { title: room, floor, devices: [] });
-    if (floor) rooms.get(room).floor = floor;
-    rooms.get(room).presence = world.rooms.get(room)?.state || "";
-    rooms.get(room).devices.push(device);
-  }
-  // Rooms on the same floor sit together.
-  const last = ["Home", "Away", "No room"];
-  return deck.update([...rooms.values()].sort((a, b) => last.indexOf(a.title) - last.indexOf(b.title)
-    || a.floor.localeCompare(b.floor) || a.title.localeCompare(b.title)));
+  deck.update(world.groups.filter((group) => group.title !== "People"));
 }
 
 const PRINTER = { printing: "Printing", paused: "Paused", finished: "Finished", failed: "Failed", stopped: "Stopped", idle: "Idle", off: "Off", unknown: "Unknown" };
@@ -632,35 +615,6 @@ function showPrinters(list) {
   }));
 }
 
-// Across the top: what most people look for first.
-function strip(devices, printers) {
-  const number = (text) => parseFloat(String(text).replace(/[^0-9.-]/g, ""));
-  const temps = devices.filter((d) => d.kind === "temperature" && d.state !== "unknown").map((d) => number(d.says)).filter(Number.isFinite);
-  const outside = devices.find((d) => d.id.startsWith("weather.") && d.values && "now" in d.values);
-  const climate = devices.filter((d) => d.kind === "climate" && d.state !== "unknown");
-  const running = climate.filter((d) => ["cooling", "heating", "fan", "drying"].includes(d.values?.action));
-  const people = devices.filter((d) => d.kind === "person"), home = people.filter((d) => d.state === "on");
-  const shut = devices.filter((d) => d.kind === "opening" || d.kind === "lock"), open = shut.filter((d) => d.state === "warn");
-  const printing = printers.filter((p) => p.state === "printing");
-  const unit = (devices.find((d) => d.kind === "temperature")?.says || "").replace(/[0-9.\s-]/g, "") || "";
-  const items = [];
-  if (outside) items.push(["Outside", `${Math.round(outside.values.now)}${outside.values.unit || ""}`, Math.min(1, Math.max(0, (outside.values.now + 10) / 120)), false]);
-  if (temps.length) {
-    const average = temps.reduce((a, b) => a + b, 0) / temps.length;
-    items.push(["Inside", `${average.toFixed(1)}${unit}`, Math.min(1, Math.max(0, (average + 10) / 120)), false]);
-  }
-  if (climate.length) items.push(["Climate on", `${running.length}/${climate.length}`, running.length / climate.length, running.length > 0]);
-  if (printers.length) items.push(["Printing", printing.length ? `${printing[0].progress ?? "--"}%` : "idle", printing.length ? (printing[0].progress || 0) / 100 : 0, printing.length > 0]);
-  if (people.length) items.push(["Home", `${home.length}/${people.length}`, home.length / people.length, false]);
-  if (shut.length) items.push(["Open", `${open.length}`, shut.length ? open.length / shut.length : 0, open.length > 0]);
-  $("hud-strip").replaceChildren(...items.map(([label, value, share, live]) => {
-    const cell = element("div", undefined, `cell${live ? " live" : ""}`), words = element("div");
-    words.append(element("b", value), element("span", label));
-    cell.append(ring(share, live, ""), words);
-    return cell;
-  }));
-}
-
 async function loadHouse() {
   const { homes, alerts, printers, rooms: occupancy } = await api("house");
   showPrinters(printers);
@@ -679,7 +633,9 @@ async function loadHouse() {
     }
   }
   const devices = [...groups.values()].flat();
-  strip(devices, printers);
+  world.devicesNow = devices;
+  world.printersNow = printers;
+  happenings(devices);
   world.groups = ORDER.filter((title) => groups.has(title)).map((title) => ({ title, devices: groups.get(title) }));
   arrange();
   deck.people(devices.filter((device) => device.kind === "person"));
@@ -722,6 +678,169 @@ function setHue(hue) {
 
 function tick() {
   $("clock").textContent = new Date().toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" });
+  // Countdowns move every second, between visits to the server.
+  for (const node of document.querySelectorAll("[data-due]")) node.textContent = countdown(Number(node.dataset.due) - Date.now() / 1000);
+}
+
+function countdown(seconds) {
+  if (seconds <= 0) return "now";
+  const h = Math.floor(seconds / 3600), m = Math.floor(seconds % 3600 / 60), s = Math.floor(seconds % 60);
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function days() {
+  const today = new Date(), list = [];
+  for (let d = -7; d <= 7; d += 1) {
+    const day = new Date(today);
+    day.setDate(today.getDate() + d);
+    list.push(element("span", String(day.getDate()), d === 0 ? "today" : ""));
+  }
+  $("hud-days").replaceChildren(...list);
+}
+
+// --- what BRAM is doing ---
+
+const seen = { states: null, decisions: new Set(), watching: new Set() };
+const DID = { sent: "Told your phone", "not sent": "Could not send", held: "Held back", acked: "Acknowledged", stopped: "You stopped", snoozed: "Snoozed" };
+
+// Something happened: a card comes, stays a moment, and goes.
+function happen(text, kind = "", detail = "") {
+  const box = $("hud-events");
+  if (!box || $("deck").hidden) return;
+  while (box.children.length >= 5) box.firstChild.remove();
+  const card = element("div", undefined, `event ${kind}`), angle = Math.random() * Math.PI * 2;
+  card.style.setProperty("--x", `${Math.max(24, Math.min(76, 50 + Math.cos(angle) * 34))}%`);
+  card.style.setProperty("--y", `${46 + Math.sin(angle) * 30}%`);
+  card.append(element("b", text));
+  if (detail) card.append(element("small", detail));
+  box.append(card);
+  deck.pulse(kind === "bad" ? "bad" : kind === "warn" ? "warn" : "main");
+  setTimeout(() => card.classList.add("going"), 9000);
+  setTimeout(() => card.remove(), 10500);
+}
+
+function happenings(devices) {
+  const now = new Map(devices.map((d) => [d.id, d]));
+  if (seen.states) {
+    for (const [id, device] of now) {
+      const before = seen.states.get(id);
+      if (!before || before.says === device.says || device.state === "unknown" || before.state === "unknown") continue;
+      // Readings drift all day; those are for the charts, not for cards.
+      if (["temperature", "humidity", "other"].includes(device.kind)) continue;
+      const kind = device.state === "alert" ? "bad" : device.state === "warn" ? "warn" : "";
+      happen(`${device.name}: ${device.says}`, kind, device.area || "");
+    }
+  }
+  seen.states = new Map([...now].map(([id, d]) => [id, { says: d.says, state: d.state }]));
+}
+
+async function loadBrain() {
+  const brain = await api("brain");
+  const first = !seen.decisions.size && !seen.watching.size;
+  // Watching
+  $("watch-count").textContent = brain.watching.length ? String(brain.watching.length) : "";
+  $("hud-watch").replaceChildren(...(brain.watching.length ? brain.watching.map((item) => {
+    const fresh = !first && !seen.watching.has(`${item.kind}:${item.text}`);
+    const row = element("li", undefined, `watch ${item.kind}${item.told ? " told" : ""}${fresh ? " new" : ""}`), head = element("div");
+    const time = element("b", item.told ? "told" : item.due ? countdown(item.due - brain.now) : "");
+    if (item.due && !item.told) time.dataset.due = item.due;
+    head.append(element("span", item.text), time);
+    row.append(head);
+    if (item.due && item.since && !item.told) {
+      const bar = element("i"), fill = element("em");
+      fill.style.width = `${Math.max(2, Math.min(100, ((brain.now - item.since) / (item.due - item.since)) * 100))}%`;
+      bar.append(fill);
+      row.append(bar);
+    }
+    const why = { rule: item.told ? "You were told. Watching until it ends" : "I tell you when the time is up", printer: "I tell you when it finishes", night: "Locks are checked from then", problem: "A problem if it lasts" }[item.kind];
+    row.append(element("small", why));
+    return row;
+  }) : [element("li", "Nothing counting down. I'm keeping an eye on everything else.", "note")]));
+  for (const item of brain.watching) {
+    const key = `${item.kind}:${item.text}`;
+    if (!first && !seen.watching.has(key)) happen(`Watching: ${item.text}`, "", item.due ? `due in ${countdown(item.due - brain.now)}` : "");
+    seen.watching.add(key);
+  }
+  // What I did
+  $("did-count").textContent = brain.sent_today ? `${brain.sent_today} sent today` : "";
+  $("hud-did").replaceChildren(...(brain.decisions.length ? brain.decisions.map((row) => {
+    const fresh = !first && !seen.decisions.has(`${row.at}:${row.what}`);
+    const item = element("li", undefined, `did ${row.what.replace(" ", "-")}${fresh ? " new" : ""}`);
+    item.append(element("time", new Date(row.at * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M$/i, "")));
+    const words = element("div");
+    words.append(element("b", `${DID[row.what] || row.what}: ${row.about}`));
+    if (row.what === "held" || row.what === "not sent") words.append(element("small", row.text));
+    item.append(words);
+    return item;
+  }) : [element("li", "Nothing to tell you yet today.", "note")]));
+  for (const row of brain.decisions) {
+    const key = `${row.at}:${row.what}`;
+    if (!first && !seen.decisions.has(key)) happen(`${DID[row.what] || row.what}`, row.what === "held" ? "warn" : "", row.about);
+    seen.decisions.add(key);
+  }
+  // Needs you
+  $("needs-pane").hidden = !brain.needs.length;
+  $("needs-count").textContent = String(brain.needs.length);
+  $("hud-needs").replaceChildren(...brain.needs.map((need) => {
+    const item = element("li", undefined, need.severity);
+    item.append(element("b", need.text), element("small", `${need.times === 1 ? "since" : `${need.times} times, first`} ${ago(need.first)}${need.told ? " · told you" : ""}`));
+    return item;
+  }));
+  // Climate
+  climate(brain);
+  // The core's gauges, from what is real
+  const devices = world.devicesNow || [], printers = world.printersNow || [];
+  const people = devices.filter((d) => d.kind === "person"), home = people.filter((d) => d.state === "on");
+  const cool = devices.filter((d) => d.kind === "climate" && d.state !== "unknown");
+  const running = cool.filter((d) => ["cooling", "heating", "fan", "drying"].includes(d.values?.action));
+  const printing = printers.find((p) => p.state === "printing");
+  const list = [];
+  if (people.length) list.push({ label: "Home", value: home.length / people.length, text: `${home.length} of ${people.length}` });
+  if (cool.length) list.push({ label: "Climate running", value: running.length / cool.length, text: `${running.length} of ${cool.length}` });
+  if (printing) list.push({ label: printing.name, value: (printing.progress || 0) / 100, text: `${printing.progress ?? "--"}%` });
+  list.push({ label: "Nights learned", value: Math.min(1, brain.nights / 14), text: `${brain.nights} of 14` });
+  deck.gauges(list);
+  $("home-count").textContent = people.length ? `${home.length} of ${people.length}` : "";
+  const shut = devices.filter((d) => d.kind === "opening" || d.kind === "lock");
+  $("hud-counts").replaceChildren(...[["Open", shut.filter((d) => d.kind === "opening" && d.state === "warn").length],
+    ["Unlocked", shut.filter((d) => d.kind === "lock" && d.state === "warn").length],
+    ["Lights on", devices.filter((d) => d.kind === "light" && d.state === "on").length]].map(([label, count]) => {
+    const cell = element("span", undefined, count ? "lit" : "");
+    cell.append(element("b", String(count)), element("small", label));
+    return cell;
+  }));
+}
+
+function climate(brain) {
+  const inside = brain.series.map((s) => s.inside), outside = brain.series.map((s) => s.outside);
+  const known = [...inside, ...outside].filter((v) => v !== null);
+  $("climate-pane").hidden = !known.length && !brain.climate.length;
+  if ($("climate-pane").hidden) return;
+  const last = (list) => [...list].reverse().find((v) => v !== null);
+  $("climate-now").textContent = [last(outside) !== undefined && `${last(outside)}° out`, last(inside) !== undefined && `${last(inside)}° in`].filter(Boolean).join(" · ");
+  const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 240 70");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("preserveAspectRatio", "none");
+  const low = Math.min(...known) - 2, high = Math.max(...known) + 2;
+  const line = (values, kind) => {
+    const points = values.map((v, i) => v === null ? null : `${(i / Math.max(1, values.length - 1)) * 240},${70 - ((v - low) / (high - low || 1)) * 64 - 3}`).filter(Boolean);
+    if (points.length < 2) return;
+    const path = document.createElementNS(NS, "polyline");
+    path.setAttribute("points", points.join(" "));
+    path.setAttribute("class", kind);
+    svg.append(path);
+  };
+  line(outside, "outside");
+  line(inside, "inside");
+  const rows = brain.climate.map((day) => {
+    const row = element("div", undefined, "run");
+    const ran = Object.entries(day.seconds).map(([what, time]) => `${what} ${lasted(time)}`).join(", ");
+    row.append(element("span", day.name), element("b", ran || "idle"));
+    return row;
+  });
+  const key = element("small", known.length ? "Last 24 hours: inside, outside" : "Turn on Keep history under History to see the day");
+  $("hud-climate").replaceChildren(...(known.length ? [svg] : []), key, ...rows);
 }
 
 async function loadLinks() {
@@ -735,19 +854,21 @@ async function loadLinks() {
   }));
   const { entries } = await api("log?limit=200");
   deck.activity(entries.map((entry) => entry.at));
-  $("hud-term").replaceChildren(...entries.slice(0, 40).map((entry) => {
+  // The ticker runs twice over, so it loops without a gap.
+  const rows = entries.slice(0, 24).map((entry) => {
     const row = element("li", undefined, ALARMING.has(entry.decision) ? "alarming" : "");
     const when = element("time", new Date(entry.at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-    row.append(when, STORY[entry.decision] || entry.reason);
+    row.append(when, `${STORY[entry.decision] || entry.reason}${entry.trigger && !STORY[entry.decision] ? "" : ""}`);
     return row;
-  }));
+  });
+  $("hud-term").replaceChildren(...rows, ...rows.map((row) => row.cloneNode(true)));
 }
 
 async function loadHome() {
   let problem = "";
   try {
     await Promise.all([loadStatus(), loadMonitors(), loadSettings(), loadLatest(), loadHouse()]);
-    await loadLinks();
+    await Promise.all([loadLinks(), loadBrain()]);
   } catch (error) {
     problem = error.message;
   }
@@ -759,7 +880,7 @@ async function loadHome() {
 setInterval(() => {
   const home = signedIn && !document.hidden && !$("deck").hidden;
   if (home) loadHome();
-}, 15000);
+}, 5000);
 setInterval(tick, 1000);
 
 const lasted = (seconds) => seconds >= 3600 ? `${Math.floor(seconds / 3600)} h ${Math.round(seconds % 3600 / 60)} min` : `${Math.round(seconds / 60)} min`;
@@ -1039,16 +1160,11 @@ for (const chip of document.querySelectorAll("#hues button")) {
     try { localStorage.setItem("hue", chip.dataset.hue); } catch { /* not remembered */ }
   });
 }
-$("hud-by").addEventListener("click", () => {
-  byRoom = !byRoom;
-  arrange();
-  try { localStorage.setItem("by", byRoom ? "room" : "type"); } catch { /* not remembered */ }
-});
-try { byRoom = localStorage.getItem("by") === "room"; } catch { /* by type */ }
 arrange();
 try { setHue(localStorage.getItem("hue") || "cyan"); } catch { setHue("cyan"); }
 try { setLook(localStorage.getItem("look") || "command"); } catch { setLook("command"); }
 tick();
+days();
 deck.start();
 onClick("chat-clear", "chat-message", async () => {
   await api("chat-clear", {});

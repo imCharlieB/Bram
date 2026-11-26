@@ -47,6 +47,8 @@ NUMBERS = ("now", "humidity", "target", "low", "high")
 WORDS = ("unit", "action", "mode", "preset", "fan")
 MAX_PAGES = 60
 PRINTERS = web.AppKey("printers", dict)
+WATCHING = web.AppKey("watching", dict)
+WATCH_KINDS = ("rule", "printer", "night", "problem")
 PRINTER_STATES = ("printing", "paused", "finished", "failed", "stopped", "idle", "off", "unknown")
 PRINTER_NUMBERS = ("progress", "left", "nozzle", "nozzle2", "nozzle_target", "nozzle2_target",
                    "bed", "bed_target", "chamber", "weight")
@@ -90,6 +92,20 @@ def _printer(raw: object) -> dict:
             found[key] = raw[key][:limit]
     for key in PRINTER_NUMBERS:
         if (value := number(raw.get(key))) is not None:
+            found[key] = value
+    return found
+
+
+def _watching(raw: object) -> dict:
+    if not isinstance(raw, dict) or raw.get("kind") not in WATCH_KINDS:
+        raise ValueError("bad watching")
+    text = raw.get("text")
+    if not isinstance(text, str):
+        raise ValueError("bad watching")
+    found: dict = {"kind": raw["kind"], "text": " ".join(text.split())[:120],
+                   "told": raw.get("told") is True}
+    for key in ("since", "due"):
+        if (value := number(raw.get(key))) is not None and 0 < value < 1e11:
             found[key] = value
     return found
 
@@ -190,6 +206,11 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                     if not isinstance(items, list) or len(items) > 20:
                         raise ValueError("bad printers")
                     request.app[PRINTERS][house_id] = [_printer(i) for i in items]
+                elif kind == "watching" and ready:
+                    items = data["items"]
+                    if not isinstance(items, list) or len(items) > 30:
+                        raise ValueError("bad watching")
+                    request.app[WATCHING][house_id] = [_watching(i) for i in items]
                 elif kind == "note" and ready:
                     uid = data.get("id")
                     if request.app.get(FINDINGS) is not None:
@@ -215,6 +236,7 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
             del sockets[house_id]
             world.disconnected()
             request.app[PRINTERS].pop(house_id, None)
+            request.app[WATCHING].pop(house_id, None)
             if request.app.get(HISTORY) is not None:
                 request.app[HISTORY].lost(house_id)
             audit.record(house_id, "feed", "disconnected", "connection closed", "state unknown")
@@ -390,7 +412,7 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
              findings: Findings | None = None) -> web.Application:
     app = web.Application(client_max_size=4096)
     app[PAIRING], app[AUDIT], app[HOUSES], app[SOCKETS] = pairing, audit, {}, {}
-    app[ASKED], app[PRINTERS] = {}, {}
+    app[ASKED], app[PRINTERS], app[WATCHING] = {}, {}, {}
     if history is not None:
         app[HISTORY] = history
     if findings is not None:
@@ -410,7 +432,7 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
                           disconnect, alerts,
                           lambda: {k: v[0] for k, v in app[HOUSES].items()}, clock,
                           lambda *a: ask_house(app, *a), lambda: _tell_mood(app), history,
-                          findings, app[PRINTERS])
+                          findings, app[PRINTERS], app[WATCHING])
         app[SETTINGS] = settings
         if alerts is not None:
             app[ALERTS], app[TASKS] = alerts, []
