@@ -252,3 +252,18 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 @media (max-width: 900px), (max-height: 640px) { #focus { position: fixed; inset: 60px 12px 12px; width: auto; min-width: 0; transform: none; } }
 #hud:has(#focus:not([hidden])) #hud-events { display: none; }
 #hud .acts button, #hud .acts a { display: inline-block; height: 20px; box-sizing: border-box; padding: 0 10px; line-height: 18px; margin: 0; }
+
+/* --- screens that fit any height: each side scrolls when it has more than fits --- */
+.side { overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--hud-dim) transparent; padding: 0 0 8px; }
+#hud-left { left: 10px; padding-left: 16px; }
+#hud-right { right: 10px; padding-right: 16px; }
+#hud-left::before { left: 2px; }
+#hud-right::before { right: 2px; }
+.side .glass { flex-shrink: 0; }
+.side .glass.grow { flex: 1 0 auto; min-height: 140px; }
+.glass.grow .scroller { max-height: 320px; }
+#slot-chat { flex-direction: row; }
+#slot-chat #aloud-box { display: flex; align-items: center; gap: 6px; width: 64px; height: 64px; box-sizing: border-box; justify-content: center; flex-direction: column; border: 1px dashed var(--hud-line); border-radius: 50%; font-size: .56rem; text-align: center; cursor: pointer; }
+#slot-chat #aloud-box[hidden] { display: none; }
+#slot-chat #aloud-box:has(:checked) { border-style: solid; border-color: var(--hud); color: var(--hud); }
+.side { padding-bottom: 36px; mask-image: linear-gradient(#000 calc(100% - 36px), transparent); }

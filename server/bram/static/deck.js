@@ -133,7 +133,7 @@ const deck = (() => {
     g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, from, to); g.stroke(); g.restore();
   }
 
-  function center() { return { x: w / 2, y: h * .45, r: Math.min(w * .1, h * .15) }; }
+  function center() { return { x: w / 2, y: h * .45, r: Math.min(w * .1, h * .13) }; }
 
   // The orbit stays in the open space between the side screens.
   function orbitWidth(o) {

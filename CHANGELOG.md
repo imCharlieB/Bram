@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.32.2
+
+- Home: on a shorter screen, each side scrolls when its screens do not all fit, instead of running off the bottom.
+- Home: Speak answers is a round switch in the dock, so the dock stays on one line.
+
 ## 0.32.1
 
 - Home: a 3D printers screen again, shown only while a print is running or paused, or when a printer has a problem: progress, time left, file, and temperatures against target.
