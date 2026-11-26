@@ -21,6 +21,7 @@
 | 3D printers | One switch for each printer | On |
 | | Unlocked at night | Off |
 | | Open or unlocked while away | Off |
+| | Left open: doors, windows, garage doors and gates | On, once Left open is on |
 | | Left open | Off |
 | | Offline | Off |
 | | The security check finds something new | Off |

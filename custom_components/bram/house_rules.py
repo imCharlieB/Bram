@@ -22,6 +22,7 @@ from .const import (
     DEFAULT_NIGHT_TO,
     DEFAULT_OPEN_MINUTES,
     DOMAIN,
+    OPEN_TYPES,
 )
 from .feed import kind_of
 from .home_alerts import GROUP_MAX, GROUP_MIN, within
@@ -53,6 +54,7 @@ class HouseRules:
                        options.get("night_to", DEFAULT_NIGHT_TO))
         self._weekend = (options.get(CONF_WEEKEND_FROM) or self._night[0],
                          options.get(CONF_WEEKEND_TO) or self._night[1])
+        self._open_types = {t for t in OPEN_TYPES if options.get(t, True)}
         self._open_seconds = options.get("open_minutes", DEFAULT_OPEN_MINUTES) * 60
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.rules")
         self._kinds: dict[str, str] = {}
@@ -120,6 +122,15 @@ class HouseRules:
         weekend = (now - datetime.timedelta(hours=12)).weekday() in (4, 5)
         return within(self._weekend if weekend else self._night, now.time())
 
+    @staticmethod
+    def _open_type(state: State | None) -> str:
+        device_class = state.attributes.get("device_class") if state is not None else None
+        if device_class == "window":
+            return "open_windows"
+        if device_class in ("garage", "garage_door", "gate"):
+            return "open_garages"
+        return "open_doors"
+
     def _everyone_away(self) -> bool:
         """True only if every shared person is known to be away (B2)."""
         people = [e for e in self._entities if e.startswith("person.")]
@@ -149,8 +160,9 @@ class HouseRules:
                         f"{name} is unlocked, and everyone I track is away.")
             elif kind == "opening" and value in ("on", "open"):
                 minutes = self._open_seconds // 60
-                yield "left_open", entity_id, self._open_seconds, (
-                    f"{name} has been open for {minutes} minutes.")
+                if self._open_type(state) in self._open_types:
+                    yield "left_open", entity_id, self._open_seconds, (
+                        f"{name} has been open for {minutes} minutes.")
                 if away:
                     yield "away", entity_id, SETTLE, (
                         f"{name} is open, and everyone I track is away.")

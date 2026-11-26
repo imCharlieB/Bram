@@ -212,3 +212,15 @@ async def test_several_routine_messages_become_one(env):
     await env.wait(10)
     assert len(env.calls) == 1 and env.texts()[0].count("offline") == 4
     assert env.calls[0].data["data"]["actions"] == []
+
+
+
+async def test_windows_can_be_left_out(env):
+    await env.start(left_open=True, away=True, open_windows=False)
+    env.hass.states.async_set(DOOR, "on", {"device_class": "window", "friendly_name": "Window"})
+    await env.wait(30)
+    assert env.calls == []
+    for person in (ALEX, SAM):
+        await env.set(person, "not_home")
+    await env.wait(5)
+    assert env.texts() == ["Window is open, and everyone I track is away."]

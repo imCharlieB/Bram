@@ -26,7 +26,7 @@ A device changes, or a timer runs
 | Silent safety sensor | Any of those unreachable | 5 min | Stopped reporting | On for shared sensors |
 | Unlocked at night | Lock unlocked or open in night hours | 2 min | Unlocked, and it's night | Off |
 | Open or unlocked while away | Lock or door, and everyone shared known away | 2 min | Open, and everyone I track is away | Off |
-| Left open | Door, window, or garage open | Your minutes | Open for that long | Off |
+| Left open | Door, window, or garage open; each type can be turned off | Your minutes | Open for that long | Off |
 | Offline | Lock or door unreachable | 5 min | I can't see it | Off |
 | Server lost | BRAM Server disconnected | 3 min | Not answering | On |
 

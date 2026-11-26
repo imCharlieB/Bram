@@ -57,7 +57,7 @@
         "media": "Media players and speakers",
         "voice": "Voice assistants",
         "climate": "Thermostats, temperature, and humidity",
-          "appliances": "Water heaters, valves, and appliances"
+        "appliances": "Water heaters, valves, and appliances"
       }
     }
   },
@@ -174,7 +174,10 @@
           "printers": "3D printers: finished, failed, paused, heater left on",
           "night": "A lock is unlocked at night",
           "away": "Something is open or unlocked while everyone is away",
-          "left_open": "A door, window, or garage is left open",
+          "left_open": "Something is left open",
+          "open_doors": "Left open: doors",
+          "open_windows": "Left open: windows",
+          "open_garages": "Left open: garage doors and gates",
           "offline": "A lock or door sensor goes offline",
           "security_watch": "The security check finds something new",
           "night_from": "Night starts",
@@ -182,6 +185,9 @@
           "weekend_night_from": "Friday and Saturday night starts (empty: same)",
           "weekend_night_to": "Friday and Saturday night ends (empty: same)",
           "open_minutes": "Left open means this many minutes"
+        },
+        "data_description": {
+          "open_windows": "Turn off if you sleep with windows open. Open while everyone is away still covers windows."
         }
       },
       "alerts": {

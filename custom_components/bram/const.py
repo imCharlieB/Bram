@@ -68,5 +68,7 @@ ICON = {
 }
 DEFAULT_NIGHT_FROM, DEFAULT_NIGHT_TO = "22:00:00", "06:00:00"
 DEFAULT_OPEN_MINUTES = 10
+# Which openings the left-open rule covers. Each is on unless the owner turns it off.
+OPEN_TYPES = ("open_doors", "open_windows", "open_garages")
 DEFAULT_DIGEST = "08:00:00"
 DEFAULT_PORT = 8765

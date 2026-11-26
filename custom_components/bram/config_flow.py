@@ -44,6 +44,7 @@ from .const import (
     DEFAULT_PORT,
     DOMAIN,
     GROUPS,
+    OPEN_TYPES,
 )
 from .details import room_sensors
 from .discover import find, suggest
@@ -289,6 +290,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
             **{vol.Required(rule, default=options.get(rule, False)): bool
                for rule in (CONF_PROBLEM_WATCH, CONF_PRINTERS, "night", "away", "left_open",
                             "offline", CONF_SECURITY_WATCH)},
+            **{vol.Required(kind, default=options.get(kind, True)): bool for kind in OPEN_TYPES},
             vol.Required("night_from", default=options.get("night_from", DEFAULT_NIGHT_FROM)):
                 selector.TimeSelector(),
             vol.Required("night_to", default=options.get("night_to", DEFAULT_NIGHT_TO)):

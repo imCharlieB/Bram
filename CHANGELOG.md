@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.28.5
+
+- Left open can cover doors, windows, and garage doors separately. Turn windows off if you sleep with them open; open while everyone is away still covers them.
+
 ## 0.28.4
 
 - A shared thermostat, water heater, or appliance brings its other readings, such as hot water left or compressor health. Select it on Home to see them; chat knows them.
