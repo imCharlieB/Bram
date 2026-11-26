@@ -249,3 +249,47 @@ async def test_removed_or_disabled_printers_are_gone(hass, freezer):
     dr.async_get(hass).async_update_device(printer.id, disabled_by=None)
     await hass.config_entries.async_remove(env.entry.entry_id)
     assert find(hass) == []
+
+
+
+async def test_a_reminder_is_told_once_even_if_it_comes_and_goes(hass, freezer):
+    env = Env(hass, freezer, "bambu_lab")
+    lube = {"1-Error": "Threaded rods need lubrication now."}
+    for _ in range(6):
+        env.hass.states.async_set(env.ids["problem"], "on", lube)
+        await env.run(30, status="running", progress=10)
+        await env.run(90)
+        env.hass.states.async_set(env.ids["problem"], "off")
+        await env.run(30)
+        await env.run(3600 * 25)
+    assert len([t for t in env.texts() if "lubrication" in t]) == 1
+
+
+async def test_a_real_problem_is_told_again_only_after_a_day_fixed(hass, freezer):
+    env = Env(hass, freezer, "bambu_lab")
+    clog = {"1-Error": "Nozzle clogged"}
+    env.hass.states.async_set(env.ids["problem"], "on", clog)
+    await env.run(30, status="running", progress=10)
+    await env.run(90)
+    for _ in range(5):  # flickering
+        env.hass.states.async_set(env.ids["problem"], "off")
+        await env.run(300)
+        env.hass.states.async_set(env.ids["problem"], "on", clog)
+        await env.run(30)
+        await env.run(90)
+    assert len(env.texts()) == 1
+    env.hass.states.async_set(env.ids["problem"], "off")
+    await env.run(30)
+    await env.run(3600 * 25)
+    env.hass.states.async_set(env.ids["problem"], "on", clog)
+    await env.run(30)
+    await env.run(90)
+    assert len(env.texts()) == 2
+    env.hass.states.async_set(env.ids["problem"], "on", {"1-Error": "Something else"})
+    await env.run(30)
+    env.hass.states.async_set(env.ids["problem"], "off")
+    await env.run(60)
+    env.hass.states.async_set(env.ids["problem"], "on", {"1-Error": "Something else"})
+    await env.run(30)
+    await env.run(90)
+    assert len(env.texts()) == 3 and "Something else" in env.texts()[-1]

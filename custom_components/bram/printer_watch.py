@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import json
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -36,6 +37,13 @@ HOT = {"°C": {"nozzle": 60, "nozzle2": 60, "bed": 45}, "°F": {"nozzle": 140, "
 COLD = {"°C": 25, "°F": 45}
 DAILY, DAY = 30, 86400
 MUTE = "BRAM_PRINTER_"
+FLICKER = 1800  # back within half an hour is the same event
+FIXED_FOR = DAY  # a problem is news again after a day fixed
+MAINTENANCE_AGAIN = 30 * DAY  # a reminder to look after the printer, once a month at most
+KEEP = 31 * DAY
+EACH_TIME = ("paused",)
+MAINTENANCE = re.compile(r"lubricat|maintenance|clean|replac|calibrat|\bdue\b|wear|lifetime|"
+                         r"service|\boil\b|grease", re.I)
 KINDS = {"finished": "low", "failed": "medium", "stopped": "low", "paused": "medium",
          "lost": "medium", "hot": "medium", "cold": "medium", "problem": "medium"}
 
@@ -60,6 +68,7 @@ class PrinterWatch:
         self._muted: list[str] = []
         self._since: dict[str, float] = {}
         self._told: set[str] = set()
+        self._phoned: dict[str, list] = {}  # key: what was said, when, when it ended
         self._waiting: list[dict[str, Any]] = []
         self._sent: list[float] = []
         self._last: list[dict] | None = None
@@ -69,6 +78,7 @@ class PrinterWatch:
     async def start(self) -> Callable[[], None]:
         saved = await self._store.async_load() or {}
         self._jobs, self._muted = saved.get("jobs", {}), saved.get("muted", [])
+        self._phoned = saved.get("phoned", {})
         self._waiting = saved.get("waiting", [])
         if not self._on:
             return lambda: None
@@ -186,14 +196,36 @@ class PrinterWatch:
                 if key in self._told:
                     self._told.discard(key)
                     self._note(f"printers:{key}", "closed", "Over", "printers", "low")
+                    if (phoned := self._phoned.get(key)) is not None and phoned[2] is None:
+                        phoned[2] = now
+                        self._save()
                 continue
             if now - self._since.setdefault(key, now) >= wait and key not in self._told:
                 self._told.add(key)
                 self._note(f"printers:{key}", "open", text, "printers", KINDS[kind])
-                self._queue(kind, printer, text)
+                if self._worth_telling(key, kind, text, now):
+                    self._phoned[key] = [text, now, None]
+                    self._queue(kind, printer, text)
+                elif (phoned := self._phoned.get(key)) is not None:
+                    phoned[2] = None  # the same thing again: still one event
+                self._save()
         if state == "printing":
             self._note(f"printers:failed:{printer.id}", "closed", "Printing again", "printers",
                        "low")
+
+    # --- how often ---
+
+    def _worth_telling(self, key: str, kind: str, text: str, now: float) -> bool:
+        """Grade it: once only, once until fixed a while, or each time."""
+        before = self._phoned.get(key)
+        if before is None or before[0] != text:
+            return True  # never told, or something new
+        if MAINTENANCE.search(text):
+            return now - before[1] >= MAINTENANCE_AGAIN  # then only on BRAM's page
+        if before[2] is None:
+            return False
+        # Coming and going is one event; a problem back after being fixed is news.
+        return now - before[2] >= (FLICKER if kind in EACH_TIME else FIXED_FOR)
 
     # --- telling ---
 
@@ -226,4 +258,6 @@ class PrinterWatch:
     @callback
     def _save(self) -> None:
         self._store.async_delay_save(lambda: {
-            "jobs": self._jobs, "muted": self._muted, "waiting": self._waiting}, 5)
+            "jobs": self._jobs, "muted": self._muted, "waiting": self._waiting,
+            "phoned": {k: v for k, v in self._phoned.items()
+                       if v[2] is None or dt_util.utcnow().timestamp() - v[2] < KEEP}}, 5)

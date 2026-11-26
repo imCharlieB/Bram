@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.28.6
+
+- Printer messages are graded: a maintenance reminder is sent once a month at most, and a problem that comes and goes is told once, then again only after a day fixed. Everything still shows in Findings.
+
 ## 0.28.5
 
 - Left open can cover doors, windows, and garage doors separately. Turn windows off if you sleep with them open; open while everyone is away still covers them.
