@@ -28,6 +28,7 @@ ERRORS, WINDOW = 10, 3600
 WHOLE = 3  # this many devices gone at once is one problem with their integration
 DISK_FREE, DISK_FREE_BYTES = 0.05, 1_000_000_000
 DATABASE = 10_000_000_000
+HEALTH = 50
 # Devices that are away or off in ordinary use, or that other rules watch.
 ORDINARY = {"mobile_app", "hassio", "bram", *PRINTERS}
 NOT_READINGS = ("target", "setpoint", "set_point", "_set", "limit", "threshold", "max", "min",
@@ -67,7 +68,8 @@ class Finder:
         for label, check in (("Integrations", self._integrations), ("Errors", self._log),
                              ("Repairs", self._repairs), ("Offline devices", self._devices),
                              ("Stuck sensors", self._stuck), ("Automations", self._automations),
-                             ("Backups", self._backups), ("Updates", self._updates)):
+                             ("Backups", self._backups), ("Updates", self._updates),
+                             ("Devices reporting trouble", self._trouble)):
             try:
                 found += check()
             except Exception:  # noqa: BLE001 - one broken check must not stop the rest
@@ -280,6 +282,26 @@ class Finder:
                                      f"Automation {_name(state.name)} uses {missing[0]}"
                                      + (f" and {len(missing) - 1} more" if missing[1:] else "")
                                      + ", which does not exist"))
+        return found
+
+    def _trouble(self) -> list[Problem]:
+        """A device's own count of alerts or errors, or its own health reading."""
+        found = []
+        for state in self._hass.states.async_all("sensor"):
+            low = state.entity_id.lower()
+            try:
+                value = float(state.state)
+            except ValueError:
+                continue
+            name = _name(state.name.replace("_", " "))
+            if low.endswith(("alert_count", "error_count", "alarm_count", "fault_count")):
+                if value > 0:
+                    found.append(Problem(f"trouble:{state.entity_id}", "medium",
+                                         f"{name} is {value:g}"))
+            elif (low.endswith("_health") and state.attributes.get("unit_of_measurement") == "%"
+                  and value < HEALTH):
+                found.append(Problem(f"trouble:{state.entity_id}", "medium",
+                                     f"{name} is down to {value:g}%"))
         return found
 
     def _backups(self) -> list[Problem]:

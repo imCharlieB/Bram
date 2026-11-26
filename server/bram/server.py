@@ -69,6 +69,10 @@ def _detail(raw: object) -> dict:
         for key in WORDS:
             if isinstance(values.get(key), str):
                 found["values"][key] = values[key][:40]
+    lines = raw.get("parts")
+    if isinstance(lines, list):
+        found["parts"] = [[str(a)[:40], str(b)[:30]] for a, b in
+                          (p for p in lines[:12] if isinstance(p, list) and len(p) == 2)]
     since = raw.get("since")
     if isinstance(since, (int, float)) and not isinstance(since, bool) and 0 < since < 1e11:
         found["since"] = float(since)

@@ -19,3 +19,10 @@ def disabled(hass: HomeAssistant, options: Mapping[str, Any]) -> list[str]:
 def shared(hass: HomeAssistant, options: Mapping[str, Any]) -> list[str]:
     off = set(disabled(hass, options))
     return [e for e in options.get(CONF_ENTITIES, []) if e not in off]
+
+
+def missing(hass: HomeAssistant, options: Mapping[str, Any]) -> list[str]:
+    """Neither in the registry nor reporting: deleted, as far as anyone can tell."""
+    registry = er.async_get(hass)
+    return [e for e in options.get(CONF_ENTITIES, [])
+            if registry.async_get(e) is None and hass.states.get(e) is None]

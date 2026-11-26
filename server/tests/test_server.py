@@ -11,6 +11,12 @@ from bram.pairing import Pairing, ensure_certificate
 from bram.server import HOUSES, _detail, _log_house, make_app
 
 
+def test_parts_are_checked():
+    found = _detail({"parts": [["Hot water", "66%"], "x", [1], ["a" * 99, "b" * 99]] * 5})
+    assert found["parts"][0] == ["Hot water", "66%"] and len(found["parts"]) <= 12
+    assert found["parts"][1] == ["a" * 40, "b" * 30]
+
+
 class Running:
     pass
 

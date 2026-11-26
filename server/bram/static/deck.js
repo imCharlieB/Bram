@@ -82,6 +82,8 @@ const deck = (() => {
       const row = make("li", undefined, `${device.state}${only ? " full" : ""}`), left = make("span", device.name);
       const more = [device.text, device.area, device.age].filter(Boolean).join(" \u00b7 ");
       if (more) left.append(make("small", more));
+      // Selected, a device shows its other readings, as on its page in Home Assistant.
+      if (only && device.parts) for (const [name, value] of device.parts) left.append(make("small", `${name}: ${value}`));
       row.append(left, make("b", device.state === "unknown" ? "unknown" : device.says));
       return row;
     }) : [make("li", "Nothing active")]));

@@ -19,7 +19,7 @@ from .outbox import Outbox
 from .printer_watch import PrinterWatch
 from .problem_watch import ProblemWatch
 from .security_watch import SecurityWatch
-from .shared import disabled
+from .shared import disabled, missing
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CONVERSATION,
              Platform.SELECT, Platform.SENSOR]
@@ -50,6 +50,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     feed.learner = Learner(hass, entry, feed)
     entry.async_on_unload(await feed.learner.start())
     entry.async_on_unload(await SecurityWatch(hass, entry, feed.note).start())
+    for entity_id in missing(hass, entry.options):
+        feed.note(f"missing:{entity_id}", "open", f"{entity_id} no longer exists in Home "
+                  "Assistant. Remove it under What BRAM can see", "problems", "low")
     for entity_id in disabled(hass, entry.options):
         feed.note(f"disabled:{entity_id}", "open", f"{entity_id} is turned off in Home "
                   "Assistant, so BRAM does not watch it", "problems", "low")
@@ -60,6 +63,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data = event.data
         old, new = data.get("old_entity_id"), data.get("entity_id")
         chosen = entry.options.get(CONF_ENTITIES, [])
+        if data.get("action") == "remove" and new in chosen:
+            # Deleted in Home Assistant, so there is nothing left to watch.
+            feed.note(f"removed:{new}", "open", f"{new} was deleted in Home Assistant, so BRAM "
+                      "stopped watching it", "problems", "low")
+            hass.config_entries.async_update_entry(entry, options={
+                **entry.options, CONF_ENTITIES: [e for e in chosen if e != new]})
+            hass.config_entries.async_schedule_reload(entry.entry_id)
+            return
         if data.get("action") == "update" and old in chosen and new not in chosen:
             # Renamed in Home Assistant: the new name is the same device.
             hass.config_entries.async_update_entry(entry, options={

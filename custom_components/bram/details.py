@@ -99,11 +99,55 @@ def detail(hass: HomeAssistant, state: State | None,
                     break
     if state.state not in ("unavailable", "unknown") and (text := _text(state)):
         found["text"] = text[:160]
+    if state.entity_id.startswith(WITH_PARTS) and (found_parts := parts(hass, state)):
+        found["parts"] = found_parts
     if numbers := values(hass, state):
         found["values"] = numbers
     if path := picture_path(state):
         found["picture"] = hashlib.sha256(path.encode()).hexdigest()[:16]
     return found
+
+
+WITH_PARTS = ("climate.", "water_heater.", "valve.", "vacuum.", "lawn_mower.", "humidifier.",
+              "fan.")
+MAX_PARTS = 12
+
+
+def siblings(hass: HomeAssistant, entity_id: str) -> list[str]:
+    """The other sensors on the same device, which the owner sees beside it in Home Assistant."""
+    registry = er.async_get(hass)
+    entry = registry.async_get(entity_id)
+    if entry is None or entry.device_id is None:
+        return []
+    return [e.entity_id for e in er.async_entries_for_device(registry, entry.device_id)
+            if e.entity_id != entity_id and e.domain in ("sensor", "binary_sensor")
+            and e.entity_category is None]
+
+
+def parts(hass: HomeAssistant, state: State) -> list[list[str]]:
+    """Short readings only: no unknowns, and nothing that is not meant to be read."""
+    entry = er.async_get(hass).async_get(state.entity_id)
+    device = dr.async_get(hass).async_get(entry.device_id) if entry and entry.device_id else None
+    prefix = (device.name_by_user or device.name or "") if device else ""
+    found = []
+    for entity_id in siblings(hass, state.entity_id):
+        part = hass.states.get(entity_id)
+        if part is None or part.state in ("unavailable", "unknown", ""):
+            continue
+        value = part.state
+        if len(value) > 30 or any(c in value for c in "{}[]<>"):
+            continue
+        if entity_id.startswith("binary_sensor."):
+            value = {"on": "yes", "off": "no"}.get(value, value)
+        elif unit := part.attributes.get("unit_of_measurement"):
+            value = f"{value} {unit}".replace(" %", "%")
+        name = part.name
+        if prefix and name.lower().startswith(prefix.lower()):
+            name = name[len(prefix):]
+        name = " ".join(name.replace("_", " ").split()).strip(" -:")
+        if name:
+            found.append([(name[0].upper() + name[1:])[:40], value[:30]])
+    return sorted(found)[:MAX_PARTS]
 
 
 def values(hass: HomeAssistant, state: State) -> dict[str, Any]:

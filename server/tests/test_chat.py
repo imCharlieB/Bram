@@ -451,3 +451,11 @@ async def test_printers_are_in_the_report(env):
     for bad in (None, {}, {"state": "evil"}):
         with pytest.raises(ValueError):
             _printer(bad)
+
+
+
+async def test_a_devices_other_readings_are_in_the_report(env):
+    env.set("Water heater", "appliance", "electric, set to 120",
+            parts=[["Available hot water", "66%"], ["Running", "yes"]])
+    await env.chat.ask("k", "how much hot water is left?")
+    assert "electric, set to 120; Available hot water 66%, Running yes" in env.system

@@ -19,7 +19,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 from . import gate
 from .client import connect
 from .const import CONF_FINGERPRINT, CONF_ROOMS, DOMAIN, MOODS
-from .details import detail, room_sensors
+from .details import WITH_PARTS, detail, room_sensors, siblings
 from .names import entity_name
 from .queries import answer
 from .shared import shared
@@ -325,6 +325,10 @@ class Feed:
                 self.send({"type": "state", "state": self._state(
                     person, self._hass.states.get(person))})
 
+        # A device's other readings change without the device itself changing.
+        for owner in (e for e in self._entities if e.startswith(WITH_PARTS)):
+            for part in siblings(self._hass, owner):
+                rooms.setdefault(part, []).append(owner)
         stop_rooms = async_track_state_change_event(self._hass, list(rooms), moved)
         snapshot = self._snapshot(self._entities)
         self._queue = queue

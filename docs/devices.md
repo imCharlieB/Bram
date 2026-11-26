@@ -2,9 +2,17 @@
 
 BRAM sees only the devices you choose. Choosing one does not let BRAM control it.
 
+## A device's other readings
+
+For a shared thermostat, fan, water heater, valve, vacuum, mower, or humidifier, BRAM also reads the other sensors on the same device, such as hot water left or compressor health. Select it on Home to see them; chat knows them too. Unknown values and text that is not meant to be read are left out.
+
 ## Renamed in Home Assistant
 
 If you change an entity's ID in Home Assistant, BRAM follows it.
+
+## Deleted in Home Assistant
+
+An entity you delete in Home Assistant is dropped from what BRAM watches, and noted in Findings. One that was already gone when BRAM started is listed in Findings for you to remove.
 
 ## Turned off in Home Assistant
 

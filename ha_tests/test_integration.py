@@ -696,3 +696,18 @@ async def test_renamed_in_home_assistant_is_followed(hass, server):
     await until(lambda: world.check("lock.front_door") == "yes")
     await hass.config_entries.async_unload(entry.entry_id)
     await until(lambda: not server[0][SOCKETS])
+
+
+async def test_deleted_in_home_assistant_is_dropped(hass, server):
+    registry = er.async_get(hass)
+    light = registry.async_get_or_create(
+        "light", "demo", "x1", suggested_object_id="desk").entity_id
+    hass.states.async_set(light, "on")
+    entry = await start(hass, server)
+    await choose(hass, entry, [light])
+    registry.async_remove(light)
+    await hass.async_block_till_done()
+    await reconnected(hass, entry)
+    assert entry.options["entities"] == []
+    await hass.config_entries.async_unload(entry.entry_id)
+    await until(lambda: not server[0][SOCKETS])

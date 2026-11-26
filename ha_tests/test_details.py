@@ -152,3 +152,49 @@ async def test_picture(hass, aioclient_mock, monkeypatch, body, status, good):
         assert result == {"kind": "image/png", "data": base64.b64encode(PNG).decode()}
     else:
         assert result == {"error": "none"}
+
+
+
+async def test_a_devices_other_readings(hass):
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.bram.details import parts
+
+    entry = MockConfigEntry(domain="econet")
+    entry.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("econet", "1")}, name="Heat Pump")
+    registry = er.async_get(hass)
+
+    def add(domain, key, state, **attrs):
+        made = registry.async_get_or_create(domain, "econet", key, device_id=device.id,
+                                            suggested_object_id=key)
+        hass.states.async_set(made.entity_id, state, attrs)
+        return made.entity_id
+
+    heater = add("water_heater", "heater", "electric", temperature=120)
+    add("sensor", "hot", "66", friendly_name="Heat Pump_available_hot_water",
+        unit_of_measurement="%")
+    add("binary_sensor", "running", "on", friendly_name="Heat Pump_running")
+    add("sensor", "junk", "{'constraints': {'bgcolor': 1}}", friendly_name="Heat Pump_override")
+    add("sensor", "water", "unknown", friendly_name="Heat Pump_water_usage")
+    assert parts(hass, hass.states.get(heater)) == [
+        ["Available hot water", "66%"], ["Running", "yes"]]
+
+
+async def test_devices_reporting_trouble(hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.bram.problems import Finder
+
+    finder = Finder(hass, MockConfigEntry(domain="bram", options={}))
+    hass.states.async_set("sensor.heater_alert_count", "0", {"friendly_name": "Heater_alert_count"})
+    hass.states.async_set("sensor.heater_tank_health", "90", {"unit_of_measurement": "%"})
+    assert finder._trouble() == []
+    hass.states.async_set("sensor.heater_alert_count", "2", {"friendly_name": "Heater_alert_count"})
+    hass.states.async_set("sensor.heater_tank_health", "40", {"unit_of_measurement": "%",
+                                                              "friendly_name": "Tank health"})
+    assert [p.text for p in finder._trouble()] == [
+        "Heater alert count is 2", "Tank health is down to 40%"]

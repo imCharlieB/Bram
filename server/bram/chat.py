@@ -210,6 +210,7 @@ class Chat:
                         "area": clean(e.detail.get("area", ""), 40),
                         "floor": clean(e.detail.get("floor", ""), 40),
                         "text": _more(world, e), "since": e.detail.get("since"),
+                        "parts": e.detail.get("parts", []) if world and world.live else [],
                         "picture": e.detail.get("picture", "")}
                        for e in (world.all() if world else [])
                        if e.kind in WORDS or e.kind in READINGS]
@@ -376,6 +377,8 @@ def _full(world: World, event: Event) -> str:
         return says
     if more := _more(world, event):
         says += f" ({more})"
+    if world.live and (lines := event.detail.get("parts")):
+        says += "; " + ", ".join(f"{clean(a, 40)} {clean(b, 30)}" for a, b in lines)
     if area := clean(event.detail.get("area", ""), 40):
         says += f", in {area}"
         if floor := clean(event.detail.get("floor", ""), 40):

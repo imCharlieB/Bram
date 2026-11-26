@@ -14,6 +14,7 @@ BRAM checks Home Assistant itself every 10 minutes, without being asked. Turn it
 | Stuck sensor | A temperature or humidity that has not changed in 2 days |
 | Automation | Could not be loaded, or uses a device that does not exist |
 | Backup | The last automatic one is more than 8 days old |
+| Device reports trouble | Its own alert, error, alarm, or fault count is above 0, or its health reading is below 50% |
 | Disk almost full, database over 10 GB | |
 | Updates waiting | Listed in Findings only, no message |
 

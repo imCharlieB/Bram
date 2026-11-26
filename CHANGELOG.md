@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.28.4
+
+- A shared thermostat, water heater, or appliance brings its other readings, such as hot water left or compressor health. Select it on Home to see them; chat knows them.
+- An entity deleted in Home Assistant is dropped instead of showing unknown forever. One already gone is listed in Findings.
+- Problems: a device whose own alert or error count is above 0, or whose health reading drops below 50%.
+
 ## 0.28.3
 
 - Water heaters, valves, vacuums, mowers, and humidifiers have their own section, Appliances. A water heater shows its mode and setting.
