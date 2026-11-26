@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.32.4
+
+- History: while it is off, the History page starts with a large **Start keeping history** button, and the Keep history switch is larger.
+- Home: with history off, Climate shows **Turn on history**.
+- Home: click a side screen's tab to fold it to just the tab. The browser remembers which are folded.
+
 ## 0.32.3
 
 - Home: the 3D printers screen shows only printers that are printing or paused. A printer whose integration is failing is still under Needs you.

@@ -123,6 +123,7 @@
               <div id="hud-climate"></div>
             </div>
             <span class="why" id="climate-why"></span>
+            <a id="climate-start" href="#history" hidden>Turn on history</a>
           </div>
           <div class="glass alarm" id="needs-pane" hidden><h2>Needs you <span id="needs-count"></span></h2><div id="hud-needs" class="scroller"></div></div>
           <div class="glass" id="noticed-pane" hidden><h2>I noticed <span>Patterns</span></h2><div id="hud-noticed"></div></div>
@@ -383,6 +384,12 @@
 
     <section data-page="history" hidden>
       <h1>History</h1>
+      <div class="card start" id="history-off" hidden>
+        <h2>History is off</h2>
+        <p>BRAM is not remembering anything yet, so it has no trends, no climate graph, and nothing to learn from. Turn it on and it saves every reading each minute, and every door, lock, motion, and presence change, from now on. It stays on this server.</p>
+        <button id="history-start">Start keeping history</button>
+        <p class="message" id="history-start-message" role="status"></p>
+      </div>
       <div class="card">
         <h2>Keep history</h2>
         <p class="note">BRAM remembers what your shared devices did, so it can find trends. It stays on this server.</p>

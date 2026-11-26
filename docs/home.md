@@ -21,7 +21,9 @@ Screens down both sides each have a tab. Point at one, or tab into it, and it li
 | **I noticed** | Patterns: a room sensor that reads warmer or cooler than its thermostat over the week, how many nights are learned, and things not reporting |
 | **What I did** | What BRAM told your phone, held back, or was told to stop today, and why something was held. See [How often BRAM tells you](how-often.md) |
 
-Screens with nothing to show stay hidden. When a side has more than fits, scroll it.
+Screens with nothing to show stay hidden. When a side has more than fits, scroll it. Click a screen's tab to fold it down to just the tab, and again to open it; this browser remembers which are folded.
+
+With history off, **Climate** has **Turn on history**, which goes to the History page.
 
 ## A closer look
 

@@ -1,6 +1,10 @@
 # History and trends
 
-BRAM can remember what your shared devices did, in its own database. Off until you turn it on: **History > Keep history** on BRAM's page.
+BRAM can remember what your shared devices did, in its own database. Off until you turn it on: while it is off, the History page on BRAM's page starts with **Start keeping history**. Press it and enter your password. **Keep history** below it turns it off again.
+
+It records as things happen: each reading every minute, and each change when it happens. Nothing from before you turned it on is recorded, except the past readings below.
+
+This is separate from **Learning** in Home Assistant, which notes quiet nights and door times by itself to suggest better hours. See [Learning](learning.md).
 
 ## What it keeps
 

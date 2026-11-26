@@ -278,3 +278,12 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 #slot-chat #aloud-box input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
 #slot-chat #aloud-box:has(:checked) { opacity: 1; border-color: var(--hud); background: radial-gradient(circle, color-mix(in srgb, var(--hud) 35%, transparent), rgb(0 10 22 / .85) 70%); box-shadow: 0 0 16px color-mix(in srgb, var(--hud) 40%, transparent); }
 #slot-chat #aloud-box:has(:focus-visible) { outline: 2px solid var(--hud-warn); outline-offset: 3px; }
+#climate-start { display: inline-block; margin-top: 8px; padding: 6px 12px; border: 1px solid var(--hud); color: var(--hud); font: 700 .66rem var(--mono); letter-spacing: .12em; text-transform: uppercase; text-decoration: none; }
+#climate-start[hidden] { display: none; }
+/* A folded screen shows only its tab. */
+#hud .side .glass > h2 { cursor: pointer; }
+#hud .side .glass > h2::after { content: "\25BE"; margin-left: 8px; font-size: .7rem; }
+#hud .side .glass.folded > h2::after { content: "\25B8"; }
+#hud .side .glass.folded { min-height: 0; height: 22px; padding: 0; flex: 0 0 auto; }
+#hud .side .glass.folded > :not(h2) { display: none; }
+#hud .side .glass > h2:focus-visible { outline: 2px solid var(--hud-warn); outline-offset: 2px; }

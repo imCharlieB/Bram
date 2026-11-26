@@ -890,7 +890,8 @@ function showNoticed(brain) {
 function showClimate(brain) {
   const inside = brain.series.map((s) => s.inside), outside = brain.series.map((s) => s.outside);
   const known = [...inside, ...outside].filter((v) => v !== null);
-  $("climate-pane").hidden = !known.length && !brain.climate.length;
+  $("climate-pane").hidden = brain.history && !known.length && !brain.climate.length;
+  $("climate-start").hidden = brain.history;
   if ($("climate-pane").hidden) return;
   const last = (list) => [...list].reverse().find((v) => v !== null && v !== undefined);
   const out = last(outside), inn = last(inside);
@@ -918,7 +919,7 @@ function showClimate(brain) {
   });
   $("hud-climate").replaceChildren(...(known.length > 1 ? [svg] : []), ...rows);
   const total = brain.climate.reduce((sum, day) => sum + Object.values(day.seconds).reduce((x, y) => x + y, 0), 0);
-  $("climate-why").textContent = known.length ? `Last 24 hours: inside solid, outside dashed.${total ? ` Ran ${lasted(total)} in all today.` : ""}` : "Turn on Keep history under History to see the day.";
+  $("climate-why").textContent = known.length ? `Last 24 hours: inside solid, outside dashed.${total ? ` Ran ${lasted(total)} in all today.` : ""}` : brain.history ? "Nothing recorded in the last 24 hours yet." : "History is off, so BRAM cannot show the day.";
 }
 
 // The system screen and the systems around the brain, from what is real.
@@ -1078,7 +1079,28 @@ function closeFocus() {
 $("focus-close").addEventListener("click", closeFocus);
 addEventListener("keydown", (event) => { if (event.key === "Escape" && focused) closeFocus(); });
 for (const pane of document.querySelectorAll("[data-focus]")) {
-  pane.addEventListener("click", (event) => { if (!event.target.closest("a, button")) openFocus(pane.dataset.focus); });
+  pane.addEventListener("click", (event) => { if (!event.target.closest("a, button, h2")) openFocus(pane.dataset.focus); });
+}
+// Click a screen's tab to fold it down to just the tab. Remembered in this browser only.
+const FOLDED = "bram-folded";
+function foldedNames() {
+  try { return JSON.parse(localStorage.getItem(FOLDED) || "[]"); } catch { return []; }
+}
+for (const tab of document.querySelectorAll("#hud .side .glass > h2")) {
+  const pane = tab.parentElement, name = tab.firstChild.textContent.trim();
+  const set = (folded) => { pane.classList.toggle("folded", folded); tab.setAttribute("aria-expanded", String(!folded)); };
+  tab.tabIndex = 0;
+  tab.setAttribute("role", "button");
+  tab.title = "Fold or open";
+  set(foldedNames().includes(name));
+  const toggle = (event) => {
+    event.stopPropagation();
+    const folded = !pane.classList.contains("folded"), names = foldedNames().filter((n) => n !== name);
+    set(folded);
+    try { localStorage.setItem(FOLDED, JSON.stringify(folded ? [...names, name] : names)); } catch { /* not kept */ }
+  };
+  tab.addEventListener("click", toggle);
+  tab.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggle(event); } });
 }
 $("scope").addEventListener("click", (event) => {
   const box = $("scope").getBoundingClientRect(), name = deck.at(event.clientX - box.left, event.clientY - box.top);
@@ -1137,6 +1159,7 @@ async function loadHistory() {
   await loadCleanup();
   const data = await api("history");
   $("history-on").checked = data.on;
+  $("history-off").hidden = data.on;
   $("history-limit").value = data.limit_mb;
   const { reading, hourly, change, run } = data.counts;
   $("history-size").textContent = `Using ${(data.size / 1e6).toFixed(1)} MB: ${(reading + hourly).toLocaleString()} readings, ${change.toLocaleString()} changes, ${run.toLocaleString()} heating and cooling runs.`
@@ -1467,6 +1490,14 @@ onSubmit("history-form", "history-save", "history-message", async () => {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
   await loadHistory();
   return $("history-on").checked ? "Saved." : "Saved. What was kept is still here until you delete it.";
+});
+
+onClick("history-start", "history-start-message", async () => {
+  const confirm = await askPassword("BRAM will remember what your shared devices do, on this server.");
+  await api("history", { confirm, on: true, limit_mb: Number($("history-limit").value),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+  await loadHistory();
+  return "On. BRAM is keeping history from now on.";
 });
 
 onClick("clean-plan", "clean-message", async () => {
