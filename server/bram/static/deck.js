@@ -42,10 +42,12 @@ const deck = (() => {
     for (const group of sectors) {
       const span = (Math.max(group.devices.length, 2) / total) * TAU;
       Object.assign(group, { from: at, to: at + span });
-      const rows = Math.max(1, Math.ceil(group.devices.length / Math.max(1, Math.floor(span * 4.6))));
+      const rows = Math.min(4, Math.max(1, Math.ceil(group.devices.length / Math.max(1, Math.floor(span * 3.4)))));
+      const across = Math.ceil(group.devices.length / rows);
       group.devices.forEach((device, i) => {
-        const row = i % rows, place = (Math.floor(i / rows) + .5) / Math.ceil(group.devices.length / rows);
-        nodes.push({ ...device, group: group.title, angle: at + span * (.08 + .84 * place), depth: rows === 1 ? .5 : row / (rows - 1) });
+        // Every other row is half a step along, so marks sit between their neighbours.
+        const row = i % rows, place = (Math.floor(i / rows) + .5 + (row % 2 ? .5 : 0)) / (across + .5);
+        nodes.push({ ...device, group: group.title, angle: at + span * (.06 + .88 * place), depth: rows === 1 ? .5 : row / (rows - 1) });
       });
       at += span;
     }
@@ -137,6 +139,9 @@ const deck = (() => {
       if (whole && i < Math.round(share * 40)) tick.setAttribute("class", "lit");
       svg.append(tick);
     }
+    const spin = document.createElementNS(NS, "circle");
+    spin.setAttribute("cx", "50"); spin.setAttribute("cy", "50"); spin.setAttribute("r", "32"); spin.setAttribute("class", "spin");
+    svg.append(spin);
     box.className = `gauge ${kind}`;
     box.replaceChildren(svg, make("b", whole ? `${part}/${whole}` : "--"), make("span", label));
   }
@@ -180,7 +185,7 @@ const deck = (() => {
   function layout(box) {
     const r = Math.min(box.w * .5 - 92, box.h * .5 - 44);
     const mark = Math.max(9, Math.min(15, r / (nodes.length > 60 ? 30 : 22)));
-    return { x: box.w / 2, y: box.h / 2, r, inner: r * .4, outer: r * .9, mark, names: r > 210 && nodes.length <= 45 };
+    return { x: box.w / 2, y: box.h / 2, r, inner: r * .4, outer: r * .9, mark, names: r > 170 };
   }
 
   function tint(node) {
@@ -354,12 +359,14 @@ const deck = (() => {
         g.restore();
       }
       // A name under each mark, so it is plain what it is.
-      if (view.names && !over && node.state !== "alert" && node.state !== "warn") {
+      // Names only where they help: what is on, the chosen sector, or a quiet radar.
+      const named = node.state === "on" || node.group === chosen || nodes.length <= 16;
+      if (view.names && named && !over && node.state !== "alert" && node.state !== "warn") {
         g.globalAlpha = faded ? .12 : .8;
         g.fillStyle = color.text;
         g.font = "500 10px system-ui, sans-serif";
         g.textAlign = "center";
-        const short = node.name.length > 15 ? `${node.name.slice(0, 14)}\u2026` : node.name;
+        const short = node.name.length > 18 ? `${node.name.slice(0, 17)}\u2026` : node.name;
         g.fillText(short, spot.x, spot.y + big * (face ? 1.25 : 1) + 9);
       }
       if (over || node.state === "alert" || node.state === "warn") {

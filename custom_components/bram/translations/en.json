@@ -73,21 +73,26 @@
     "step": {
       "init": {
         "title": "BRAM",
+        "description": "Choose what to set up. BRAM watches and tells you; it cannot control anything.",
         "menu_options": {
-          "basic": "Recommended setup",
-          "suggest": "BRAM's suggestions",
-          "quick": "Add devices quickly",
-          "see": "What BRAM can see",
-          "rooms": "Fix a person's room (rarely needed)",
-          "alerts": "Phone alerts and quiet hours",
-          "watch": "What BRAM watches for",
-          "printers": "3D printers",
-          "chat": "What BRAM may look into",
+          "basic": "Quick setup",
+          "devices": "Devices",
+          "alerts": "Messages",
+          "watching": "Watching",
+          "chat": "Server access",
           "learn": "Learning"
+        },
+        "menu_option_descriptions": {
+          "basic": "Your phone and the main switches, on one page. Start here.",
+          "devices": "What BRAM can see: suggestions, by type and room, or one by one.",
+          "alerts": "Which phones get messages, quiet hours, and the daily summary.",
+          "watching": "Home Assistant problems, locks, doors, and windows, 3D printers, and security.",
+          "chat": "What the BRAM Server may read beyond live state: history, errors, security.",
+          "learn": "Let BRAM suggest better night hours from how your home is used."
         }
       },
       "basic": {
-        "title": "Recommended setup",
+        "title": "Quick setup",
         "description": "Pick your phone and what BRAM should tell you, then submit. You can change every part later. BRAM cannot control anything.\n\nThese will be shared with BRAM:\n{found}",
         "data": {
           "phones": "Phones that get everything",
@@ -105,7 +110,7 @@
         }
       },
       "quick": {
-        "title": "Add devices quickly",
+        "title": "Add by type and room",
         "description": "BRAM looks for devices it understands. You choose which to share on the next page.",
         "data": {
           "groups": "Look for",
@@ -123,7 +128,7 @@
         }
       },
       "see": {
-        "title": "What BRAM can see",
+        "title": "Choose one by one",
         "description": "Only what you choose here is shared with BRAM. It cannot control any of it.",
         "data": {
           "people": "People",
@@ -140,46 +145,48 @@
         }
       },
       "rooms": {
-        "title": "Fix a person's room",
+        "title": "People's rooms",
         "description": "You usually do not need this: BRAM finds these by itself. Change one only if a person shows the wrong room. Each is the sensor that says which room they are in."
       },
       "chat": {
-        "title": "What BRAM may look into",
-        "description": "Lets the BRAM Server read more than the live state, to answer you and to fill its own history. BRAM finds problems by itself without these; see What BRAM watches for. History covers only devices BRAM can see. Problems sends short summaries of errors, repairs, low batteries, and updates, with passwords, tokens, and addresses removed. Removal cannot catch everything. The security check sends findings and device names, never account names.",
+        "title": "Server access",
+        "description": "Lets the BRAM Server read more than live state, to answer your questions and fill its history. Nothing here changes what BRAM watches. Problems sends short summaries with passwords, tokens, and addresses removed; removal cannot catch everything. The security check sends findings and device names, never account names.",
         "data": {
-          "share_history": "History of the devices BRAM can see, 10 days",
+          "share_history": "History of shared devices",
           "share_problems": "Home Assistant problems",
-          "share_security": "Security check of Home Assistant"
+          "share_security": "Security check"
+        },
+        "data_description": {
+          "share_history": "On: answers such as when a door last opened, and past temperatures brought into BRAM's history. 10 days of shared devices only.",
+          "share_problems": "On: answers such as which integrations are failing.",
+          "share_security": "On: you can ask whether your home is secure."
         }
       },
       "learn": {
         "title": "Learning",
         "description": "BRAM watches when your home goes quiet at night and how long doors stay open, then suggests better night hours and left-open times. Suggestions appear in Settings > System > Repairs. Nothing changes until you approve one.\n\nNights noted so far: {nights} of the 14 needed. The first is noted at noon after its night.",
         "data": {
-          "learn": "Suggest better hours",
+          "learn": "Learning is on",
           "undo": "Undo the last change I approved",
-          "forget": "Erase what BRAM has learned and start over"
+          "forget": "Erase what BRAM has learned"
         },
         "data_description": {
-          "learn": "Turning this off stops noting new nights. What was noted is kept.",
+          "learn": "Checked: BRAM notes your nights and suggests better hours. Unchecked: nothing new is noted; what was noted is kept.",
           "undo": "Puts back the hours you had before you approved the last suggestion.",
           "forget": "Your current hours stay as they are. BRAM forgets the nights it noted, any waiting suggestion, and your Never answers."
         }
       },
       "watch": {
-        "title": "What BRAM watches for",
-        "description": "Problems covers all of Home Assistant, and sends what it finds to the BRAM Server, with passwords, tokens, and addresses removed; removal cannot catch everything. Lock and door rules cover what BRAM can see. Night and away messages ignore quiet hours. Away counts only the people BRAM can see, so add everyone who lives here first.",
+        "title": "Locks, doors, and windows",
+        "description": "Covers the locks, doors, windows, and garage doors BRAM can see. Night and away messages ignore quiet hours. Away counts only the people BRAM can see, so share everyone who lives here.",
         "data": {
-          "problem_watch": "Problems with Home Assistant: integrations, errors, batteries, offline devices, automations, backups",
-          "printers": "3D printers: finished, failed, paused, heater left on",
-          "night": "A lock is unlocked at night",
-          "away": "Something is open or unlocked while everyone is away",
-          "left_open": "Something is left open",
+          "night": "Unlocked at night",
+          "away": "Open or unlocked while everyone is away",
+          "left_open": "Left open",
           "open_doors": "Left open: doors",
           "open_windows": "Left open: windows",
           "open_garages": "Left open: garage doors and gates",
           "offline": "A lock or door sensor goes offline",
-          "security_watch": "The security check finds something new",
           "night_from": "Night starts",
           "night_to": "Night ends",
           "weekend_night_from": "Friday and Saturday night starts (empty: same)",
@@ -187,11 +194,12 @@
           "open_minutes": "Left open means this many minutes"
         },
         "data_description": {
+          "left_open": "On: told when something stays open longer than the minutes below. Choose doors, windows, and garage doors separately.",
           "open_windows": "Turn off if you sleep with windows open. Open while everyone is away still covers windows."
         }
       },
       "alerts": {
-        "title": "Phone alerts and quiet hours",
+        "title": "Messages",
         "description": "Safety alerts come from Home Assistant itself and ignore quiet hours. They do not replace certified alarms.",
         "data": {
           "phones": "Phones that get everything",
@@ -204,9 +212,54 @@
       },
       "printers": {
         "title": "3D printers",
-        "description": "BRAM found these printers in Home Assistant. Turn off any you do not want it to watch, show, or tell you about. A new printer starts on.",
+        "description": "BRAM found these printers in Home Assistant. It only watches; it cannot start, stop, or heat anything.",
         "data": {
           "printers": "Watch 3D printers"
+        },
+        "data_description": {
+          "printers": "On: progress on Home, and you are told when a print finishes, fails, or pauses, or a heater is left on. Turn off any printer below that you do not want watched."
+        }
+      },
+      "devices": {
+        "title": "Devices",
+        "description": "Only what you share is seen by BRAM, and it cannot control any of it.",
+        "menu_options": {
+          "suggest": "Suggestions",
+          "quick": "Add by type and room",
+          "see": "Choose one by one",
+          "rooms": "People's rooms"
+        },
+        "menu_option_descriptions": {
+          "suggest": "The important things BRAM cannot see yet, such as locks, doors, and safety sensors.",
+          "quick": "Find everything of a type, such as lights or motion, in the rooms you pick.",
+          "see": "Everything BRAM can see, by group. Add or remove one at a time.",
+          "rooms": "Only if a person shows the wrong room. BRAM normally finds this itself."
+        }
+      },
+      "watching": {
+        "title": "Watching",
+        "description": "Each is off until you turn it on. Safety alerts for leak, smoke, and gas sensors you share are always on.",
+        "menu_options": {
+          "watch_ha": "Home Assistant and security",
+          "watch": "Locks, doors, and windows",
+          "printers": "3D printers"
+        },
+        "menu_option_descriptions": {
+          "watch_ha": "Failed integrations, errors, batteries, offline devices, backups, and new admins or tokens.",
+          "watch": "Unlocked at night, open while away, left open, and offline, with your night hours.",
+          "printers": "Prints finishing, failing, or pausing, and heaters left on, for each printer you choose."
+        }
+      },
+      "watch_ha": {
+        "title": "Home Assistant and security",
+        "description": "What BRAM finds is sent to the BRAM Server for Findings, with passwords, tokens, and addresses removed. Removal cannot catch everything.",
+        "data": {
+          "problem_watch": "Watch Home Assistant for problems",
+          "security_watch": "Run the security check every hour"
+        },
+        "data_description": {
+          "problem_watch": "On: you are told about failed integrations, repeating errors, low batteries, offline devices, broken automations, old backups, and a full disk.",
+          "security_watch": "On: you are told once about anything new, such as an administrator or access token, a failed sign-in, or a lock exposed to a voice assistant."
         }
       }
     }

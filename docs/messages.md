@@ -18,7 +18,7 @@ Home Assistant and each of Telegram and ntfy send at most 10 routine messages a 
 ## Home Assistant app
 
 1. Install the Home Assistant app on your phone and allow notifications.
-2. **Settings > Devices & services > BRAM > Configure > Phone alerts and quiet hours**. Choose your phones.
+2. **Settings > Devices & services > BRAM > Configure > Messages**. Choose your phones.
 3. Set quiet hours if you want them. They apply only to Home Assistant's messages and never to safety alerts.
 4. On BRAM's device page, press **Send test message**.
 
@@ -37,11 +37,11 @@ Sharing a **person** with BRAM sends that person nothing. Anyone who gets a safe
 
 ## Daily summary
 
-In **Phone alerts and quiet hours**, set **Daily summary at**. Once a day it lists what is open, not locked, or cannot be seen, who is home, and low batteries. It is sent at that time even in quiet hours, uses fixed wording, and needs no server. Leave it empty for none.
+In **Messages**, set **Daily summary at**. Once a day it lists what is open, not locked, or cannot be seen, who is home, and low batteries. It is sent at that time even in quiet hours, uses fixed wording, and needs no server. Leave it empty for none.
 
 ## Watching locks and doors
 
-**BRAM > Configure > What BRAM watches for.** For problems with Home Assistant, see [Problems](problems.md). The lock and door rules are off until you turn them on, and cover only the locks, doors, windows, and garage doors BRAM can see.
+**BRAM > Configure > Watching.** For problems with Home Assistant, see [Problems](problems.md). The lock and door rules are off until you turn them on, and cover only the locks, doors, windows, and garage doors BRAM can see.
 
 | Choice | Tells you when | In quiet hours |
 |---|---|---|

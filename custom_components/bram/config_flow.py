@@ -85,8 +85,26 @@ class BramConfigFlow(ConfigFlow, domain=DOMAIN):
 class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(step_id="init", menu_options=[
-            "basic", "suggest", "quick", "see", "rooms", "alerts", "watch", "printers", "chat",
-            "learn"])
+            "basic", "devices", "alerts", "watching", "chat", "learn"])
+
+    async def async_step_devices(self, user_input: dict[str, Any] | None = None,
+                                 ) -> ConfigFlowResult:
+        return self.async_show_menu(step_id="devices",
+                                    menu_options=["suggest", "quick", "see", "rooms"])
+
+    async def async_step_watching(self, user_input: dict[str, Any] | None = None,
+                                  ) -> ConfigFlowResult:
+        return self.async_show_menu(step_id="watching",
+                                    menu_options=["watch_ha", "watch", "printers"])
+
+    async def async_step_watch_ha(self, user_input: dict[str, Any] | None = None,
+                                  ) -> ConfigFlowResult:
+        options = dict(self.config_entry.options)
+        if user_input is not None:
+            return self.async_create_entry(data={**options, **user_input})
+        return self.async_show_form(step_id="watch_ha", data_schema=vol.Schema({
+            vol.Required(key, default=options.get(key, False)): bool
+            for key in (CONF_PROBLEM_WATCH, CONF_SECURITY_WATCH)}))
 
     _found: list[str] = []
 
@@ -288,8 +306,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
             return self.async_create_entry(data={**options, **user_input})
         return self.async_show_form(step_id="watch", data_schema=vol.Schema({
             **{vol.Required(rule, default=options.get(rule, False)): bool
-               for rule in (CONF_PROBLEM_WATCH, CONF_PRINTERS, "night", "away", "left_open",
-                            "offline", CONF_SECURITY_WATCH)},
+               for rule in ("night", "away", "left_open", "offline")},
             **{vol.Required(kind, default=options.get(kind, True)): bool for kind in OPEN_TYPES},
             vol.Required("night_from", default=options.get("night_from", DEFAULT_NIGHT_FROM)):
                 selector.TimeSelector(),

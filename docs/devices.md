@@ -22,13 +22,13 @@ An entity you disable in Home Assistant is no longer watched or shown, even if i
 
 BRAM uses the names you see in Home Assistant. A name a device gave itself with a serial number in it, such as `H2D_0947AJ612800457`, is shown as its model, or its room and type, instead: **H2D**, **Master Bedroom presence**. To choose a name, rename the device or entity in Home Assistant.
 
-## BRAM's suggestions
+## Devices > Suggestions
 
-**Configure > BRAM's suggestions** lists what matters most and BRAM cannot see yet: people, locks and doors, safety sensors, and a motion sensor for each area without one. Remove what you do not want, and **Submit**. Nothing is shared until you do. These come from simple rules, not a model.
+**Configure > Devices > Suggestions** lists what matters most and BRAM cannot see yet: people, locks and doors, safety sensors, and a motion sensor for each area without one. Remove what you do not want, and **Submit**. Nothing is shared until you do. These come from simple rules, not a model.
 
-## Add devices quickly
+## Devices > Add by type and room
 
-**Settings > Devices & services > BRAM > Configure > Add devices quickly**
+**Settings > Devices & services > BRAM > Configure > Devices > Add by type and room**
 
 1. Choose types, such as locks and doors.
 2. Choose areas, or leave empty for the whole home.
@@ -38,7 +38,7 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 
 ## Choose one by one
 
-**Configure > What BRAM can see** lists every choice by type. Remove one there to stop sharing it; its line disappears from BRAM's device page.
+**Configure > Devices > Choose one by one** lists every choice by type. Remove one there to stop sharing it; its line disappears from BRAM's device page.
 
 ## What BRAM understands
 
@@ -66,7 +66,7 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 |---|---|
 | A device's room and floor | Its area in Home Assistant; set areas and floors there |
 | Whether a room is occupied | The motion and presence sensors in that area. Clear only if all of them say so |
-| The room a person is in | Found by itself: room sensors on their devices, or a sensor with their name whose value is one of your areas, such as *Alex Room*. **Configure > Fix a person's room** overrides it |
+| The room a person is in | Found by itself: room sensors on their devices, or a sensor with their name whose value is one of your areas, such as *Alex Room*. **Configure > Devices > People's rooms** overrides it |
 | A named place, such as Work | The person's zone in Home Assistant |
 
 Coordinates are never shared. If a room is not known, BRAM says only home or away. On the command deck, press **by type** to arrange the house by room.

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.30.0
+
+- BRAM's options in Home Assistant are six pages instead of ten: Quick setup, Devices, Messages, Watching, Server access, and Learning, each with a line saying what it is for. Every switch says what it does when on.
+- Home: readings across the top (outside, inside, climate running, printing, home, open), 3D printers with progress rings and temperature meters, turning gauges, and a calmer radar that names only what is on, the chosen sector, and what you point at.
+
 ## 0.29.0
 
 - One set of rules decides how often every routine message reaches your phone: each time, once until fixed, or a reminder at most once a month. Maintenance wording, such as lubricate, clean, filter, or firmware, makes it a reminder from any device.

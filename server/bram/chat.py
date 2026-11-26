@@ -211,7 +211,10 @@ class Chat:
                         "floor": clean(e.detail.get("floor", ""), 40),
                         "text": _more(world, e), "since": e.detail.get("since"),
                         "parts": e.detail.get("parts", []) if world and world.live else [],
-                        "picture": e.detail.get("picture", "")}
+                        "picture": e.detail.get("picture", ""),
+                        "values": {k: v for k, v in e.detail.get("values", {}).items()
+                                   if k in ("now", "target", "action", "unit")}
+                        if world and world.live else {}}
                        for e in (world.all() if world else [])
                        if e.kind in WORDS or e.kind in READINGS]
             homes.append({"id": house_id, "name": name, "live": world is not None and world.live,

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from aiohttp import web
+from flows import go
 from homeassistant.components import conversation
 from homeassistant.const import EntityCategory
 from homeassistant.core import Context, CoreState, State
@@ -76,8 +77,7 @@ async def reconnected(hass, entry):
 async def options(hass, entry, step, values):
     flow = await hass.config_entries.options.async_init(entry.entry_id)
     assert flow["type"] is FlowResultType.MENU
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"next_step_id": step})
+    flow = await go(hass, flow["flow_id"], step)
     result = await hass.config_entries.options.async_configure(flow["flow_id"], values)
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await reconnected(hass, entry)
@@ -175,8 +175,7 @@ async def test_option_pages_keep_each_other(hass, server):
     # A missing sensor is kept when the page is saved unchanged.
     hass.states.async_remove(LEAK)
     flow = await hass.config_entries.options.async_init(entry.entry_id)
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"next_step_id": "see"})
+    flow = await go(hass, flow["flow_id"], "see")
     shown = {str(k): k.description["suggested_value"] for k in flow["data_schema"].schema}
     assert shown["other"] == [LEAK] and shown["doors"] == [LOCK]  # kept, type not known
     hass.config_entries.options.async_abort(flow["flow_id"])
@@ -279,8 +278,7 @@ async def test_suggestions_page(hass, server):
 
     async def begin():
         flow = await hass.config_entries.options.async_init(entry.entry_id)
-        return await hass.config_entries.options.async_configure(
-            flow["flow_id"], {"next_step_id": "suggest"})
+        return await go(hass, flow["flow_id"], "suggest")
 
     assert (await begin())["reason"] == "nothing_to_suggest"
     hass.states.async_set(LOCK, "locked")
@@ -305,8 +303,7 @@ async def test_quick_add(hass, server):
 
     async def begin(groups):
         flow = await hass.config_entries.options.async_init(entry.entry_id)
-        flow = await hass.config_entries.options.async_configure(
-            flow["flow_id"], {"next_step_id": "quick"})
+        flow = await go(hass, flow["flow_id"], "quick")
         return await hass.config_entries.options.async_configure(
             flow["flow_id"], {"groups": groups})
 
@@ -344,8 +341,7 @@ async def test_recommended_setup(hass, server):
     hass.states.async_set("person.alex", "home")
     entry = await start(hass, server)
     flow = await hass.config_entries.options.async_init(entry.entry_id)
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"next_step_id": "basic"})
+    flow = await go(hass, flow["flow_id"], "basic")
     fields = {str(k): k for k in flow["data_schema"].schema}
     assert fields["phones"].default() == ["mobile_app_phone"]  # the only one
     assert "skip" in fields and not fields["skip"].description  # nothing filled in for you
@@ -360,8 +356,7 @@ async def test_recommended_setup(hass, server):
     hass.config_entries.async_update_entry(entry, options={
         **entry.options, "night_from": "23:30:00", "away": True})
     flow = await hass.config_entries.options.async_init(entry.entry_id)
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"next_step_id": "basic"})
+    flow = await go(hass, flow["flow_id"], "basic")
     await hass.config_entries.options.async_configure(flow["flow_id"], {
         "phones": ["mobile_app_phone"], "skip": ["person.alex"], "night": True,
         "left_open": True, "offline": False, "share_history": True, "summary": False})
@@ -429,8 +424,7 @@ async def test_choose_room_sensor(hass, server):
     hass.states.async_set("sensor.alex_room", "Den")
     entry = await start(hass, server)
     flow = await hass.config_entries.options.async_init(entry.entry_id)
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"next_step_id": "rooms"})
+    flow = await go(hass, flow["flow_id"], "rooms")
     assert flow["reason"] == "no_people"
     await choose(hass, entry, ["person.alex"])
     await options(hass, entry, "rooms", {"Alex": "sensor.alex_room"})
@@ -654,8 +648,7 @@ async def test_leaving_everything_out_shares_nothing(hass, server):
     hass.states.async_set("person.alex", "home")
     entry = await start(hass, server)
     flow = await hass.config_entries.options.async_init(entry.entry_id)
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"next_step_id": "suggest"})
+    flow = await go(hass, flow["flow_id"], "suggest")
     await hass.config_entries.options.async_configure(
         flow["flow_id"], {"skip": [LOCK, "person.alex"]})
     await reconnected(hass, entry)

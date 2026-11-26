@@ -583,26 +583,81 @@ function arrange() {
 
 const PRINTER = { printing: "Printing", paused: "Paused", finished: "Finished", failed: "Failed", stopped: "Stopped", idle: "Idle", off: "Off", unknown: "Unknown" };
 
+const NS = "http://www.w3.org/2000/svg";
+
+function svgOf(tag, attrs) {
+  const node = document.createElementNS(NS, tag);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+  return node;
+}
+
+// A ring that fills to a share, with a slow turning tick ring around it while busy.
+function ring(share, busy, text) {
+  const svg = svgOf("svg", { viewBox: "0 0 100 100", "aria-hidden": "true", class: `dial${busy ? " busy" : ""}` });
+  const full = 2 * Math.PI * 40;
+  svg.append(svgOf("circle", { cx: 50, cy: 50, r: 46, class: "ticks" }), svgOf("circle", { cx: 50, cy: 50, r: 40, class: "track" }),
+    svgOf("circle", { cx: 50, cy: 50, r: 40, class: "fill", "stroke-dasharray": `${(Math.max(0, Math.min(1, share)) * full).toFixed(1)} ${full.toFixed(1)}` }));
+  const label = svgOf("text", { x: 50, y: 54, "text-anchor": "middle" });
+  label.textContent = text;
+  svg.append(label);
+  return svg;
+}
+
+function meter(word, now, target, unit) {
+  const row = element("div", undefined, "meter"), bar = element("i"), fill = element("b");
+  fill.style.width = `${target ? Math.max(4, Math.min(100, (now / target) * 100)) : Math.min(100, now)}%`;
+  bar.append(fill);
+  row.append(element("span", word), bar, element("small", `${now}${target ? " / " + target : ""}${unit || ""}`));
+  return row;
+}
+
 function showPrinters(list) {
   $("printers-pane").hidden = !list.length;
   $("hud-printers").replaceChildren(...list.map((printer) => {
-    const row = element("li", undefined, `printer ${printer.problem ? "failed" : printer.state}`), head = element("div");
-    head.append(element("b", printer.name || "Printer"), element("span", PRINTER[printer.state] + ("progress" in printer && printer.state !== "finished" ? ` ${printer.progress}%` : "")));
-    row.append(head);
-    if (printer.state === "printing" || printer.state === "paused") {
-      const bar = element("progress");
-      bar.max = 100;
-      if ("progress" in printer) bar.value = printer.progress;
-      bar.setAttribute("aria-label", `${printer.name} progress`);
-      row.append(bar);
+    const busy = printer.state === "printing" || printer.state === "paused";
+    const row = element("li", undefined, `printer ${printer.problem ? "failed" : printer.state}${busy ? " busy" : ""}`);
+    const side = element("div", undefined, "about"), head = element("div", undefined, "head");
+    head.append(element("b", printer.name || "Printer"), element("em", PRINTER[printer.state]));
+    side.append(head);
+    if (printer.file && busy) side.append(element("p", printer.file));
+    if ("left" in printer) side.append(element("small", `${lasted(printer.left)} left`));
+    if (printer.problem) side.append(element("small", printer.problem_text ? `Problem: ${printer.problem_text}` : "Reports a problem", "problem"));
+    if (busy) {
+      for (const [key, word] of [["nozzle", "Nozzle"], ["nozzle2", "Left"], ["bed", "Bed"], ["chamber", "Chamber"]]) {
+        if (key in printer) side.append(meter(word, printer[key], printer[`${key}_target`], printer.unit));
+      }
     }
-    const heat = (key, word) => key in printer ? `${word} ${printer[key]}${printer[key + "_target"] ? " / " + printer[key + "_target"] : ""}${printer.unit || ""}` : "";
-    const line = [printer.file, "left" in printer && `${lasted(printer.left)} left`].filter(Boolean).join(", ");
-    if (line) row.append(element("p", line));
-    const temps = [heat("nozzle", "nozzle"), heat("nozzle2", "left"), heat("bed", "bed"), heat("chamber", "chamber")].filter(Boolean).join(", ");
-    if (temps) row.append(element("small", temps));
-    if (printer.problem) row.append(element("small", printer.problem_text ? `Problem: ${printer.problem_text}` : "Reports a problem"));
+    row.append(ring(busy && "progress" in printer ? printer.progress / 100 : 0, printer.state === "printing", busy && "progress" in printer ? `${printer.progress}%` : "--"), side);
     return row;
+  }));
+}
+
+// Across the top: what most people look for first.
+function strip(devices, printers) {
+  const number = (text) => parseFloat(String(text).replace(/[^0-9.-]/g, ""));
+  const temps = devices.filter((d) => d.kind === "temperature" && d.state !== "unknown").map((d) => number(d.says)).filter(Number.isFinite);
+  const outside = devices.find((d) => d.id.startsWith("weather.") && d.values && "now" in d.values);
+  const climate = devices.filter((d) => d.kind === "climate" && d.state !== "unknown");
+  const running = climate.filter((d) => ["cooling", "heating", "fan", "drying"].includes(d.values?.action));
+  const people = devices.filter((d) => d.kind === "person"), home = people.filter((d) => d.state === "on");
+  const shut = devices.filter((d) => d.kind === "opening" || d.kind === "lock"), open = shut.filter((d) => d.state === "warn");
+  const printing = printers.filter((p) => p.state === "printing");
+  const unit = (devices.find((d) => d.kind === "temperature")?.says || "").replace(/[0-9.\s-]/g, "") || "";
+  const items = [];
+  if (outside) items.push(["Outside", `${Math.round(outside.values.now)}${outside.values.unit || ""}`, Math.min(1, Math.max(0, (outside.values.now + 10) / 120)), false]);
+  if (temps.length) {
+    const average = temps.reduce((a, b) => a + b, 0) / temps.length;
+    items.push(["Inside", `${average.toFixed(1)}${unit}`, Math.min(1, Math.max(0, (average + 10) / 120)), false]);
+  }
+  if (climate.length) items.push(["Climate on", `${running.length}/${climate.length}`, running.length / climate.length, running.length > 0]);
+  if (printers.length) items.push(["Printing", printing.length ? `${printing[0].progress ?? "--"}%` : "idle", printing.length ? (printing[0].progress || 0) / 100 : 0, printing.length > 0]);
+  if (people.length) items.push(["Home", `${home.length}/${people.length}`, home.length / people.length, false]);
+  if (shut.length) items.push(["Open", `${open.length}`, shut.length ? open.length / shut.length : 0, open.length > 0]);
+  $("hud-strip").replaceChildren(...items.map(([label, value, share, live]) => {
+    const cell = element("div", undefined, `cell${live ? " live" : ""}`), words = element("div");
+    words.append(element("b", value), element("span", label));
+    cell.append(ring(share, live, ""), words);
+    return cell;
   }));
 }
 
@@ -624,6 +679,7 @@ async function loadHouse() {
     }
   }
   const devices = [...groups.values()].flat();
+  strip(devices, printers);
   world.groups = ORDER.filter((title) => groups.has(title)).map((title) => ({ title, devices: groups.get(title) }));
   arrange();
   deck.people(devices.filter((device) => device.kind === "person"));

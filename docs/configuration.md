@@ -43,17 +43,14 @@ Any local Ollama chat model can be tried. Bigger models usually follow instructi
 
 **Settings > Devices & services > BRAM > Configure**
 
-| Page | Use it to |
+| Page | Has |
 |---|---|
-| Recommended setup | Turn on what most people want, on one page |
-| BRAM's suggestions | Share the important things BRAM cannot see yet |
-| Add devices quickly | Share many at once, by type and **area** |
-| What BRAM can see | Add or remove one by one |
-| Phone alerts and quiet hours | Choose phones, quiet hours, daily summary, and the fallback |
-| What BRAM watches for | [Home Assistant problems](problems.md), lock and door rules, night hours, left-open time, and the hourly security check |
-| What BRAM may look into | Let the server read history, problems, and the security check |
-| 3D printers | Choose which [printers](printers.md) BRAM watches |
-| Learning | Let BRAM suggest better hours, undo, or delete |
+| Quick setup | Your phone and the main switches, on one page. Start here |
+| Devices | **Suggestions**, **Add by type and room**, **Choose one by one**, and **People's rooms** |
+| Messages | Phones, quiet hours, daily summary, and the Telegram and ntfy fallback |
+| Watching | **Home Assistant and security** ([problems](problems.md) and the [security check](security-check.md)), **Locks, doors, and windows** with night hours, and **3D printers** ([printers](printers.md)) |
+| Server access | What the BRAM Server may read: history, problems, and the security check |
+| Learning | [Suggested hours](learning.md), undo, or start over |
 
 On the device page: **Mood**, **Visit**, **Send test message**, and **Allow stopped messages**.
 

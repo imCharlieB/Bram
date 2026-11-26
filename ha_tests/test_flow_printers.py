@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from flows import go
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -21,8 +22,7 @@ async def choose(hass):
         "entities": [], "printers_off": ["gone"]})
     entry.add_to_hass(hass)
     flow = await hass.config_entries.options.async_init(entry.entry_id)
-    done = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"next_step_id": "printers"})
+    done = await go(hass, flow["flow_id"], "printers")
     assert done["reason"] == "no_printers"
     source = MockConfigEntry(domain="moonraker", state=ConfigEntryState.NOT_LOADED)
     source.add_to_hass(hass)
@@ -32,8 +32,7 @@ async def choose(hass):
         er.async_get(hass).async_get_or_create("sensor", "moonraker", f"{name}_print_state",
                                                device_id=device.id, config_entry=source)
     flow = await hass.config_entries.options.async_init(entry.entry_id)
-    form = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"next_step_id": "printers"})
+    form = await go(hass, flow["flow_id"], "printers")
     assert [str(k) for k in form["data_schema"].schema] == ["printers", "Big", "Small"]
     await hass.config_entries.options.async_configure(
         form["flow_id"], {"printers": True, "Big": True, "Small": False})

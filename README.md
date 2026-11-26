@@ -90,7 +90,7 @@ HACS > three dots > **Custom repositories** > add `https://github.com/imCharlieB
 
 ### 5. Choose what it sees
 
-**BRAM > Configure > Recommended setup**: pick your phone, put anything you do not want to share under **Leave these out**, and submit. Nothing is shared until you do.
+**BRAM > Configure > Quick setup**: pick your phone, put anything you do not want to share under **Leave these out**, and submit. Nothing is shared until you do.
 
 ### 6. Check it
 
@@ -106,13 +106,13 @@ HACS > three dots > **Custom repositories** > add `https://github.com/imCharlieB
 
 | Page | Use it to |
 |---|---|
-| Recommended setup | Turn on what most people want |
-| BRAM's suggestions | Share important things it cannot see yet |
-| Add devices quickly | Share many at once, by type and area |
-| What BRAM can see | Add or remove one by one |
-| Phone alerts and quiet hours | Phones, quiet hours, daily summary |
-| What BRAM watches for | Home Assistant problems, 3D printers, lock and door rules, night hours, hourly security check |
-| What BRAM may look into | Let the server read history, problems, and the security check |
+| Quick setup | Turn on what most people want |
+| Devices > Suggestions | Share important things it cannot see yet |
+| Devices > Add by type and room | Share many at once, by type and area |
+| Devices > Choose one by one | Add or remove one by one |
+| Messages | Phones, quiet hours, daily summary |
+| Watching | Home Assistant problems, 3D printers, lock and door rules, night hours, hourly security check |
+| Server access | Let the server read history, problems, and the security check |
 | Learning | Suggested hours, undo, delete |
 
 ### On BRAM's page: `https://SERVER:8765`
@@ -149,7 +149,7 @@ Quiet hours hold routine messages. Safety alerts, and locks and doors at night o
 | Ask | Needs |
 |---|---|
 | "Is the back door locked?" "Who is home?" "What's on?" | The device shared |
-| "When was the garage last opened?" | History on, under What BRAM may look into |
+| "When was the garage last opened?" | History on, under Server access |
 | "Any errors in Home Assistant?" "Low batteries?" | Problems on |
 | "How is the print going?" | 3D printers on |
 | "Is my home secure?" | Security check on |
@@ -182,7 +182,7 @@ Update both; BRAM warns you when they differ. [Changes](https://github.com/imCha
 | Setup is closed | Restart the container and reload |
 | Configure pages are blank after an update | Refresh the browser with Ctrl+F5 |
 | Not connected | Check the address, and that both halves are updated |
-| No test message | Choose a phone in **Phone alerts and quiet hours**; check the app's notification permission |
+| No test message | Choose a phone in **Messages**; check the app's notification permission |
 | An AC has no run times | It must report what it is doing, such as *cooling*, not only its mode |
 | HACS shows no icon | Not something BRAM can fix; the icon shows in Home Assistant |
 | Anything else | [Open an issue](https://github.com/imCharlieB/Bram/issues) with both version numbers. Remove addresses, tokens, and names first |

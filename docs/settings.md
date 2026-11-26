@@ -6,18 +6,18 @@
 
 | Page | Setting | Default |
 |---|---|---|
-| Recommended setup | Phones, suggested devices, night, left open, offline, history, 8 AM summary | All on, if you submit it |
-| BRAM's suggestions | What it would add | |
-| Add devices quickly | Types and areas to search | |
-| What BRAM can see | People, locks and doors, safety, motion, lights, switches and fans, media, voice assistants, climate, anything else | None |
-| Fix a person's room | Override the sensor BRAM found | Usually not needed |
-| Phone alerts and quiet hours | Phones that get everything | None |
+| Quick setup | Phones, suggested devices, night, left open, offline, history, 8 AM summary | All on, if you submit it |
+| Devices > Suggestions | What it would add | |
+| Devices > Add by type and room | Types and areas to search | |
+| Devices > Choose one by one | People, locks and doors, safety, motion, lights, switches and fans, media, voice assistants, climate, anything else | None |
+| Devices > People's rooms | Override the sensor BRAM found | Usually not needed |
+| Messages | Phones that get everything | None |
 | | Phones that get safety alerts only | None |
 | | Quiet from, quiet until | Off |
 | | Daily summary at | Off |
 | | Use Telegram and ntfy after 5 unanswered minutes | Off |
-| What BRAM watches for | Problems with Home Assistant | Off; on in Recommended setup |
-| | 3D printers | Off; on in Recommended setup if any are found |
+| Watching | Problems with Home Assistant | Off; on in Quick setup |
+| | 3D printers | Off; on in Quick setup if any are found |
 | 3D printers | One switch for each printer | On |
 | | Unlocked at night | Off |
 | | Open or unlocked while away | Off |
@@ -28,7 +28,7 @@
 | | Night starts, night ends | 10 PM, 6 AM |
 | | Friday and Saturday night starts, ends | Same as other nights |
 | | Left open minutes | 10 |
-| What BRAM may look into | History of the devices BRAM can see | Off |
+| Server access | History of the devices BRAM can see | Off |
 | | Home Assistant problems | Off |
 | | Security check of Home Assistant | Off |
 | Learning | Suggest better hours | Off |

@@ -9,7 +9,7 @@ Type to BRAM on its home page. It uses the model and personality from **Settings
 | Keep up with the current conversation | Remember it later |
 
 - BRAM [finds problems](problems.md) by itself; chat is for asking about them.
-- **It can look things up if you let it.** In **BRAM > Configure > What BRAM may look into**:
+- **It can look things up if you let it.** In **BRAM > Configure > Server access**:
 
 | Turn on | Ask | It reads |
 |---|---|---|
