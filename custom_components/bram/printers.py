@@ -5,6 +5,7 @@ import datetime
 from dataclasses import dataclass, field
 from typing import Any
 
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
@@ -56,6 +57,7 @@ class Printer:
     name: str
     area: str
     roles: dict[str, list[str]] = field(default_factory=dict)
+    failing: bool = False  # its integration is set up but cannot start
 
 
 def _role(unique_id: str, platform: str) -> str | None:
@@ -73,10 +75,15 @@ def _role(unique_id: str, platform: str) -> str | None:
 def find(hass: HomeAssistant) -> list[Printer]:
     entities, devices, areas = er.async_get(hass), dr.async_get(hass), ar.async_get(hass)
     found: dict[str, dict[str, list[str]]] = {}
+    failing: set[str] = set()
     for entry in entities.entities.values():
+        source = hass.config_entries.async_get_entry(entry.config_entry_id or "")
+        # A removed, ignored, or disabled integration has no printer to show.
         if (entry.platform not in PRINTERS or entry.device_id is None or entry.disabled_by
-                or hass.config_entries.async_get_entry(entry.config_entry_id or "") is None):
+                or source is None or source.disabled_by is not None or source.source == "ignore"):
             continue
+        if source.state is not ConfigEntryState.LOADED:
+            failing.add(entry.device_id)
         if role := _role(str(entry.unique_id), entry.platform):
             found.setdefault(entry.device_id, {}).setdefault(role, []).append(entry.entity_id)
     printers = []
@@ -87,7 +94,8 @@ def find(hass: HomeAssistant) -> list[Printer]:
             continue
         area = areas.async_get_area(device.area_id) if device.area_id else None
         name = device_name(hass, device)[:40]
-        printers.append(Printer(device_id, name, area.name[:40] if area else "", roles))
+        printers.append(Printer(device_id, name, area.name[:40] if area else "", roles,
+                                device_id in failing))
     return sorted(printers, key=lambda p: p.name)
 
 
@@ -108,6 +116,8 @@ def read(hass: HomeAssistant, printer: Printer) -> dict[str, Any]:
             return None
 
     status = state("status")
+    if printer.failing:
+        return {"id": printer.id, "name": printer.name, "area": printer.area, "state": "failing"}
     result: dict[str, Any] = {
         "id": printer.id, "name": printer.name, "area": printer.area,
         "state": MEANS.get(status.state.lower(), "unknown") if status is not None else "unknown"}

@@ -559,6 +559,9 @@ class ConfigPage:
             "history": history is not None,
             "series": history.series(houses[0][0]) if history and houses else [],
             "climate": history.climate_days(houses[0][0], 1, zone) if history and houses else [],
+            # each thermostat against the room's own sensor, for "I noticed"
+            "compare": [r for r in history.compare(houses[0][0]) if r["samples"] >= 6]
+            if history and houses else [],
             "model": saved["model"]})
 
     async def _findings(self, request: web.Request) -> web.Response:

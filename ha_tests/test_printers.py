@@ -42,7 +42,7 @@ class Env:
     def __init__(self, hass, freezer, platform="moonraker", **options):
         self.hass, self.freezer, self.platform = hass, freezer, platform
         self.calls = async_mock_service(hass, "notify", "mobile_app_phone")
-        self.entry = MockConfigEntry(domain=platform, state=ConfigEntryState.NOT_LOADED)
+        self.entry = MockConfigEntry(domain=platform, state=ConfigEntryState.LOADED)
         self.entry.add_to_hass(hass)
         device = dr.async_get(hass).async_get_or_create(
             config_entry_id=self.entry.entry_id, identifiers={(platform, "p")}, name="Big One")
@@ -77,6 +77,14 @@ class Env:
 
     def opened(self):
         return [n[0].split(":")[1] for n in self.notes if n[1] == "open"]
+
+
+@pytest.fixture(autouse=True)
+def unloaded(hass):
+    yield
+    # Pretend integrations, so nothing tries to unload them for real.
+    for entry in hass.config_entries.async_entries():
+        entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
 
 
 @pytest.fixture
@@ -293,3 +301,13 @@ async def test_a_real_problem_is_told_again_only_after_a_day_fixed(hass, freezer
     await env.run(30)
     await env.run(90)
     assert len(env.texts()) == 3 and "Something else" in env.texts()[-1]
+
+
+
+async def test_a_failing_integration_says_so_and_an_ignored_one_is_not_there(hass, freezer):
+    env = Env(hass, freezer)
+    env.entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
+    (printer,) = find(hass)
+    assert read(hass, printer)["state"] == "failing"
+    object.__setattr__(env.entry, "source", "ignore")
+    assert find(hass) == []

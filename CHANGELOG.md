@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.32.0
+
+- A new Home page: BRAM's brain of light in the middle with your home's systems orbiting it. When something happens, that system flashes and a pulse runs into the brain. Screens down both sides lean in and turn flat when you point at them: Today, House (your rooms from Home Assistant's areas, lit where someone moves, amber where something is open), System, Watching, Looking at, Climate, Needs you, I noticed, and What I did, each saying why.
+- BRAM's words appear under the brain as it says them, with what it is doing: watching, listening, thinking, or speaking. With voice on, the ring around the brain follows the real sound.
+- I noticed: a room sensor that reads warmer or cooler than its thermostat over the week.
+- A 3D printer whose integration cannot start is shown as failing, under Needs you. One that was removed or ignored is no longer shown.
+
 ## 0.31.0
 
 - A new Home page built around what BRAM is doing: what it is watching, with live countdowns; what it told you or held back, and why; what needs you; and the day's climate, printers, and its own health. When something happens, a card appears beside BRAM's core and drifts away, and the core pulses. Its rings show who is home, climate running, a print, and nights learned, with the words beside them.

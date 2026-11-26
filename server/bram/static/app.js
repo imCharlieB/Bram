@@ -344,7 +344,7 @@ function headline(problem) {
   $("hud-pulse").className = problem || world.urgent ? "bad" : down.length ? "amber" : "";
   if (world.urgent && !problem) {
     $("headline").textContent = world.urgent === 1 ? "A safety sensor needs you" : `${world.urgent} safety sensors need you`;
-    $("detail").textContent = "See Alerts. Home Assistant has messaged your phones if you set that up.";
+    $("detail").textContent = "See Needs you. Home Assistant has messaged your phones if you set that up.";
   } else if (problem) {
     $("headline").textContent = "I can't see clearly";
     $("detail").textContent = problem;
@@ -428,6 +428,7 @@ function showFound(hear, speak) {
 function hush() {
   if (playing) playing.stop();
   playing = null;
+  deck.listen(null);
 }
 
 async function play(path, body) {
@@ -441,7 +442,14 @@ async function play(path, body) {
   hush();
   playing = player.createBufferSource();
   playing.buffer = sound;
-  playing.connect(player.destination);
+  // BRAM's core moves with its own voice.
+  const ear = player.createAnalyser();
+  ear.fftSize = 256;
+  playing.connect(ear);
+  ear.connect(player.destination);
+  deck.listen(ear, "speaking");
+  const mine = playing;
+  playing.addEventListener("ended", () => { if (playing === mine || !playing) deck.listen(null); });
   playing.start();
 }
 
@@ -457,6 +465,7 @@ async function openMicrophone() {
   }
   const context = new AudioContext(), parts = [];
   const stop = async () => {
+    deck.listen(null);
     for (const track of stream.getTracks()) track.stop();
     await context.close();
     return toPcm(parts, context.sampleRate);
@@ -465,7 +474,11 @@ async function openMicrophone() {
     await context.audioWorklet.addModule("recorder.js");
     const node = new AudioWorkletNode(context, "recorder");
     node.port.onmessage = (event) => parts.push(event.data);
-    context.createMediaStreamSource(stream).connect(node);
+    const input = context.createMediaStreamSource(stream), ear = context.createAnalyser();
+    ear.fftSize = 256;
+    input.connect(node);
+    input.connect(ear);
+    deck.listen(ear, "listening");
   } catch (error) {
     await stop();
     throw error;
@@ -560,64 +573,51 @@ const TITLES = {
 const ORDER = ["Safety", "Locks and doors", "People", "Motion", "Climate", "Lights", "Switches and fans", "Media", "Voice", "Appliances", "Other"];
 
 function arrange() {
-  // People have their own panel, with their faces and rooms.
   deck.update(world.groups.filter((group) => group.title !== "People"));
 }
 
-const PRINTER = { printing: "Printing", paused: "Paused", finished: "Finished", failed: "Failed", stopped: "Stopped", idle: "Idle", off: "Off", unknown: "Unknown" };
+const PRINTER = { printing: "Printing", paused: "Paused", finished: "Finished", failed: "Failed", stopped: "Stopped", idle: "Idle", off: "Off", unknown: "Unknown", failing: "Integration failing" };
+const RUNNING = ["cooling", "heating", "fan", "drying"];
+const SAFETY = new Set(["leak", "smoke", "co", "gas", "heat", "hazard"]);
 
-const NS = "http://www.w3.org/2000/svg";
-
-function svgOf(tag, attrs) {
-  const node = document.createElementNS(NS, tag);
-  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
-  return node;
+// A row on one of the side screens: what, a value, and why underneath.
+function row(text, value, kind = "", why = "", tip = false) {
+  const line = element("div", undefined, `row ${kind}`);
+  line.append(element("span", text), element("b", value));
+  line.title = text;
+  const out = [line];
+  if (why) out.push(element("span", why, tip ? "why tip" : "why"));
+  return out;
 }
 
-// A ring that fills to a share, with a slow turning tick ring around it while busy.
-function ring(share, busy, text) {
-  const svg = svgOf("svg", { viewBox: "0 0 100 100", "aria-hidden": "true", class: `dial${busy ? " busy" : ""}` });
-  const full = 2 * Math.PI * 40;
-  svg.append(svgOf("circle", { cx: 50, cy: 50, r: 46, class: "ticks" }), svgOf("circle", { cx: 50, cy: 50, r: 40, class: "track" }),
-    svgOf("circle", { cx: 50, cy: 50, r: 40, class: "fill", "stroke-dasharray": `${(Math.max(0, Math.min(1, share)) * full).toFixed(1)} ${full.toFixed(1)}` }));
-  const label = svgOf("text", { x: 50, y: 54, "text-anchor": "middle" });
-  label.textContent = text;
-  svg.append(label);
-  return svg;
+function bar(share, kind = "") {
+  const box = element("div", undefined, `bar ${kind}`), fill = element("i");
+  fill.style.width = `${Math.round(Math.max(0, Math.min(1, share)) * 100)}%`;
+  box.append(fill);
+  return box;
 }
 
-function meter(word, now, target, unit) {
-  const row = element("div", undefined, "meter"), bar = element("i"), fill = element("b");
-  fill.style.width = `${target ? Math.max(4, Math.min(100, (now / target) * 100)) : Math.min(100, now)}%`;
-  bar.append(fill);
-  row.append(element("span", word), bar, element("small", `${now}${target ? " / " + target : ""}${unit || ""}`));
-  return row;
+function meterRow(word, share, text) {
+  const line = element("div", undefined, "meter"), track = element("i"), fill = element("em");
+  fill.style.width = `${Math.round(Math.max(0, Math.min(1, share)) * 100)}%`;
+  track.append(fill);
+  line.append(element("span", word), track, element("b", text));
+  return line;
 }
 
-function showPrinters(list) {
-  $("printers-pane").hidden = !list.length;
-  $("hud-printers").replaceChildren(...list.map((printer) => {
-    const busy = printer.state === "printing" || printer.state === "paused";
-    const row = element("li", undefined, `printer ${printer.problem ? "failed" : printer.state}${busy ? " busy" : ""}`);
-    const side = element("div", undefined, "about"), head = element("div", undefined, "head");
-    head.append(element("b", printer.name || "Printer"), element("em", PRINTER[printer.state]));
-    side.append(head);
-    if (printer.file && busy) side.append(element("p", printer.file));
-    if ("left" in printer) side.append(element("small", `${lasted(printer.left)} left`));
-    if (printer.problem) side.append(element("small", printer.problem_text ? `Problem: ${printer.problem_text}` : "Reports a problem", "problem"));
-    if (busy) {
-      for (const [key, word] of [["nozzle", "Nozzle"], ["nozzle2", "Left"], ["bed", "Bed"], ["chamber", "Chamber"]]) {
-        if (key in printer) side.append(meter(word, printer[key], printer[`${key}_target`], printer.unit));
-      }
-    }
-    row.append(ring(busy && "progress" in printer ? printer.progress / 100 : 0, printer.state === "printing", busy && "progress" in printer ? `${printer.progress}%` : "--"), side);
-    return row;
-  }));
+// Which of the systems around the brain a device belongs to.
+function systemOf(device) {
+  if (SAFETY.has(device.kind)) return "Safety";
+  if (device.kind === "person") return "People";
+  if (device.kind === "lock" || device.kind === "opening") return "Security";
+  if (device.kind === "climate") return "Climate";
+  if (device.kind === "light") return "Lights";
+  if (device.kind === "motion") return "House";
+  return "";
 }
 
 async function loadHouse() {
   const { homes, alerts, printers, rooms: occupancy } = await api("house");
-  showPrinters(printers);
   world.rooms = new Map(occupancy.map((room) => [room.room, room]));
   const groups = new Map(), urgent = [];
   let total = 0, unseen = 0;
@@ -625,7 +625,7 @@ async function loadHouse() {
     for (const device of home.devices) {
       total += 1;
       if (device.state === "unknown") unseen += 1;
-      if (device.state === "alert") urgent.push(`${device.name}: ${device.says}`);
+      if (device.state === "alert") urgent.push(device);
       const title = TITLES[device.kind] || "Other";
       if (!groups.has(title)) groups.set(title, []);
       const photo = device.picture ? `/api/picture?${new URLSearchParams({ home: home.id, id: device.id, v: device.picture })}` : "";
@@ -635,24 +635,48 @@ async function loadHouse() {
   const devices = [...groups.values()].flat();
   world.devicesNow = devices;
   world.printersNow = printers;
+  world.alertsNow = alerts;
+  world.urgentNow = urgent;
+  world.seen = [total - unseen, total];
   happenings(devices);
   world.groups = ORDER.filter((title) => groups.has(title)).map((title) => ({ title, devices: groups.get(title) }));
   arrange();
-  deck.people(devices.filter((device) => device.kind === "person"));
-  deck.gauge("g-seen", total - unseen, total, "Seen");
-  const shut = devices.filter((device) => device.kind === "lock" || device.kind === "opening");
-  deck.gauge("g-secure", shut.filter((device) => device.state === "off").length, shut.length, "Secured");
   world.devices = total;
-  const rows = [...urgent.map((text) => [text, "now", true]),
+  world.urgent = urgent.length;
+  // The alert list for the classic look
+  const rows = [...urgent.map((d) => [`${d.name}: ${d.says}`, "now", true]),
     ...alerts.map((alert) => [alert.text, ago(alert.created), Boolean(alert.safety)])];
   $("alert-count").textContent = rows.length ? String(rows.length) : "";
   $("alerts-panel").classList.toggle("red", rows.some(([, , bad]) => bad));
   $("open-alerts").replaceChildren(...(rows.length ? rows.map(([text, when, bad]) => {
-    const row = element("li", undefined, bad ? "bad" : "");
-    row.append(element("span", text), element("span", when, "note"));
-    return row;
+    const line = element("li", undefined, bad ? "bad" : "");
+    line.append(element("span", text), element("span", when, "note"));
+    return line;
   }) : [element("li", "Nothing needs you", "note")]));
-  world.urgent = urgent.length;
+  showHouse(devices);
+}
+
+// The house: each room from Home Assistant's areas, lit where someone moves, amber where something is open.
+function showHouse(devices) {
+  const areas = new Map();
+  for (const d of devices) {
+    if (!d.area) continue;
+    const room = areas.get(d.area) || { name: d.area, lit: false, open: false, people: [] };
+    if (d.kind === "opening" && d.state === "warn") room.open = true;
+    areas.set(d.area, room);
+  }
+  for (const [name, seen] of world.rooms) {
+    const room = areas.get(name) || { name, lit: false, open: false, people: [] };
+    room.lit = seen.state === "occupied";
+    room.people = seen.people;
+    areas.set(name, room);
+  }
+  const rooms = [...areas.values()].sort((a, b) => a.name.localeCompare(b.name));
+  $("house-pane").hidden = !rooms.length;
+  deck.house(rooms);
+  const people = devices.filter((d) => d.kind === "person"), home = people.filter((d) => d.state === "on");
+  const open = devices.filter((d) => d.kind === "opening" && d.state === "warn").length;
+  $("house-count").textContent = [people.length && `${home.length} home`, `${open} open`].filter(Boolean).join(" · ");
 }
 
 function setLook(look) {
@@ -660,9 +684,11 @@ function setLook(look) {
   document.body.classList.toggle("command", command);
   // One chat and one alert list, moved to where the look wants them.
   if (command) {
-    $("slot-chat").append($("chat"));
-    $("slot-alerts").append($("start"), $("alerts-panel"));
+    $("slot-chat").append($("chat-form"), $("aloud-box"));
+    $("slot-message").append($("chat-message"));
+    $("slot-start").append($("start"));
   } else {
+    $("chat-log").after($("chat-form"), $("aloud-box"), $("chat-message"));
     $("hero").after($("alerts-panel"), $("chat"), $("start"));
   }
   for (const chip of document.querySelectorAll("#looks button")) chip.classList.toggle("on", chip.dataset.look === (command ? "command" : "classic"));
@@ -677,7 +703,13 @@ function setHue(hue) {
 }
 
 function tick() {
-  $("clock").textContent = new Date().toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" });
+  const now = new Date();
+  $("clock").textContent = now.toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  $("day-name").textContent = now.toLocaleDateString([], { weekday: "long" });
+  $("day-num").textContent = String(now.getDate());
+  $("day-month").textContent = now.toLocaleDateString([], { month: "short" });
+  $("time-now").textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  $("time-sec").textContent = `:${String(now.getSeconds()).padStart(2, "0")}`;
   // Countdowns move every second, between visits to the server.
   for (const node of document.querySelectorAll("[data-due]")) node.textContent = countdown(Number(node.dataset.due) - Date.now() / 1000);
 }
@@ -690,31 +722,31 @@ function countdown(seconds) {
 
 function days() {
   const today = new Date(), list = [];
-  for (let d = -7; d <= 7; d += 1) {
+  for (let d = -10; d <= 10; d += 1) {
     const day = new Date(today);
     day.setDate(today.getDate() + d);
-    list.push(element("span", String(day.getDate()), d === 0 ? "today" : ""));
+    list.push(element("span", String(day.getDate()).padStart(2, "0"), d === 0 ? "today" : ""));
   }
   $("hud-days").replaceChildren(...list);
 }
 
 // --- what BRAM is doing ---
 
-const seen = { states: null, decisions: new Set(), watching: new Set() };
+const seen = { states: null, decisions: new Set(), watching: new Set(), said: "" };
 const DID = { sent: "Told your phone", "not sent": "Could not send", held: "Held back", acked: "Acknowledged", stopped: "You stopped", snoozed: "Snoozed" };
 
-// Something happened: a card comes, stays a moment, and goes.
-function happen(text, kind = "", detail = "") {
+// Something happened: a card comes, stays a moment, and goes, and a pulse runs from that system into the brain.
+function happen(text, kind = "", detail = "", system = "") {
   const box = $("hud-events");
   if (!box || $("deck").hidden) return;
-  while (box.children.length >= 5) box.firstChild.remove();
-  const card = element("div", undefined, `event ${kind}`), angle = Math.random() * Math.PI * 2;
-  card.style.setProperty("--x", `${Math.max(24, Math.min(76, 50 + Math.cos(angle) * 34))}%`);
-  card.style.setProperty("--y", `${46 + Math.sin(angle) * 30}%`);
+  while (box.children.length >= 4) box.firstChild.remove();
+  const card = element("div", undefined, `event ${kind}`), top = Math.random() < .5;
+  card.style.setProperty("--x", `${40 + Math.random() * 20}%`);
+  card.style.setProperty("--y", `${top ? 14 + Math.random() * 5 : 66 + Math.random() * 4}%`);
   card.append(element("b", text));
   if (detail) card.append(element("small", detail));
   box.append(card);
-  deck.pulse(kind === "bad" ? "bad" : kind === "warn" ? "warn" : "main");
+  deck.pulse(system, kind === "bad" ? "bad" : kind === "warn" ? "warn" : "main");
   setTimeout(() => card.classList.add("going"), 9000);
   setTimeout(() => card.remove(), 10500);
 }
@@ -728,153 +760,186 @@ function happenings(devices) {
       // Readings drift all day; those are for the charts, not for cards.
       if (["temperature", "humidity", "other"].includes(device.kind)) continue;
       const kind = device.state === "alert" ? "bad" : device.state === "warn" ? "warn" : "";
-      happen(`${device.name}: ${device.says}`, kind, device.area || "");
+      happen(`${device.name}: ${device.says}`, kind, device.area || "", systemOf(device));
     }
   }
   seen.states = new Map([...now].map(([id, d]) => [id, { says: d.says, state: d.state }]));
 }
 
-async function loadBrain() {
-  const brain = await api("brain");
-  const first = !seen.decisions.size && !seen.watching.size;
-  // Watching
+const WHY = { rule: "I tell you when the time is up.", night: "From then I check every lock.", problem: "It is a problem if it lasts." };
+
+function showWatching(brain) {
+  const printers = world.printersNow || [];
   $("watch-count").textContent = brain.watching.length ? String(brain.watching.length) : "";
-  $("hud-watch").replaceChildren(...(brain.watching.length ? brain.watching.map((item) => {
-    const fresh = !first && !seen.watching.has(`${item.kind}:${item.text}`);
-    const row = element("li", undefined, `watch ${item.kind}${item.told ? " told" : ""}${fresh ? " new" : ""}`), head = element("div");
-    const time = element("b", item.told ? "told" : item.due ? countdown(item.due - brain.now) : "");
-    if (item.due && !item.told) time.dataset.due = item.due;
-    head.append(element("span", item.text), time);
-    row.append(head);
-    if (item.due && item.since && !item.told) {
-      const bar = element("i"), fill = element("em");
-      fill.style.width = `${Math.max(2, Math.min(100, ((brain.now - item.since) / (item.due - item.since)) * 100))}%`;
-      bar.append(fill);
-      row.append(bar);
+  $("hud-watch").replaceChildren(...(brain.watching.length ? brain.watching.flatMap((item) => {
+    const key = `${item.kind}:${item.text}`, fresh = seen.watching.size && !seen.watching.has(key);
+    const [line] = row(item.text, item.told ? "told" : item.due ? countdown(item.due - brain.now) : "", `${item.kind === "rule" && !item.told ? "warn" : ""}${fresh ? " new" : ""}`);
+    if (item.due && !item.told) line.lastChild.dataset.due = String(item.due);
+    const out = [line];
+    if (item.due && item.since) out.push(bar((brain.now - item.since) / Math.max(1, item.due - item.since), item.kind === "printer" ? "printer" : ""));
+    let why = item.told ? "I told you. Watching until it ends." : WHY[item.kind] || "";
+    if (item.kind === "printer") {
+      const p = printers.find((x) => item.text.startsWith(`${x.name}:`));
+      const heat = p && "nozzle" in p ? `Nozzle ${p.nozzle}${p.nozzle_target ? `/${p.nozzle_target}` : ""}${p.unit || ""}` : "";
+      why = [p && "progress" in p && `${p.progress}% done`, heat, "I tell you when it finishes"].filter(Boolean).join(" · ") + ".";
     }
-    const why = { rule: item.told ? "You were told. Watching until it ends" : "I tell you when the time is up", printer: "I tell you when it finishes", night: "Locks are checked from then", problem: "A problem if it lasts" }[item.kind];
-    row.append(element("small", why));
-    return row;
-  }) : [element("li", "Nothing counting down. I'm keeping an eye on everything else.", "note")]));
+    out.push(element("span", why, "why"));
+    return out;
+  }) : [element("p", "Nothing counting down. All quiet.", "quiet")]));
   for (const item of brain.watching) {
     const key = `${item.kind}:${item.text}`;
-    if (!first && !seen.watching.has(key)) happen(`Watching: ${item.text}`, "", item.due ? `due in ${countdown(item.due - brain.now)}` : "");
+    if (seen.watching.size && !seen.watching.has(key)) happen(`Watching: ${item.text}`, "", item.due ? `due in ${countdown(item.due - brain.now)}` : "", item.kind === "printer" ? "Printers" : "Security");
     seen.watching.add(key);
   }
-  // What I did
-  $("did-count").textContent = brain.sent_today ? `${brain.sent_today} sent today` : "";
-  $("hud-did").replaceChildren(...(brain.decisions.length ? brain.decisions.map((row) => {
-    const fresh = !first && !seen.decisions.has(`${row.at}:${row.what}`);
-    const item = element("li", undefined, `did ${row.what.replace(" ", "-")}${fresh ? " new" : ""}`);
-    item.append(element("time", new Date(row.at * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M$/i, "")));
-    const words = element("div");
-    words.append(element("b", `${DID[row.what] || row.what}: ${row.about}`));
-    if (row.what === "held" || row.what === "not sent") words.append(element("small", row.text));
-    item.append(words);
-    return item;
-  }) : [element("li", "Nothing to tell you yet today.", "note")]));
-  for (const row of brain.decisions) {
-    const key = `${row.at}:${row.what}`;
-    if (!first && !seen.decisions.has(key)) happen(`${DID[row.what] || row.what}`, row.what === "held" ? "warn" : "", row.about);
+}
+
+function showDid(brain) {
+  const first = !seen.decisions.size;
+  $("did-count").textContent = brain.sent_today ? `${brain.sent_today} sent today` : "Today";
+  $("hud-did").replaceChildren(...(brain.decisions.length ? brain.decisions.flatMap((d) => {
+    const fresh = !first && !seen.decisions.has(`${d.at}:${d.what}`);
+    const when = new Date(d.at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    return row(`${DID[d.what] || d.what}: ${d.about}`, when, `${d.what === "held" || d.what === "not sent" ? "warn" : ""}${fresh ? " new" : ""}`,
+      d.what === "held" || d.what === "not sent" ? d.text : "");
+  }) : [element("p", "Nothing to tell you yet today.", "quiet")]));
+  for (const d of brain.decisions) {
+    const key = `${d.at}:${d.what}`;
+    if (!first && !seen.decisions.has(key)) happen(DID[d.what] || d.what, d.what === "held" ? "warn" : "", d.about, "Messages");
     seen.decisions.add(key);
   }
-  // Needs you
-  $("needs-pane").hidden = !brain.needs.length;
-  $("needs-count").textContent = String(brain.needs.length);
-  $("hud-needs").replaceChildren(...brain.needs.map((need) => {
-    const item = element("li", undefined, need.severity);
-    item.append(element("b", need.text), element("small", `${need.times === 1 ? "since" : `${need.times} times, first`} ${ago(need.first)}${need.told ? " · told you" : ""}`));
-    return item;
-  }));
-  // Climate
-  climate(brain);
-  // The core's gauges, from what is real
-  const devices = world.devicesNow || [], printers = world.printersNow || [];
-  const people = devices.filter((d) => d.kind === "person"), home = people.filter((d) => d.state === "on");
-  const cool = devices.filter((d) => d.kind === "climate" && d.state !== "unknown");
-  const running = cool.filter((d) => ["cooling", "heating", "fan", "drying"].includes(d.values?.action));
-  const printing = printers.find((p) => p.state === "printing");
-  const list = [];
-  if (people.length) list.push({ label: "Home", value: home.length / people.length, text: `${home.length} of ${people.length}` });
-  if (cool.length) list.push({ label: "Climate running", value: running.length / cool.length, text: `${running.length} of ${cool.length}` });
-  if (printing) list.push({ label: printing.name, value: (printing.progress || 0) / 100, text: `${printing.progress ?? "--"}%` });
-  list.push({ label: "Nights learned", value: Math.min(1, brain.nights / 14), text: `${brain.nights} of 14` });
-  deck.gauges(list);
-  $("home-count").textContent = people.length ? `${home.length} of ${people.length}` : "";
-  const shut = devices.filter((d) => d.kind === "opening" || d.kind === "lock");
-  $("hud-counts").replaceChildren(...[["Open", shut.filter((d) => d.kind === "opening" && d.state === "warn").length],
-    ["Unlocked", shut.filter((d) => d.kind === "lock" && d.state === "warn").length],
-    ["Lights on", devices.filter((d) => d.kind === "light" && d.state === "on").length]].map(([label, count]) => {
-    const cell = element("span", undefined, count ? "lit" : "");
-    cell.append(element("b", String(count)), element("small", label));
-    return cell;
+}
+
+function showNeeds(brain) {
+  const rows = [
+    ...(world.urgentNow || []).map((d) => row(`${d.name}: ${d.says}`, "now", "bad", d.area ? `In ${d.area}. Home Assistant has messaged your phones if you set that up.` : "", true)),
+    ...(world.alertsNow || []).map((a) => row(a.text, ago(a.created), a.safety ? "bad" : "warn")),
+    ...(world.printersNow || []).filter((p) => p.state === "failing").map((p) => row(`${p.name}: integration failing`, "", "warn", "Its integration cannot start in Home Assistant. Check it under Settings, Devices and services.", true)),
+    ...brain.needs.map((n) => row(n.text, n.times > 1 ? `${n.times} times` : ago(n.first), n.severity === "high" ? "bad" : "warn",
+      `${n.times === 1 ? "Since" : "First"} ${ago(n.first)}${n.told ? ". I told you" : ""}. Details under Findings.`, true)),
+  ];
+  $("needs-pane").hidden = !rows.length;
+  $("needs-count").textContent = String((world.urgentNow || []).length + (world.alertsNow || []).length + brain.needs.length + (world.printersNow || []).filter((p) => p.state === "failing").length);
+  $("hud-needs").replaceChildren(...rows.flat());
+}
+
+function showNoticed(brain) {
+  const notes = [];
+  for (const c of brain.compare || []) {
+    if (Math.abs(c.apart) < 1.5) continue;
+    notes.push(["Climate", `In ${c.area}, ${c.sensor} reads ${Math.abs(c.apart)}${c.unit} ${c.apart > 0 ? "warmer" : "cooler"} than ${c.climate} on average this week.`]);
+  }
+  if (brain.nights < 14) notes.push(["Nights", `${brain.nights} of 14 nights learned. Then I know when the house goes quiet.`]);
+  const [seenNow, total] = world.seen || [0, 0];
+  if (total && total - seenNow) notes.push(["Sensors", `${total - seenNow} of ${total} things are not reporting a state right now.`]);
+  $("noticed-pane").hidden = !notes.length;
+  $("hud-noticed").replaceChildren(...notes.slice(0, 4).map(([what, text]) => {
+    const line = element("span", undefined, "why");
+    line.append(element("b", what), ` ${text}`);
+    return line;
   }));
 }
 
-function climate(brain) {
+function showClimate(brain) {
   const inside = brain.series.map((s) => s.inside), outside = brain.series.map((s) => s.outside);
   const known = [...inside, ...outside].filter((v) => v !== null);
   $("climate-pane").hidden = !known.length && !brain.climate.length;
   if ($("climate-pane").hidden) return;
-  const last = (list) => [...list].reverse().find((v) => v !== null);
-  $("climate-now").textContent = [last(outside) !== undefined && `${last(outside)}° out`, last(inside) !== undefined && `${last(inside)}° in`].filter(Boolean).join(" · ");
+  const last = (list) => [...list].reverse().find((v) => v !== null && v !== undefined);
+  const out = last(outside), inn = last(inside);
+  deck.weather(out ?? null);
+  $("temp-out").textContent = out === undefined ? "--" : `${Math.round(out)}°`;
+  $("climate-now").textContent = [out !== undefined && `${out}° out`, inn !== undefined && `${inn}° in`].filter(Boolean).join(" · ");
   const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
-  svg.setAttribute("viewBox", "0 0 240 70");
+  svg.setAttribute("viewBox", "0 0 300 46");
   svg.setAttribute("aria-hidden", "true");
   svg.setAttribute("preserveAspectRatio", "none");
-  const low = Math.min(...known) - 2, high = Math.max(...known) + 2;
-  const line = (values, kind) => {
-    const points = values.map((v, i) => v === null ? null : `${(i / Math.max(1, values.length - 1)) * 240},${70 - ((v - low) / (high - low || 1)) * 64 - 3}`).filter(Boolean);
-    if (points.length < 2) return;
+  const low = Math.min(...known) - 1, high = Math.max(...known) + 1;
+  for (const [values, kind] of [[outside, "outside"], [inside, "inside"]]) {
+    const points = values.map((v, i) => v === null ? null : `${(i / Math.max(1, values.length - 1)) * 300},${46 - ((v - low) / (high - low || 1)) * 42 - 2}`).filter(Boolean);
+    if (points.length < 2) continue;
     const path = document.createElementNS(NS, "polyline");
     path.setAttribute("points", points.join(" "));
     path.setAttribute("class", kind);
     svg.append(path);
-  };
-  line(outside, "outside");
-  line(inside, "inside");
-  const rows = brain.climate.map((day) => {
-    const row = element("div", undefined, "run");
-    const ran = Object.entries(day.seconds).map(([what, time]) => `${what} ${lasted(time)}`).join(", ");
-    row.append(element("span", day.name), element("b", ran || "idle"));
-    return row;
+  }
+  const running = (world.devicesNow || []).filter((d) => d.kind === "climate" && RUNNING.includes(d.values?.action));
+  const rows = brain.climate.slice(0, 4).flatMap((day) => {
+    const ran = Object.values(day.seconds).reduce((x, y) => x + y, 0);
+    const now = running.find((d) => d.name === day.name);
+    return row(day.name, now ? `${now.values.action} · ${lasted(ran)}` : ran ? lasted(ran) : "idle", now ? "" : "off");
   });
-  const key = element("small", known.length ? "Last 24 hours: inside, outside" : "Turn on Keep history under History to see the day");
-  $("hud-climate").replaceChildren(...(known.length ? [svg] : []), key, ...rows);
+  $("hud-climate").replaceChildren(...(known.length > 1 ? [svg] : []), ...rows);
+  const total = brain.climate.reduce((sum, day) => sum + Object.values(day.seconds).reduce((x, y) => x + y, 0), 0);
+  $("climate-why").textContent = known.length ? `Last 24 hours: inside solid, outside dashed.${total ? ` Ran ${lasted(total)} in all today.` : ""}` : "Turn on Keep history under History to see the day.";
 }
 
-async function loadLinks() {
+// The system screen and the systems around the brain, from what is real.
+function showSystems(brain) {
+  const devices = world.devicesNow || [], printers = world.printersNow || [];
   const links = [...world.houses.map((house) => [house.name, house.connected]), ...world.monitors.map((item) => [item.name, item.up])];
-  deck.gauge("g-up", links.filter(([, good]) => good).length, links.length, "Links up");
-  dots("hud-systems", links.map(([name, good]) => [name, good, good === null ? "checking" : good ? "up" : "down"]));
-  $("hud-moods").replaceChildren(...[...$("moods").children].map((chip) => {
-    const copy = chip.cloneNode(true);
-    copy.addEventListener("click", () => chip.click());
-    return copy;
+  const up = links.filter(([, good]) => good).length;
+  $("links-count").textContent = links.length ? `${up} of ${links.length} linked` : "";
+  $("hud-systems").replaceChildren(...links.map(([name, good]) => {
+    const tag = element("span");
+    tag.append(element("i", undefined, good === null ? "dot checking" : good ? "dot" : "dot down"), name);
+    return tag;
   }));
-  const { entries } = await api("log?limit=200");
-  deck.activity(entries.map((entry) => entry.at));
-  // The ticker runs twice over, so it loops without a gap.
-  const rows = entries.slice(0, 24).map((entry) => {
-    const row = element("li", undefined, ALARMING.has(entry.decision) ? "alarming" : "");
-    const when = element("time", new Date(entry.at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-    row.append(when, `${STORY[entry.decision] || entry.reason}${entry.trigger && !STORY[entry.decision] ? "" : ""}`);
-    return row;
-  });
-  $("hud-term").replaceChildren(...rows, ...rows.map((row) => row.cloneNode(true)));
+  const down = links.find(([, good]) => good === false);
+  $("links-why").textContent = down ? `${down[0]} is not answering. What it tells me is paused until it does.` : brain.model ? `Thinking with ${brain.model}, on your own network.` : "Choose a brain under Settings.";
+  const [seenNow, total] = world.seen || [0, 0];
+  const shut = devices.filter((d) => d.kind === "lock" || d.kind === "opening"), secure = shut.filter((d) => d.state === "off").length;
+  $("hud-meters").replaceChildren(
+    meterRow("Seeing", total ? seenNow / total : 0, `${seenNow}/${total}`),
+    ...(shut.length ? [meterRow("Secured", secure / shut.length, `${secure}/${shut.length}`)] : []),
+    meterRow("Learned", brain.nights / 14, `${Math.min(brain.nights, 14)}/14`),
+    meterRow("Told you", Math.min(1, brain.sent_today / 20), String(brain.sent_today)));
+  const people = devices.filter((d) => d.kind === "person"), home = people.filter((d) => d.state === "on");
+  const cool = devices.filter((d) => d.kind === "climate" && d.state !== "unknown"), busy = cool.filter((d) => RUNNING.includes(d.values?.action));
+  const safety = devices.filter((d) => SAFETY.has(d.kind)), alarm = safety.filter((d) => d.state === "alert");
+  const lights = devices.filter((d) => d.kind === "light"), lit = lights.filter((d) => d.state === "on");
+  const open = shut.length - secure;
+  const list = [];
+  list.push({ name: "Home Assistant", value: world.houses.every((h) => h.connected) && world.houses.length ? "linked" : "not linked", hot: world.houses.every((h) => h.connected) ? "" : "bad" });
+  if (people.length) list.push({ name: "People", value: `${home.length} of ${people.length} home`, hot: "" });
+  if (shut.length) list.push({ name: "Security", value: open ? `${open} open` : "all shut", hot: open ? "warn" : "" });
+  if (safety.length) list.push({ name: "Safety", value: alarm.length ? `${alarm.length} alarm` : "all clear", hot: alarm.length ? "bad" : "" });
+  if (cool.length) list.push({ name: "Climate", value: `${busy.length} running`, hot: "" });
+  if (lights.length) list.push({ name: "Lights", value: `${lit.length} on`, hot: "" });
+  if (printers.length) {
+    const printing = printers.filter((p) => p.state === "printing"), failing = printers.some((p) => p.state === "failing" || p.problem);
+    list.push({ name: "Printers", value: printing.length ? `${printing[0].progress ?? "--"}%` : PRINTER[printers[0].state] || "idle", hot: failing ? "warn" : "" });
+  }
+  list.push({ name: "Messages", value: `${brain.sent_today} today`, hot: "" });
+  list.push({ name: "Learning", value: `${Math.min(brain.nights, 14)} of 14 nights`, hot: "" });
+  deck.orbit(list);
+}
+
+async function loadBrain() {
+  const brain = await api("brain");
+  showWatching(brain);
+  showDid(brain);
+  showNeeds(brain);
+  showClimate(brain);
+  showNoticed(brain);
+  showSystems(brain);
 }
 
 async function loadHome() {
   let problem = "";
   try {
     await Promise.all([loadStatus(), loadMonitors(), loadSettings(), loadLatest(), loadHouse()]);
-    await Promise.all([loadLinks(), loadBrain()]);
+    await loadBrain();
   } catch (error) {
     problem = error.message;
   }
   headline(problem);
-  $("hud-headline").textContent = $("headline").textContent;
-  $("hud-sub").textContent = problem || world.urgent ? $("detail").textContent : world.devices ? `${$("hello").textContent}. Watching ${world.devices} devices.` : "Nothing is shared yet. In Home Assistant: BRAM, Configure, Recommended setup.";
+  // BRAM says it when it changes, not every few seconds.
+  const words = `${$("headline").textContent}. ${problem || world.urgent ? $("detail").textContent : world.devices ? `Watching ${world.devices} things.` : "Nothing is shared yet. In Home Assistant: BRAM, Configure, Recommended setup."}`;
+  if (words !== seen.said && !document.body.classList.contains("thinking")) {
+    seen.said = words;
+    $("thought-facts").textContent = "";
+    deck.say(words);
+  }
 }
 
 setInterval(() => {
@@ -1093,6 +1158,8 @@ onSubmit("chat-form", "chat-send", "chat-message", async () => {
   try {
     const reply = await api("chat", { text, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
     bubble("assistant", reply.text, reply.facts);
+    deck.say(reply.text);
+    $("thought-facts").textContent = (reply.facts || []).slice(0, 3).join(" · ");
     if ($("aloud").checked && !$("aloud-box").hidden) speak(reply.text).catch((error) => say("chat-message", error.message, "bad"));
   } catch (error) {
     mine.remove();

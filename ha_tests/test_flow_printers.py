@@ -15,6 +15,8 @@ pytestmark = pytest.mark.usefixtures("custom")
 async def test_each_printer_has_its_own_switch(hass):
     with patch("custom_components.bram.async_setup_entry", return_value=True):
         await choose(hass)
+    for entry in hass.config_entries.async_entries():
+        entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
 
 
 async def choose(hass):
@@ -24,7 +26,7 @@ async def choose(hass):
     flow = await hass.config_entries.options.async_init(entry.entry_id)
     done = await go(hass, flow["flow_id"], "printers")
     assert done["reason"] == "no_printers"
-    source = MockConfigEntry(domain="moonraker", state=ConfigEntryState.NOT_LOADED)
+    source = MockConfigEntry(domain="moonraker", state=ConfigEntryState.LOADED)
     source.add_to_hass(hass)
     for name in ("Big", "Small"):
         device = dr.async_get(hass).async_get_or_create(

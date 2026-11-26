@@ -119,7 +119,7 @@ HACS > three dots > **Custom repositories** > add `https://github.com/imCharlieB
 
 | Page | Use it to |
 |---|---|
-| Home | [What BRAM is doing](https://github.com/imCharlieB/Bram/blob/main/docs/home.md): watching, decisions, what needs you, and chat |
+| Home | [BRAM's brain and what it sees](https://github.com/imCharlieB/Bram/blob/main/docs/home.md): your systems orbiting it, rooms, watching, what needs you, patterns, what it did, and talk |
 | Messages | Telegram, ntfy, and monitors |
 | Settings | Homes, model, personality, voice |
 | Findings | What it found, whether you were told, and how it ended |

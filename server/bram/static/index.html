@@ -89,34 +89,51 @@
         </div>
       </div>
       <div id="hud" class="command-only">
-        <div class="hud-side">
-          <div class="pane grow" id="watch-pane"><h2>Watching <span id="watch-count"></span></h2><ul id="hud-watch" class="scroller"></ul></div>
-          <div class="pane" id="people-pane" hidden><h2>Home <span id="home-count"></span></h2><div id="hud-people"></div><div id="hud-counts"></div></div>
-          <div id="slot-alerts"></div>
-          <div class="pane" id="needs-pane" hidden><h2>Needs you <span id="needs-count"></span></h2><ul id="hud-needs"></ul></div>
-        </div>
-        <div class="scope-box">
-          <div class="hud-top"><span id="clock"></span><div id="hud-days" aria-hidden="true"></div><span id="hud-pulse"></span></div>
-          <div class="scope-wrap">
-            <canvas id="scope" role="img" aria-label="BRAM's core. What it shows is listed beside it."></canvas>
-            <div id="core-legend"></div>
-            <div id="hud-events" aria-live="polite"></div>
+        <canvas id="scope" role="img" aria-label="BRAM, the house brain, with the home's systems around it. What it shows is listed on the screens beside it."></canvas>
+        <div id="hud-days" aria-hidden="true"></div>
+        <div id="hud-title">B·R·A·M <small id="clock"></small> <span id="hud-pulse"></span></div>
+        <aside class="side" id="hud-left" aria-label="What BRAM sees">
+          <div id="slot-start"></div>
+          <div class="glass"><h2>Today <span id="day-name"></span></h2>
+            <div class="dials">
+              <div class="instrument"><canvas id="dial-date" width="200" height="200"></canvas><div><b id="day-num"></b><span id="day-month"></span></div></div>
+              <div class="instrument"><canvas id="dial-time" width="200" height="200"></canvas><div><b id="time-now"></b><span id="time-sec"></span></div></div>
+            </div>
           </div>
-          <div class="hud-head"><h1 id="hud-headline"></h1><p id="hud-sub"></p></div>
-          <div id="hud-ticker"><ul id="hud-term"></ul></div>
+          <div class="glass" id="house-pane"><h2>House <span id="house-count"></span></h2>
+            <div id="house"><div id="plan"></div></div>
+            <div class="key"><span class="k-person">People</span><span class="k-lit">Motion</span><span class="k-open">Open</span></div>
+          </div>
+          <div class="glass" id="health-pane"><h2>System <span id="links-count"></span></h2>
+            <div id="hud-meters"></div>
+            <div id="hud-systems"></div>
+            <span class="why" id="links-why"></span>
+          </div>
+          <div class="glass grow"><h2>Watching <span id="watch-count"></span></h2><div id="hud-watch" class="scroller"></div></div>
+        </aside>
+        <aside class="side" id="hud-right" aria-label="What BRAM is doing">
+          <div class="glass" id="look-pane"><h2>Looking at <span>Nothing</span></h2>
+            <p class="quiet" id="look-quiet">No pictures to read. Cameras come in a later phase.</p>
+          </div>
+          <div class="glass" id="climate-pane" hidden><h2>Climate <span id="climate-now"></span></h2>
+            <div class="weather">
+              <div class="instrument"><canvas id="dial-temp" width="200" height="200"></canvas><div><b id="temp-out"></b><span>Out</span></div></div>
+              <div id="hud-climate"></div>
+            </div>
+            <span class="why" id="climate-why"></span>
+          </div>
+          <div class="glass alarm" id="needs-pane" hidden><h2>Needs you <span id="needs-count"></span></h2><div id="hud-needs" class="scroller"></div></div>
+          <div class="glass" id="noticed-pane" hidden><h2>I noticed <span>Patterns</span></h2><div id="hud-noticed"></div></div>
+          <div class="glass grow"><h2>What I did <span id="did-count"></span></h2><div id="hud-did" class="scroller"></div></div>
+        </aside>
+        <div id="hud-events" aria-live="polite"></div>
+        <div id="thought" aria-live="polite"><small>BRAM</small><span id="thought-text"></span><span id="thought-facts"></span><span id="slot-message"></span></div>
+        <div id="states" aria-hidden="true"><span id="s-watch" class="on">Watching</span><span id="s-listen">Listening</span><span id="s-think">Thinking</span><span id="s-speak">Speaking</span></div>
+        <nav id="dock" aria-label="BRAM">
+          <a href="#findings">Findings</a><a href="#history">History</a><a href="#messages">Messages</a>
           <div id="slot-chat"></div>
-        </div>
-        <div class="hud-side">
-          <div class="pane" id="climate-pane" hidden><h2>Climate <span id="climate-now"></span></h2><div id="hud-climate"></div></div>
-          <div class="pane" id="printers-pane" hidden><h2>3D printers</h2><ul id="hud-printers"></ul></div>
-          <div class="pane grow"><h2>What I did <span id="did-count"></span></h2><ul id="hud-did" class="scroller"></ul></div>
-          <div class="pane" id="health-pane"><h2>My health <span id="hud-activity-total"></span></h2>
-            <div class="gauges"><div id="g-seen"></div><div id="g-secure"></div><div id="g-up"></div></div>
-            <ul id="hud-systems"></ul>
-            <div id="hud-activity"></div>
-            <div id="hud-moods"></div>
-          </div>
-        </div>
+          <a href="#personality">Mood</a><a href="#settings">Settings</a><a href="#log">Log</a>
+        </nav>
       </div>
       <div class="card notice" id="outdated" hidden>
         <h2>An update is needed</h2>

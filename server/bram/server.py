@@ -49,7 +49,8 @@ MAX_PAGES = 60
 PRINTERS = web.AppKey("printers", dict)
 WATCHING = web.AppKey("watching", dict)
 WATCH_KINDS = ("rule", "printer", "night", "problem")
-PRINTER_STATES = ("printing", "paused", "finished", "failed", "stopped", "idle", "off", "unknown")
+PRINTER_STATES = ("printing", "paused", "finished", "failed", "stopped", "idle", "off",
+                  "unknown", "failing")
 PRINTER_NUMBERS = ("progress", "left", "nozzle", "nozzle2", "nozzle_target", "nozzle2_target",
                    "bed", "bed_target", "chamber", "weight")
 
