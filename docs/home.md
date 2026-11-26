@@ -13,14 +13,33 @@ Screens down both sides each have a tab. They lean in toward the brain; point at
 | **Today** | The date and time |
 | **House** | Your rooms, taken from Home Assistant's areas. A room lights up when someone moves there, turns amber when a door or window in it is open, and shows who is in it |
 | **System** | How much BRAM can see, how much is shut and locked, nights learned, and messages sent today. Below that, each link to Home Assistant and your monitors, and why one is down |
+| **3D printers** | Only while a print is running or paused, or a printer has a problem: progress, time left, file, and nozzle, bed, and chamber temperatures against target. See [3D printers](printers.md) |
 | **Watching** | What is counting down: a door left open with the minutes until you are told, a print until it finishes, and when night starts. Each says why |
 | **Looking at** | The picture BRAM is reading. Until cameras come, it says there is nothing to look at |
 | **Climate** | Outside temperature, the last 24 hours inside and outside, and how long each thermostat has run today. Needs [Keep history](history.md) |
-| **Needs you** | Safety alarms, open alerts, a 3D printer whose integration is failing, and open [findings](findings.md) that matter, each with what to do |
+| **Needs you** | Safety alarms, open alerts, a 3D printer whose integration is failing, and open [findings](findings.md) that matter, each with what to do. A finding has **Story**, which opens it under Findings, and **Hide**, which takes it off the list but does not change what is sent to your phone |
 | **I noticed** | Patterns: a room sensor that reads warmer or cooler than its thermostat over the week, how many nights are learned, and things not reporting |
 | **What I did** | What BRAM told your phone, held back, or was told to stop today, and why something was held. See [How often BRAM tells you](how-often.md) |
 
 Screens with nothing to show stay hidden.
+
+## A closer look
+
+Click a system on the orbit, or the House, System, 3D printers, Climate, or What I did screen, and its detail opens over the brain. It stays up to date while open. **Escape** or **Close** puts it away.
+
+| Click | Shows |
+|---|---|
+| **People** | Each person and where they are |
+| **Security** | Every lock, door, and window, open and unlocked first |
+| **Safety** | Every leak, smoke, CO, gas, and heat sensor |
+| **Climate** | Each thermostat: what it is doing, now and set temperatures, and how long it ran today; then the rooms' own sensors |
+| **Lights** | Every light, those on first |
+| **Printers** | Every printer, printing or not |
+| **Home Assistant** | Whether it is linked, and anything shared that is not reporting |
+| **Messages** | Everything told, held back, or stopped since yesterday, and why |
+| **Learning** | How many nights are learned, and what happens at 14 |
+| **House** | Each room, what is happening there, and everything in it |
+| **System** | Everything BRAM depends on, and whether it answers |
 
 Along the bottom: Findings, History, Messages, Mood, Settings, and Log, with the box to talk to BRAM in the middle. Its answers appear under the brain, with the readings they were based on.
 

@@ -13,6 +13,7 @@ const deck = (() => {
   const TAU = Math.PI * 2;
   let w = 0, h = 0, spin = 0, last = 0, speed = 1, frame = 0, mood = "ok";
   let color = {}, dust = [], threads = [], systems = [], pulses = [], waves = [], flashes = {};
+  let placed = [];
   let ear = null, earKind = "", heard = null, talking = 0, voice = [], sayTimer = 0, outdoor = null;
 
   function colors() {
@@ -194,6 +195,7 @@ const deck = (() => {
       g.font = `600 ${13 + n.depth * 4}px system-ui, sans-serif`; g.fillStyle = color.text; g.fillText(n.s.value, lx, n.y + 13);
       g.globalAlpha = 1;
     };
+    placed = nodes.map((n) => ({ name: n.s.name, x: n.x, y: n.y }));
     nodes.filter((n) => n.depth < .5).forEach(node);
 
     // the brain of light
@@ -296,11 +298,21 @@ const deck = (() => {
     else if (!frame) frame = requestAnimationFrame(loop);
   }
 
+  // Which system is under a point on the canvas, for clicking one.
+  function at(x, y) {
+    let best = null, near = 30;
+    for (const p of placed) {
+      const d = Math.hypot(p.x - x, p.y - y);
+      if (d < near) { near = d; best = p.name; }
+    }
+    return best;
+  }
+
   function start() {
     colors();
     addEventListener("resize", () => draw());
     wake();
   }
 
-  return { start, update, orbit, pulse, say, think, listen, house, weather, state, colors, draw: () => { draw(); wake(); } };
+  return { at, start, update, orbit, pulse, say, think, listen, house, weather, state, colors, draw: () => { draw(); wake(); } };
 })();

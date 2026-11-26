@@ -219,3 +219,36 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
   #hud-events .event { max-width: 70vw; }
 }
 @media (prefers-reduced-motion: reduce) { #hud *, #hud *::after, .on-deck.command * { animation: none !important; transition: none !important; } }
+
+/* --- the sign-in name --- */
+.door h1.name { margin: 6px 0 2px; font: 700 2.6rem/1.1 ui-monospace, Consolas, monospace; letter-spacing: .42em; text-indent: .42em; background: linear-gradient(90deg, #22d3ff, #a855f7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.command .door h1.name { margin: 6px 0 2px; font: 700 2.6rem/1.1 ui-monospace, Consolas, monospace; letter-spacing: .42em; text-indent: .42em; background: none; color: var(--hud); text-shadow: 0 0 22px var(--hud), 0 0 4px var(--hud); }
+.door .motto { margin: 0 0 18px; text-align: center; font: .7rem ui-monospace, Consolas, monospace; letter-spacing: .16em; text-transform: uppercase; opacity: .7; }
+
+/* --- 3D printers on Home --- */
+#hud-printers .printer + .printer { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--hud-fill); }
+#hud-printers .row em { flex: none; padding: 0 6px; font: 600 .62rem var(--mono); letter-spacing: .1em; text-transform: uppercase; font-style: normal; color: var(--hud); border: 1px solid var(--hud-line); }
+#hud-printers .printing em { color: #02131a; background: var(--hud); border-color: var(--hud); animation: blink 2.4s infinite; }
+#hud-printers .paused em, #hud-printers .failing em { color: var(--hud-warn); border-color: var(--hud-warn); }
+#hud-printers .failed em, #hud-printers .problem em { color: var(--hud-bad); border-color: var(--hud-bad); }
+#hud-printers .idle em, #hud-printers .off em, #hud-printers .unknown em, #hud-printers .finished em { opacity: .6; }
+#hud-printers .bar i { background: var(--hud); box-shadow: 0 0 8px var(--hud); }
+#hud-printers .paused .bar i { background: var(--hud-warn); }
+
+/* --- what you can do about something that needs you --- */
+#hud .acts { display: flex; gap: 6px; margin: -2px 0 8px; }
+#hud .acts button, #hud .acts a { padding: 2px 10px; border: 1px solid var(--hud-line); color: var(--hud); background: none; font: .64rem var(--mono); letter-spacing: .1em; text-transform: uppercase; text-decoration: none; cursor: pointer; }
+#hud .acts button:hover, #hud .acts a:hover { background: var(--hud-fill); box-shadow: none; }
+
+/* --- a closer look, over the brain --- */
+#focus { position: absolute; z-index: 6; left: 50%; top: 70px; max-height: calc(100% - 230px); box-sizing: border-box; width: min(600px, calc(100% - 2 * clamp(300px, 25vw, 420px))); min-width: 320px; transform: translateX(-50%); display: flex; flex-direction: column; background: linear-gradient(170deg, color-mix(in srgb, var(--hud) 18%, transparent), rgb(0 8 18 / .95) 40%); box-shadow: 0 0 60px color-mix(in srgb, var(--hud) 30%, transparent); }
+#focus[hidden] { display: none; }
+#focus-close { position: absolute; top: 14px; right: 12px; padding: 2px 10px; border: 1px solid var(--hud-line); color: var(--hud); background: none; font: .66rem var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+#focus-close:hover { background: var(--hud-fill); }
+#focus .why { margin-right: 70px; }
+#focus h3 { margin: 12px 0 2px; font: 600 .72rem var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--hud); }
+#focus .row + .why { margin-bottom: 8px; }
+#hud [data-focus] { cursor: pointer; }
+@media (max-width: 900px), (max-height: 640px) { #focus { position: fixed; inset: 60px 12px 12px; width: auto; min-width: 0; transform: none; } }
+#hud:has(#focus:not([hidden])) #hud-events { display: none; }
+#hud .acts button, #hud .acts a { display: inline-block; height: 20px; box-sizing: border-box; padding: 0 10px; line-height: 18px; margin: 0; }

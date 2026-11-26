@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.32.1
+
+- Home: a 3D printers screen again, shown only while a print is running or paused, or when a printer has a problem: progress, time left, file, and temperatures against target.
+- Home: each finding under Needs you has **Story**, which opens Findings, and **Hide**, which takes it off the list without changing what is sent to your phone.
+- Home: click a system on the orbit, or the House, System, 3D printers, Climate, or What I did screen, and a closer look opens over the brain: every lock and door, each thermostat and room sensor, who is home, each room and what is in it, every printer, what is not reporting, and every message today with why. Escape or Close puts it away.
+- The sign-in page shows BRAM's name larger, with what it stands for.
+
 ## 0.32.0
 
 - A new Home page: BRAM's brain of light in the middle with your home's systems orbiting it. When something happens, that system flashes and a pulse runs into the brain. Screens down both sides lean in and turn flat when you point at them: Today, House (your rooms from Home Assistant's areas, lit where someone moves, amber where something is open), System, Watching, Looking at, Climate, Needs you, I noticed, and What I did, each saying why.

@@ -654,6 +654,7 @@ async function loadHouse() {
     return line;
   }) : [element("li", "Nothing needs you", "note")]));
   showHouse(devices);
+  showPrinters(printers);
 }
 
 // The house: each room from Home Assistant's areas, lit where someone moves, amber where something is open.
@@ -809,13 +810,60 @@ function showDid(brain) {
   }
 }
 
+// What you can do about a finding from Home: read its story, or hide it from the list.
+function needActs(need) {
+  const box = element("div", undefined, "acts"), story = element("a", "Story"), hide = element("button", "Hide");
+  story.href = "#findings";
+  hide.type = "button";
+  hide.title = "Takes it off this list. It does not change what is sent to your phone.";
+  hide.addEventListener("click", async () => {
+    hide.disabled = true;
+    try {
+      await api("finding-ignore", { id: need.id, on: true });
+      await loadBrain();
+    } catch (error) {
+      hide.disabled = false;
+      hide.textContent = error.message;
+    }
+  });
+  box.append(story, hide);
+  return box;
+}
+
+// Printers only while they print, or when one has a problem.
+function showPrinters(list) {
+  const shown = list.filter((p) => ["printing", "paused", "failed", "failing"].includes(p.state) || p.problem);
+  $("printers-pane").hidden = !shown.length;
+  $("printers-count").textContent = shown.length > 1 ? String(shown.length) : "";
+  $("hud-printers").replaceChildren(...shown.map((p) => {
+    const box = element("div", undefined, `printer ${p.problem ? "problem" : p.state}`);
+    const head = element("div", undefined, "row");
+    head.append(element("span", p.name || "Printer"), element("em", PRINTER[p.state] || p.state));
+    box.append(head);
+    if ("progress" in p) {
+      box.append(...row(p.file || "Print", `${p.progress}%`, "", "left" in p ? `${lasted(p.left)} left` : ""));
+      box.append(bar(p.progress / 100, "printer"));
+    } else if (p.file) {
+      box.append(element("span", p.file, "why"));
+    }
+    for (const [key, word] of [["nozzle", "Nozzle"], ["nozzle2", "Left nozzle"], ["bed", "Bed"], ["chamber", "Chamber"]]) {
+      if (!(key in p)) continue;
+      const target = p[`${key}_target`];
+      box.append(meterRow(word, target ? p[key] / target : Math.min(1, p[key] / 300), `${p[key]}${target ? `/${target}` : ""}${p.unit || ""}`));
+    }
+    if (p.problem) box.append(element("span", p.problem_text ? `Problem: ${p.problem_text}` : "It reports a problem.", "why tip"));
+    if (p.state === "failing") box.append(element("span", "Its integration cannot start in Home Assistant.", "why tip"));
+    return box;
+  }));
+}
+
 function showNeeds(brain) {
   const rows = [
     ...(world.urgentNow || []).map((d) => row(`${d.name}: ${d.says}`, "now", "bad", d.area ? `In ${d.area}. Home Assistant has messaged your phones if you set that up.` : "", true)),
     ...(world.alertsNow || []).map((a) => row(a.text, ago(a.created), a.safety ? "bad" : "warn")),
     ...(world.printersNow || []).filter((p) => p.state === "failing").map((p) => row(`${p.name}: integration failing`, "", "warn", "Its integration cannot start in Home Assistant. Check it under Settings, Devices and services.", true)),
-    ...brain.needs.map((n) => row(n.text, n.times > 1 ? `${n.times} times` : ago(n.first), n.severity === "high" ? "bad" : "warn",
-      `${n.times === 1 ? "Since" : "First"} ${ago(n.first)}${n.told ? ". I told you" : ""}. Details under Findings.`, true)),
+    ...brain.needs.map((n) => [...row(n.text, n.times > 1 ? `${n.times} times` : ago(n.first), n.severity === "high" ? "bad" : "warn",
+      `${n.times === 1 ? "Since" : "First"} ${ago(n.first)}${n.told ? ". I told you" : ""}.`, true), needActs(n)]),
   ];
   $("needs-pane").hidden = !rows.length;
   $("needs-count").textContent = String((world.urgentNow || []).length + (world.alertsNow || []).length + brain.needs.length + (world.printersNow || []).filter((p) => p.state === "failing").length);
@@ -916,12 +964,14 @@ function showSystems(brain) {
 
 async function loadBrain() {
   const brain = await api("brain");
+  world.brain = brain;
   showWatching(brain);
   showDid(brain);
   showNeeds(brain);
   showClimate(brain);
   showNoticed(brain);
   showSystems(brain);
+  showFocus();
 }
 
 async function loadHome() {
@@ -941,6 +991,103 @@ async function loadHome() {
     deck.say(words);
   }
 }
+
+// --- a closer look: click a system on the orbit, or a screen, and its detail opens over the brain ---
+
+let focused = "";
+const STATE_KIND = { warn: "warn", alert: "bad", unknown: "off" };
+
+function deviceRows(list, empty) {
+  if (!list.length) return [element("p", empty, "quiet")];
+  const order = { alert: 0, warn: 1, on: 2, off: 3, unknown: 4 };
+  return [...list].sort((a, b) => (order[a.state] ?? 5) - (order[b.state] ?? 5) || a.name.localeCompare(b.name))
+    .flatMap((d) => row(d.name, d.says || d.state, STATE_KIND[d.state] || "", [d.area, d.age && `for ${d.age}`].filter(Boolean).join(" · ")));
+}
+
+const FOCUS = {
+  People: (devices) => ["Who is home, and where.", deviceRows(devices.filter((d) => d.kind === "person"), "No people shared.")],
+  Security: (devices) => ["Every lock, door, and window shared with BRAM. Open and unlocked first.", deviceRows(devices.filter((d) => d.kind === "lock" || d.kind === "opening"), "No locks or doors shared.")],
+  Safety: (devices) => ["Leak, smoke, CO, gas, and heat sensors. These alert straight from Home Assistant.", deviceRows(devices.filter((d) => SAFETY.has(d.kind)), "No safety sensors shared.")],
+  Lights: (devices) => ["Lights that are on come first.", deviceRows(devices.filter((d) => d.kind === "light"), "No lights shared.")],
+  House: (devices) => ["Each room and what is in it.", [...new Set(devices.map((d) => d.area).filter(Boolean))].sort().flatMap((area) => {
+    const here = devices.filter((d) => d.area === area), seen = world.rooms.get(area);
+    const head = element("h3", area);
+    const busy = [seen?.state === "occupied" && "someone there", ...here.filter((d) => d.state === "warn" || d.state === "alert").map((d) => `${d.name} ${d.says}`)].filter(Boolean);
+    return [head, element("span", busy.length ? busy.join(" · ") : `${here.length} things, all quiet`, "why"), ...deviceRows(here, "")];
+  })],
+  Climate: (devices) => {
+    const brain = world.brain || { climate: [] };
+    const units = devices.filter((d) => d.kind === "climate").flatMap((d) => {
+      const v = d.values || {}, day = brain.climate.find((c) => c.name === d.name);
+      const ran = day ? Object.entries(day.seconds).map(([what, t]) => `${what} ${lasted(t)}`).join(", ") : "";
+      return row(d.name, v.action || d.says, RUNNING.includes(v.action) ? "" : "off",
+        [d.area, v.now !== undefined && `${v.now}° now`, v.target !== undefined && `set ${v.target}°`, ran && `today: ${ran}`].filter(Boolean).join(" · "));
+    });
+    const rooms = deviceRows(devices.filter((d) => d.kind === "temperature" || d.kind === "humidity"), "No room sensors shared.");
+    return ["Each thermostat, what it is doing, and how long it ran today. Then the rooms' own sensors.", [...units, element("h3", "Room sensors"), ...rooms]];
+  },
+  Printers: () => ["Every printer, printing or not.", (world.printersNow || []).length ? world.printersNow.flatMap((p) => {
+    const out = row(p.name || "Printer", PRINTER[p.state] || p.state, p.state === "failing" || p.problem ? "warn" : ["printing", "paused"].includes(p.state) ? "" : "off",
+      [p.area, p.file, "progress" in p && `${p.progress}%`, "left" in p && `${lasted(p.left)} left`, "nozzle" in p && `nozzle ${p.nozzle}${p.unit || ""}`, "bed" in p && `bed ${p.bed}${p.unit || ""}`].filter(Boolean).join(" · "));
+    return out;
+  }) : [element("p", "No printers found.", "quiet")]],
+  "Home Assistant": (devices) => {
+    const quiet = devices.filter((d) => d.state === "unknown");
+    return [world.houses.map((h) => `${h.name}: ${h.connected ? "linked" : "not linked"}`).join(". ") + `. ${devices.length} things shared.`,
+      [element("h3", "Not reporting"), ...deviceRows(quiet, "Everything shared is reporting.")]];
+  },
+  System: () => {
+    const links = [...world.houses.map((h) => [h.name, h.connected]), ...world.monitors.map((m) => [m.name, m.up])];
+    return ["Everything BRAM depends on, and whether it answers.", links.flatMap(([name, good]) => row(name, good === null ? "checking" : good ? "answering" : "not answering", good === false ? "bad" : ""))];
+  },
+  Messages: () => {
+    const brain = world.brain || { decisions: [] };
+    return [`${brain.sent_today || 0} sent today. Everything BRAM told you, held back, or was told to stop since yesterday, and why.`,
+      brain.decisions.length ? brain.decisions.flatMap((d) => row(`${DID[d.what] || d.what}: ${d.about}`,
+        new Date(d.at * 1000).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }), d.what === "held" || d.what === "not sent" ? "warn" : "", d.text)) : [element("p", "Nothing yet.", "quiet")]];
+  },
+  Learning: () => {
+    const nights = world.brain?.nights || 0;
+    return [`${nights} of 14 nights learned. After 14, BRAM suggests your night hours from when the house really goes quiet. See Learning in Home Assistant.`, []];
+  },
+};
+
+function showFocus() {
+  if (!focused) return;
+  const make = FOCUS[focused];
+  if (!make) return closeFocus();
+  const [why, body] = make(world.devicesNow || []);
+  $("focus-title").textContent = focused;
+  $("focus-why").textContent = why;
+  $("focus-body").replaceChildren(...body);
+}
+
+function openFocus(name) {
+  if (!FOCUS[name]) return;
+  focused = name;
+  $("focus").hidden = false;
+  showFocus();
+  $("focus-close").focus();
+}
+
+function closeFocus() {
+  focused = "";
+  $("focus").hidden = true;
+}
+
+$("focus-close").addEventListener("click", closeFocus);
+addEventListener("keydown", (event) => { if (event.key === "Escape" && focused) closeFocus(); });
+for (const pane of document.querySelectorAll("[data-focus]")) {
+  pane.addEventListener("click", (event) => { if (!event.target.closest("a, button")) openFocus(pane.dataset.focus); });
+}
+$("scope").addEventListener("click", (event) => {
+  const box = $("scope").getBoundingClientRect(), name = deck.at(event.clientX - box.left, event.clientY - box.top);
+  if (name) openFocus(name);
+});
+$("scope").addEventListener("mousemove", (event) => {
+  const box = $("scope").getBoundingClientRect();
+  $("scope").style.cursor = deck.at(event.clientX - box.left, event.clientY - box.top) ? "pointer" : "";
+});
 
 setInterval(() => {
   const home = signedIn && !document.hidden && !$("deck").hidden;

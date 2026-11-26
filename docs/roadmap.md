@@ -163,6 +163,7 @@ Read from the printer's own integration. One printer is one device with a sectio
 |---|---|
 | Severity for every finding; quiet hours by severity | ⬜ |
 | Exclude a device from one rule | 🟡 Stop these only |
+| From Home: **Acknowledge**, **Less often**, and **Stop these** on what needs you, sent to Home Assistant like the phone buttons. Safety alerts need the second factor to acknowledge (rule C4) | ⬜ |
 | Longer gaps for what you mark as a false alarm; never for safety | ⬜ |
 | Daily summary built from the findings list | 🟡 current states only |
 | Optional model triage: may lower the priority of routine findings, never hide safety | ⬜ |
