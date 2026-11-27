@@ -233,3 +233,18 @@ def test_hourly_series_inside_and_outside(env):
     env.minutes(130)
     rows = env.h.series("h1", 3)
     assert len(rows) == 3 and rows[0]["inside"] == 71 and rows[0]["outside"] == 50
+
+
+def test_yard_sensors_are_outside_not_inside(env):
+    env.say("sensor.a", "temperature", "70", name="Hall", area="Hall",
+            values={"now": 70.0, "unit": "F"})
+    env.say("sensor.yard", "temperature", "40", name="Back yard temperature", area="",
+            values={"now": 40.0, "unit": "F"})
+    env.say("sensor.porch", "temperature", "44", name="Sensor", area="Front porch",
+            values={"now": 44.0, "unit": "F"})
+    env.minutes(130)
+    row = env.h.series("h1", 3)[0]
+    assert row["inside"] == 70 and row["outside"] == 42  # no weather entity: the yard's own
+    env.say("weather.home", "other", "sunny", values={"now": 50.0, "unit": "F"})
+    env.minutes(130)
+    assert env.h.series("h1", 1)[0]["outside"] == 50  # a weather entity comes first

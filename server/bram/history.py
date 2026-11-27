@@ -50,6 +50,16 @@ CREATE INDEX IF NOT EXISTS run_device ON run (device, start);
 TABLES = ("reading", "hourly", "change", "run")
 
 
+OUTDOOR = ("outside", "outdoor", "yard", "garden", "porch", "patio", "deck", "driveway",
+           "exterior", "balcony", "terrace", "lawn")
+
+
+def outdoors(name: str, area: str) -> bool:
+    """A temperature sensor outside the home, by its area or name, such as Back yard."""
+    words = f"{area} {name}".casefold()
+    return any(word in words for word in OUTDOOR)
+
+
 def number(value: object) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
@@ -192,11 +202,17 @@ class History:
 
     @staticmethod
     def _outside(world: World) -> float | None:
+        yard = []
         for event in world.all():
-            if (event.entity_id.startswith("weather.") and world.live
-                    and event.state.lower() not in UNUSABLE):
+            if not world.live or event.state.lower() in UNUSABLE:
+                continue
+            if event.entity_id.startswith("weather."):
                 return number(event.detail.get("values", {}).get("now"))
-        return None
+            if event.kind == "temperature" and outdoors(event.name or "",
+                                                        event.detail.get("area", "")):
+                found = number(event.detail.get("values", {}).get("now"))
+                yard += [found] if found is not None else []
+        return round(sum(yard) / len(yard), 1) if yard else None
 
     def sample(self, worlds: Iterable[World]) -> None:
         """Once a minute: every live reading, so quiet sensors count as much as busy ones."""
@@ -343,19 +359,26 @@ class History:
         """Each hour: outside, and the average of the temperature sensors inside."""
         start = (int(self._clock() // HOUR) - hours + 1) * HOUR
         rows = self._db.execute(
-            "SELECT r.at / 3600 * 3600 AS hour, d.entity_id, d.kind, AVG(r.avg) AS value "
+            "SELECT r.at / 3600 * 3600 AS hour, d.entity_id, d.name, d.area, d.kind, "
+            "AVG(r.avg) AS value "
             "FROM reading r JOIN device d ON d.id = r.device WHERE d.house_id = ? AND r.at >= ? "
             "AND d.metric = '' AND (d.kind = 'temperature' OR d.entity_id LIKE 'weather.%') "
             "GROUP BY hour, d.id", (house_id, start)).fetchall()
         found: dict[int, dict] = {start + i * HOUR: {"at": start + i * HOUR, "outside": None,
-                                                     "inside": []} for i in range(hours)}
+                                                     "inside": [], "yard": []}
+                                  for i in range(hours)}
         for row in rows:
             if (slot := found.get(row["hour"])) is None:
                 continue
             if row["entity_id"].startswith("weather."):
                 slot["outside"] = round(row["value"], 1)
+            elif outdoors(row["name"], row["area"]):
+                slot["yard"].append(row["value"])  # outside, not part of the inside average
             else:
                 slot["inside"].append(row["value"])
+        for s in found.values():
+            if s["outside"] is None and s["yard"]:  # no weather entity: the home's own sensors
+                s["outside"] = round(sum(s["yard"]) / len(s["yard"]), 1)
         return [{"at": s["at"], "outside": s["outside"],
                  "inside": round(sum(s["inside"]) / len(s["inside"]), 1) if s["inside"] else None}
                 for s in found.values()]

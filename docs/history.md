@@ -15,7 +15,7 @@ Without it, BRAM has no trends, no climate graph on Home, and nothing to learn f
 | Changes | Doors, locks, motion, people, lights, and other on or off devices |
 
 - A device that is unknown or disconnected is recorded as unknown, never as its last value.
-- Outside temperature comes from a shared weather entity.
+- Outside temperature comes from a shared weather entity, from any weather integration, such as Pirate Weather or Met.no. Without one, temperature sensors outside count instead: those in an area or with a name that says yard, porch, patio, deck, garden, driveway, balcony, terrace, lawn, outside, or outdoor. Those outside sensors never count toward the inside average.
 - Run times need a thermostat that reports what it is doing. Some report only their mode; BRAM cannot tell when those run.
 - A run BRAM did not see all of is marked **not all seen**.
 

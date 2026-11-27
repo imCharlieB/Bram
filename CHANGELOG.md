@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.38.4
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- Fixed: temperature sensors outside, such as a back yard or porch sensor, were counted in the inside average on Home and in History. They now count as outside, and are used for the outside temperature when no weather entity is shared. Past readings are shown the right way too.
+
 ## 0.38.3
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.
