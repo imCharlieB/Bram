@@ -11,7 +11,7 @@ const deck = (() => {
   };
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   const TAU = Math.PI * 2;
-  let w = 0, h = 0, spin = 0, last = 0, speed = 1, frame = 0, mood = "ok";
+  let w = 0, h = 0, spin = 0, last = 0, speed = 1, frame = 0, mood = "ok", alarm = "", lastAlarm = 0;
   let color = {}, dust = [], threads = [], systems = [], pulses = [], waves = [], flashes = {};
   let placed = [];
   let ear = null, earKind = "", heard = null, talking = 0, voice = [], sayTimer = 0, outdoor = null;
@@ -29,6 +29,12 @@ const deck = (() => {
   function update(groups) {
     const all = groups.flatMap((group) => group.devices);
     mood = all.some((d) => d.state === "alert") ? "bad" : all.some((d) => d.state === "warn") ? "warn" : "ok";
+  }
+
+  // Something is wrong: "bad" sends red rings out often, "warn" amber ones now and then.
+  function alert(level) {
+    alarm = level === "bad" || level === "warn" ? level : "";
+    wake();
   }
 
   // The systems on the orbit: [{name, value, hot: "" | "warn" | "bad"}]
@@ -155,7 +161,8 @@ const deck = (() => {
     if (time) last = time;
     if (!still.matches) spin += dt * (speed > 1 ? 1.8 : 1);
     const t = spin, o = center(), r = o.r, now = performance.now();
-    const base = mood === "bad" ? color.bad : mood === "warn" ? color.warn : color.main;
+    const worst = alarm === "bad" || mood === "bad" ? "bad" : alarm === "warn" || mood === "warn" ? "warn" : "ok";
+    const base = worst === "bad" ? color.bad : worst === "warn" ? color.warn : color.main;
     g.clearRect(0, 0, w, h);
     const glow = g.createRadialGradient(o.x, o.y, 0, o.x, o.y, Math.max(w, h) * .55);
     glow.addColorStop(0, "rgba(60,80,255,.18)"); glow.addColorStop(.4, "rgba(47,230,255,.05)"); glow.addColorStop(1, "rgba(1,5,16,0)");
@@ -246,6 +253,22 @@ const deck = (() => {
       g.shadowBlur = 0; g.globalAlpha = 1;
       if (k > .97 && !p.landed) { p.landed = true; waves.push({ born: now, color: p.color }); }
     }
+    // While something is wrong, rings keep going out: red and often, or amber now and then.
+    if (alarm && !still.matches && now - lastAlarm > (alarm === "bad" ? 700 : 2400)) {
+      lastAlarm = now;
+      waves.push({ born: now, color: alarm === "bad" ? color.bad : color.warn });
+    }
+    // Thinking: arcs sweep around the brain, faster than it spins.
+    if (speed > 1) {
+      for (let k = 0; k < 3; k += 1) {
+        const a = now / 260 + k * TAU / 3;
+        g.globalAlpha = .85; g.strokeStyle = color.main; g.lineWidth = 3; g.shadowColor = color.main; g.shadowBlur = 14;
+        g.beginPath(); g.arc(o.x, o.y, r * 1.95, a, a + .7); g.stroke();
+        g.beginPath(); g.arc(o.x, o.y, r * 2.15, -a * 1.3, -a * 1.3 + .4); g.stroke();
+      }
+      g.shadowBlur = 0; g.globalAlpha = 1;
+      if (now - lastAlarm > 900 && !alarm) { lastAlarm = now; waves.push({ born: now, color: color.sky }); }
+    }
     waves = waves.filter((v) => now - v.born < 1800);
     for (const v of waves) { const k = (now - v.born) / 1800; ellipse(g, o.x, o.y, r * (1.2 + k * 3), r * (1.2 + k * 3), 0, TAU, 3 * (1 - k), v.color, 1 - k); }
     nodes.filter((n) => n.depth >= .5).forEach(node);
@@ -314,5 +337,5 @@ const deck = (() => {
     wake();
   }
 
-  return { at, start, update, orbit, pulse, say, think, listen, house, weather, state, colors, draw: () => { draw(); wake(); } };
+  return { at, start, update, orbit, pulse, alert, say, think, listen, house, weather, state, colors, draw: () => { draw(); wake(); } };
 })();

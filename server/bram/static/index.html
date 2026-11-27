@@ -110,12 +110,15 @@
             <div id="hud-systems"></div>
             <span class="why" id="links-why"></span>
           </div>
+          <div class="glass" id="monitors-pane" hidden><h2>Monitors <span id="monitors-count"></span></h2><div id="hud-monitors"></div><a class="more" href="#monitors">Manage</a></div>
           <div class="glass" id="printers-pane" data-focus="Printers" hidden><h2>3D printers <span id="printers-count"></span></h2><div id="hud-printers"></div></div>
           <div class="glass grow"><h2>Watching <span id="watch-count"></span></h2><div id="hud-watch" class="scroller"></div></div>
         </aside>
         <aside class="side" id="hud-right" aria-label="What BRAM is doing">
-          <div class="glass" id="look-pane"><h2>Looking at <span>Nothing</span></h2>
-            <p class="quiet" id="look-quiet">No pictures to read. Cameras come in a later phase.</p>
+          <div class="glass" id="look-pane"><h2>Looking at <span id="look-count">Nothing</span></h2>
+            <p class="quiet" id="look-quiet">No cameras yet. Connect Frigate under <a href="#cameras">Settings, Cameras</a>.</p>
+            <figure id="look-shot" hidden><img id="look-img" alt=""><figcaption id="look-caption"></figcaption></figure>
+            <div id="hud-cameras"></div>
           </div>
           <div class="glass" id="climate-pane" data-focus="Climate" hidden><h2>Climate <span id="climate-now"></span></h2>
             <div class="weather">
@@ -130,6 +133,7 @@
           <div class="glass grow" data-focus="Messages"><h2>What I did <span id="did-count"></span></h2><div id="hud-did" class="scroller"></div></div>
         </aside>
         <div id="hud-events" aria-live="polite"></div>
+        <div id="hud-alerts" aria-live="assertive"></div>
         <section class="glass" id="focus" hidden aria-labelledby="focus-title"><h2 id="focus-title"></h2><button type="button" id="focus-close" aria-label="Close">Close</button><p class="why" id="focus-why"></p><div id="focus-body" class="scroller"></div></section>
         <div id="thought" aria-live="polite"><small>BRAM</small><span id="thought-text"></span><span id="thought-facts"></span><span id="slot-message"></span></div>
         <div id="states" aria-hidden="true"><span id="s-watch" class="on">Watching</span><span id="s-listen">Listening</span><span id="s-think">Thinking</span><span id="s-speak">Speaking</span></div>
@@ -241,6 +245,10 @@
       </div>
       <div class="card" id="camera-card" hidden>
         <h2>Which cameras BRAM watches</h2>
+        <div id="camera-home-box" hidden>
+          <label for="camera-home">The home these cameras belong to</label>
+          <select id="camera-home"></select>
+        </div>
         <ul id="camera-list"></ul>
         <p class="message" id="camera-message" role="status"></p>
       </div>

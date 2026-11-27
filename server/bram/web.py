@@ -21,7 +21,7 @@ from aiohttp import web
 from . import second_factor
 from .alerts import Alerts, Outgoing
 from .audit import KINDS, Audit
-from .cameras import Cameras, FrigateError
+from .cameras import Cameras, FrigateError, for_home
 from .channels import TOKEN, ChannelError, Ntfy, Telegram, new_topic
 from .chat import MAX_TEXT, Busy, Chat
 from .cleanup import Cleanup, Plan
@@ -59,6 +59,7 @@ FILES = {"": "index.html", "app.js": "app.js", "style.css": "style.css", "icon.p
 
 wall = time.time
 FACTOR_WINDOW = 600
+CAMERAS_IN_HOME = (0, 40)  # Home Assistant shows cameras from this version
 
 
 class ConfigPage:
@@ -75,7 +76,9 @@ class ConfigPage:
                  watching: dict[str, list[dict]] | None = None,
                  send_house: Callable[[str, dict], Awaitable[bool]] | None = None,
                  cameras: Cameras | None = None) -> None:
-        self.cameras = cameras if cameras is not None else Cameras(settings)
+        self.cameras = cameras if cameras is not None else Cameras(
+            settings, houses=lambda: [h for h, _ in pairing.houses()])
+        self.cameras.on_event = self._camera_event
         self._send_house = send_house
         self.printers = printers if printers is not None else {}
         self.watching = watching if watching is not None else {}
@@ -146,6 +149,7 @@ class ConfigPage:
             web.post("/api/cameras", self._confirmed(self._connect_cameras)),
             web.post("/api/cameras-off", self._confirmed(self._disconnect_cameras)),
             web.post("/api/camera", self._private(self._choose_camera)),
+            web.post("/api/camera-home", self._private(self._camera_home)),
             web.get("/api/camera-picture", self._private(self._camera_picture)),
             web.get("/api/monitors", self._private(self._list_monitors)),
             web.post("/api/monitors", self._private(self._add_monitor)),
@@ -885,12 +889,14 @@ class ConfigPage:
         self._audit.record("server", "config page", "frigate connected",
                            "with a login" if body.get("user") else "no login", "ok",
                            approver="owner")
+        await self.tell_cameras()
         return _json(self.cameras.view())
 
     async def _disconnect_cameras(self, body: dict) -> web.Response:
         await self.cameras.disconnect()
         self._audit.record("server", "config page", "frigate removed", "by owner", "ok",
                            approver="owner")
+        await self.tell_cameras()
         return _json(self.cameras.view())
 
     async def _choose_camera(self, request: web.Request) -> web.Response:
@@ -902,7 +908,36 @@ class ConfigPage:
         self._audit.record("server", "config page",
                            "camera on" if body["on"] else "camera off", str(body["camera"]),
                            "ok", approver="owner")
+        await self.tell_cameras()
         return _json(self.cameras.view())
+
+    async def _camera_home(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        try:
+            self.cameras.set_house(body.get("house"))
+        except FrigateError as err:
+            return _json({"error": str(err)}, 400)
+        await self.tell_cameras()
+        return _json(self.cameras.view())
+
+    def _takes_cameras(self, house_id: str) -> bool:
+        world = self._worlds().get(house_id)
+        return (self._send_house is not None and world is not None
+                and not _older(world.version, CAMERAS_IN_HOME))
+
+    async def tell_cameras(self, only: str | None = None) -> None:
+        """Which cameras each home shows. Every other home is told none (E2)."""
+        for house_id, _ in self._pairing.houses():
+            if (only is None or house_id == only) and self._takes_cameras(house_id):
+                names = self.cameras.names_for(house_id)
+                await self._send_house(house_id, {"type": "cameras", "names": names, "last": {
+                    n: for_home(e) for n in names if (e := self.cameras.last(n))}})
+
+    async def _camera_event(self, event: dict, new: bool) -> None:
+        house_id = self.cameras.house()
+        if house_id is not None and self._takes_cameras(house_id):
+            await self._send_house(house_id, {"type": "camera", "camera": event["camera"],
+                                              "event": for_home(event)})
 
     async def _camera_picture(self, request: web.Request) -> web.Response:
         data = self.cameras.picture(request.query.get("camera"))

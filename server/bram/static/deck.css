@@ -165,6 +165,31 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 #hud-events .event.warn { border-color: var(--hud-warn); }
 #hud-events .event.bad { border-color: var(--hud-bad); box-shadow: 0 0 26px color-mix(in srgb, var(--hud-bad) 55%, transparent); }
 #hud-events .event.going { animation: event-out 1.5s ease-in both; }
+/* Alerts open as windows over the brain, like a command center's system messages. */
+#hud-alerts { position: absolute; left: 50%; top: 18%; z-index: 4; display: grid; gap: 10px; width: min(440px, 86vw); transform: translateX(-50%); pointer-events: none; }
+#hud-alerts .window { pointer-events: auto; border: 1px solid var(--hud-warn); background: rgb(2 8 18 / .94); box-shadow: 0 0 30px color-mix(in srgb, var(--hud-warn) 45%, transparent); animation: window-in .35s ease-out both; }
+#hud-alerts .window.bad { border-color: var(--hud-bad); box-shadow: 0 0 36px color-mix(in srgb, var(--hud-bad) 60%, transparent); }
+#hud-alerts .window.good { border-color: var(--hud); box-shadow: 0 0 26px color-mix(in srgb, var(--hud) 45%, transparent); }
+#hud-alerts .bar { display: flex; align-items: center; gap: 8px; padding: 5px 10px; font: 600 .68rem var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--hud-bg); background: var(--hud-warn); }
+#hud-alerts .bad .bar { background: var(--hud-bad); animation: blink 1.2s steps(2) infinite; }
+#hud-alerts .good .bar { background: var(--hud); }
+#hud-alerts .bar span { flex: 1; }
+#hud-alerts .bar button { padding: 0 6px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+#hud-alerts .body { display: grid; gap: 6px; padding: 10px 12px; }
+#hud-alerts .body b { color: var(--hud-text); font-size: .95rem; }
+#hud-alerts .body small { color: var(--hud-dim); font: .7rem var(--mono); }
+#hud-alerts .body img { width: 100%; max-height: 180px; object-fit: cover; border: 1px solid var(--hud-line); }
+#hud-alerts .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+#hud-alerts .window.going { animation: window-out .8s ease-in both; }
+@keyframes window-out { to { opacity: 0; transform: scale(.94); filter: blur(2px); } }
+@keyframes window-in { from { opacity: 0; transform: scale(.92) translateY(-10px); } }
+@keyframes blink { 50% { opacity: .55; } }
+#hud:has(#focus:not([hidden])) #hud-alerts { display: none; }
+#hud:has(#hud-alerts .window) #hud-events { display: none; }
+#look-shot { margin: 4px 0 6px; }
+#look-shot img { display: block; width: 100%; max-height: 150px; object-fit: cover; border: 1px solid var(--hud-line); }
+#look-shot figcaption { margin-top: 4px; font: .7rem var(--mono); color: var(--hud-dim); }
+#monitors-pane .more, #look-pane a { color: var(--hud); font: .7rem var(--mono); }
 @keyframes event-in { from { opacity: 0; transform: translate(-50%, -50%) scale(.6); filter: blur(4px); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: none; } }
 @keyframes event-out { to { opacity: 0; transform: translate(-50%, -90%) scale(.9); filter: blur(3px); } }
 

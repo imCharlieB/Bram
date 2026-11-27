@@ -234,7 +234,22 @@ async function loadProfile() {
 
 async function loadMonitors() {
   const { monitors } = await api("monitors");
+  for (const item of monitors) {
+    const before = world.monitors.find((m) => m.id === item.id);
+    if (before && before.up !== false && item.up === false) {
+      popUp(`monitor:${item.id}`, "bad", "Monitor down", `${item.name} is not answering.`, item.reason || "", { href: "#monitors", label: "Monitors" });
+    } else if (before && before.up === false && item.up) {
+      closePop(`monitor:${item.id}`);
+      popUp(`monitor-back:${item.id}:${Date.now()}`, "good", "Monitor back", `${item.name} is answering again.`);
+    }
+  }
   world.monitors = monitors;
+  $("monitors-pane").hidden = !monitors.length;
+  const upCount = monitors.filter((item) => item.up).length;
+  $("monitors-count").textContent = monitors.length ? `${upCount} of ${monitors.length} up` : "";
+  $("hud-monitors").replaceChildren(...monitors.flatMap((item) => row(item.name,
+    item.up === null ? "checking" : item.up ? "up" : "down", item.up === false ? "bad" : item.up === null ? "off" : "",
+    item.up === false ? item.reason || "Not answering" : "")));
   dots("home-monitors", monitors.map((item) => [item.name, item.up, item.up === null ? "Checking" : item.up ? "Answering" : "Not answering"]));
   $("monitor-list").replaceChildren(...(monitors.length ? monitors.map((item) => {
     const row = element("li"), side = element("span"), remove = element("button", "Remove", "quiet small");
@@ -270,6 +285,13 @@ function showCameras(view) {
   $("frigate-state").className = !view.url ? "note" : view.connected ? "good" : "bad";
   if (view.reason) say("frigate-message", view.reason);
   $("camera-card").hidden = !view.cameras.length;
+  $("camera-home-box").hidden = world.houses.length < 2;
+  $("camera-home").replaceChildren(...[{ id: "", name: "Choose..." }, ...world.houses].map((house) => {
+    const option = element("option", house.name);
+    option.value = house.id;
+    option.selected = house.id === (view.house || "");
+    return option;
+  }));
   $("camera-list").replaceChildren(...view.cameras.map((camera) => {
     const row = element("li"), left = element("span", camera.name.replaceAll("_", " ")), box = element("label", undefined, "check");
     const input = element("input");
@@ -285,11 +307,46 @@ function showCameras(view) {
     return row;
   }));
   const on = view.cameras.filter((camera) => camera.on);
+  showLooking(view, on);
   $("home-cameras-card").hidden = !on.length;
   dots("home-cameras", on.map((camera) => {
     const [text, good] = cameraLine(camera);
     return [camera.name.replaceAll("_", " "), good, text];
   }));
+}
+
+const PEOPLE_AND_THINGS = { person: "Person", car: "Car", package: "Package", dog: "Dog", cat: "Cat" };
+
+function showLooking(view, on) {
+  const pretty = (name) => name.replaceAll("_", " ");
+  const latest = on.filter((camera) => camera.last).sort((a, b) => b.last.start - a.last.start)[0];
+  $("look-quiet").hidden = Boolean(on.length);
+  $("look-count").textContent = on.length ? `${on.length} camera${on.length === 1 ? "" : "s"}` : "Nothing";
+  $("look-shot").hidden = !latest?.last.picture;
+  if (latest?.last.picture) {
+    const src = `/api/camera-picture?camera=${encodeURIComponent(latest.name)}&e=${encodeURIComponent(latest.last.id)}`;
+    if ($("look-img").getAttribute("src") !== src) $("look-img").src = src;
+    $("look-img").alt = `${pretty(latest.name)}: ${cameraLine(latest)[0]}`;
+    $("look-caption").textContent = `${pretty(latest.name)} · ${cameraLine(latest)[0]}`;
+  }
+  $("hud-cameras").replaceChildren(...on.flatMap((camera) => {
+    const [text, good] = cameraLine(camera);
+    return row(pretty(camera.name), camera.offline ? "no picture" : camera.last ? camera.last.who || camera.last.label : "quiet", good === false ? "bad" : good ? "" : "off", camera.last ? text : "");
+  }));
+  // A new event pops up over the brain with its picture. The first look only learns what is there.
+  for (const camera of on) {
+    const event = camera.last, key = event && `camera:${event.id}`;
+    if (!event || seen.cameras.has(key)) continue;
+    const first = !seen.camerasReady;
+    seen.cameras.add(key);
+    if (first || Date.now() / 1000 - event.start > 300) continue;
+    const what = event.who || PEOPLE_AND_THINGS[event.label] || event.label;
+    popUp(key, event.label === "person" ? "warn" : "good", `Camera · ${pretty(camera.name)}`, `${what} at ${pretty(camera.name)}`,
+      [event.zones.join(", ").replaceAll("_", " "), new Date(event.start * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })].filter(Boolean).join(" · "),
+      { href: "#cameras", label: "Cameras" },
+      event.picture ? `/api/camera-picture?camera=${encodeURIComponent(camera.name)}&e=${encodeURIComponent(event.id)}` : "");
+  }
+  seen.camerasReady = true;
 }
 
 async function loadCameras() {
@@ -777,7 +834,49 @@ function days() {
 
 // --- what BRAM is doing ---
 
-const seen = { states: null, decisions: new Set(), watching: new Set(), said: "" };
+const seen = { states: null, decisions: new Set(), watching: new Set(), said: "", cameras: new Set(), camerasReady: false, needs: null };
+
+// Alerts open as windows over the brain. Red ones stay until closed; others close by themselves.
+function popUp(key, kind, title, text, detail = "", link = null, picture = "", acts = null) {
+  const box = $("hud-alerts");
+  if (!box || $("deck").hidden || box.querySelector(`[data-key="${CSS.escape(key)}"]`)) return;
+  while (box.children.length >= 3) box.firstChild.remove();
+  const win = element("section", undefined, `window ${kind}`), bar = element("div", undefined, "bar"), body = element("div", undefined, "body");
+  win.dataset.key = key;
+  win.setAttribute("role", kind === "bad" ? "alert" : "status");
+  const close = element("button", "×");
+  close.type = "button";
+  close.setAttribute("aria-label", "Close");
+  close.addEventListener("click", () => closePop(key));
+  bar.append(element("span", title), element("small", new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })), close);
+  if (picture) {
+    const img = element("img");
+    img.src = picture;
+    img.alt = text;
+    body.append(img);
+  }
+  body.append(element("b", text));
+  if (detail) body.append(element("small", detail));
+  const row = acts || element("div", undefined, "acts");
+  if (link) {
+    const a = element("a", link.label);
+    a.href = link.href;
+    a.addEventListener("click", () => closePop(key));
+    row.append(a);
+  }
+  if (row.children.length) body.append(row);
+  win.append(bar, body);
+  box.append(win);
+  deck.pulse("", kind === "bad" ? "bad" : kind === "warn" ? "warn" : "main");
+  if (kind !== "bad") setTimeout(() => closePop(key), kind === "warn" ? 30000 : 15000);
+}
+
+function closePop(key) {
+  const win = $("hud-alerts")?.querySelector(`[data-key="${CSS.escape(key)}"]`);
+  if (!win || win.classList.contains("going")) return;
+  win.classList.add("going");
+  setTimeout(() => win.remove(), 800);
+}
 const DID = { sent: "Told your phone", "not sent": "Could not send", held: "Held back", acked: "Acknowledged", stopped: "You stopped", snoozed: "Snoozed" };
 
 // Something happened: a card comes, stays a moment, and goes, and a pulse runs from that system into the brain.
@@ -930,6 +1029,22 @@ function showNeeds(brain) {
       `${n.times === 1 ? "Since" : "First"} ${ago(n.first)}${n.told ? ". I told you" : ""}.`, true), needActs(n)]),
   ];
   $("needs-pane").hidden = !rows.length;
+  const urgent = world.urgentNow || [], alerts = world.alertsNow || [];
+  const keys = new Map([
+    ...urgent.map((d) => [`urgent:${d.id}`, ["bad", d.area ? `${d.area} · alert` : "Alert", `${d.name}: ${d.says}`, "Home Assistant has messaged your phones if you set that up.", null]]),
+    ...alerts.map((a) => [`alert:${a.text}`, [a.safety ? "bad" : "warn", a.safety ? "Safety" : "Needs you", a.text, ago(a.created), null]]),
+    ...brain.needs.map((n) => [`need:${n.id}`, [n.severity === "high" ? "bad" : "warn", FROM[n.source] || "Needs you", n.text, n.told ? "I told your phone." : "", needActs(n)]]),
+  ]);
+  if (seen.needs) {
+    for (const [key, [kind, title, text, detail, acts]] of keys) {
+      if (!seen.needs.has(key)) popUp(key, kind, title, text, detail, null, "", acts);
+    }
+    for (const key of seen.needs) if (!keys.has(key)) closePop(key);
+  }
+  seen.needs = new Set(keys.keys());
+  const down = (world.monitors || []).some((m) => m.up === false);
+  deck.alert(urgent.length || alerts.some((a) => a.safety) || brain.needs.some((n) => n.severity === "high") ? "bad"
+    : alerts.length || brain.needs.length || down ? "warn" : "");
   $("needs-count").textContent = String((world.urgentNow || []).length + (world.alertsNow || []).length + brain.needs.length);
   $("hud-needs").replaceChildren(...rows.flat());
 }
@@ -1515,6 +1630,10 @@ onSubmit("frigate-form", "frigate-save", "frigate-message", async () => {
   }));
   return "Connected. Turn on the cameras BRAM should watch.";
 });
+$("camera-home").addEventListener("change", () => busy($("camera-home"), "camera-message", async () => {
+  showCameras(await api("camera-home", { house: $("camera-home").value }));
+  return "Saved. Only that home's Home Assistant gets these cameras.";
+}));
 onClick("frigate-off", "frigate-message", async () => {
   const confirm = await askPassword("Disconnect Frigate? BRAM forgets its address, login, and camera choices.");
   showCameras(await api("cameras-off", { confirm }));

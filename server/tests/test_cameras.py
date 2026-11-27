@@ -139,6 +139,9 @@ async def test_frigate_down_is_shown(env):
     env.cameras.choose("yard", True)
     await env.server.close()
     await env.cameras.tick()
+    await env.cameras.tick()
+    assert env.cameras.view()["connected"]  # a blip is not shown
+    await env.cameras.tick()
     assert env.cameras.view()["reason"].startswith("Frigate could not be reached: nothing answered")
     assert not env.cameras.view()["connected"]
 

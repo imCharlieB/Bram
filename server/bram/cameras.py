@@ -27,6 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 CHANNEL = "cameras"
 EVERY = 10  # seconds between looks at Frigate's events
 CONFIG_EVERY = 600  # cameras added in Frigate show up within ten minutes
+FAILURES = 3  # looks in a row before Frigate is shown as not answering
 RECENT = 300  # events still going on are looked at again for this long
 KEEP = 20  # events kept per camera
 MAX_PICTURE = 2 * 1024 * 1024
@@ -264,10 +265,19 @@ async def _local(text: str) -> str:
         raise FrigateError(str(err).replace("HOST:11434", "HOST:5000")) from None
 
 
+def for_home(event: dict[str, Any]) -> dict[str, Any]:
+    """What Home Assistant is told about an event. Checked again there."""
+    return {"id": event["id"], "label": event["label"], "who": event["who"],
+            "zones": event["zones"], "start": event["start"], "end": event["end"],
+            "picture": event["picture"], "summary": describe(event)}
+
+
 class Cameras:
     def __init__(self, settings: Settings, clock: Callable[[], float] = time.time,
-                 connect: Callable[..., Frigate] = Frigate) -> None:
+                 connect: Callable[..., Frigate] = Frigate,
+                 houses: Callable[[], list[str]] = list) -> None:
         self._settings, self._clock, self._connect = settings, clock, connect
+        self._houses = houses
         self._frigate: Frigate | None = None
         self.found: list[str] = []
         self.reason = ""
@@ -275,6 +285,7 @@ class Cameras:
         self.events: dict[str, list[dict[str, Any]]] = {}
         self.pictures: dict[str, tuple[str, bytes]] = {}  # camera -> (event id, jpeg)
         self._checked = 0.0
+        self._failures = 0
         self._looked = 0.0
         self.on_event: Callable[[dict[str, Any], bool], Any] | None = None
 
@@ -284,12 +295,32 @@ class Cameras:
     def chosen(self) -> list[str]:
         return [c for c in self.saved().get("on", []) if c in self.found or not self.found]
 
+    def house(self) -> str | None:
+        """The home these cameras belong to: the one chosen, or the only one."""
+        houses = self._houses()
+        chosen = self.saved().get("house")
+        if chosen in houses:
+            return chosen
+        return houses[0] if len(houses) == 1 else None
+
+    def set_house(self, house_id: object) -> None:
+        if house_id not in self._houses():
+            raise FrigateError("Choose a connected home")
+        self._settings.update_channel(CHANNEL, {"house": house_id})
+
+    def names_for(self, house_id: str) -> list[str]:
+        """The cameras whose events go to this home's Home Assistant."""
+        return self.chosen() if self.saved().get("url") and house_id == self.house() else []
+
+    def last(self, camera: str) -> dict[str, Any] | None:
+        return (self.events.get(camera) or [None])[0]
+
     def view(self) -> dict[str, Any]:
         """For the page. Never the password."""
         saved = self.saved()
         on = set(saved.get("on", []))
         return {
-            "url": saved.get("url", ""), "user": saved.get("user", ""),
+            "url": saved.get("url", ""), "user": saved.get("user", ""), "house": self.house(),
             "connected": bool(saved.get("url")) and not self.reason and bool(self.found),
             "reason": self.reason, "pinned": bool(saved.get("pin")),
             "cameras": [{"name": c, "on": c in on, "offline": c in self.offline,
@@ -377,9 +408,13 @@ class Cameras:
                                     key=lambda e: e["start"]):
                     await self._seen(frigate, event)
             self._looked = now
-            self.reason = ""
+            self.reason, self._failures = "", 0
         except FrigateError as err:
-            self.reason = str(err)
+            # A blip is not shown; three looks in a row, about 30 seconds, is.
+            self._failures += 1
+            if (self._failures >= FAILURES or not self.found
+                    or "could not be reached" not in str(err)):
+                self.reason = str(err)
 
     async def _seen(self, frigate: Frigate, event: dict[str, Any]) -> None:
         camera = event["camera"]

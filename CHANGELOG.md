@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.38.3
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- Home is a command center: alerts open as windows over the brain. Red ones (safety, and findings that matter most) stay until you close them; others close by themselves. Each has its buttons, and a camera's has its picture.
+- While something needs you, red or amber rings keep going out from the brain. While BRAM thinks about an answer, arcs sweep around it.
+- A **Monitors** screen on Home shows each monitor up or down, and a monitor going down opens a window.
+- **Looking at** shows the latest picture from your cameras and each camera's last event.
+- A short break in reaching Frigate is no longer shown as an error; three failed looks in a row, about 30 seconds, are.
+
 ## 0.38.2
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.

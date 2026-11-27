@@ -137,6 +137,23 @@ async def _pair(request: web.Request) -> web.Response:
     return web.json_response({"house_id": house_id, "token": token})
 
 
+async def _camera_picture(request: web.Request) -> web.Response:
+    """The latest picture of a camera, for the one home its cameras belong to (E2)."""
+    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
+    house_id = request.app[PAIRING].house_for(token) if scheme == "Bearer" and token else None
+    if house_id is None:
+        raise web.HTTPUnauthorized
+    config = request.app.get(CONFIG)
+    camera = request.query.get("camera", "")
+    if config is None or camera not in config.cameras.names_for(house_id):
+        raise web.HTTPNotFound
+    data = config.cameras.picture(camera)
+    if not data:
+        raise web.HTTPNotFound
+    return web.Response(body=data, content_type="image/jpeg",
+                        headers={"Cache-Control": "no-store"})
+
+
 async def _feed(request: web.Request) -> web.WebSocketResponse:
     scheme, _, token = request.headers.get("Authorization", "").partition(" ")
     house_id = request.app[PAIRING].house_for(token) if scheme == "Bearer" and token else None
@@ -179,6 +196,8 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                         _remember(request.app, event, world)
                         await _belief(ws, world, event)
                     ready = True
+                    if request.app.get(CONFIG) is not None:
+                        await request.app[CONFIG].tell_cameras(house_id)
                     if request.app.get(ALERTS) is not None:
                         request.app[ALERTS].house_up(house_id, _name(request.app, house_id))
                 elif kind == "state" and ready:
@@ -473,6 +492,7 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
     app.router.add_post("/pair", _pair)
     app.router.add_get("/feed", _feed)
     app.router.add_get("/health", _health)
+    app.router.add_get("/camera-picture", _camera_picture)
     if settings is not None:
         async def disconnect(house_id: str) -> None:
             ws = app[SOCKETS].get(house_id)
