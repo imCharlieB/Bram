@@ -356,3 +356,4 @@ async def test_everything_open_when_everyone_leaves_is_one_message(env):
     await env.wait(5)
     assert env.texts() == [
         "Everyone I track is away, and these are open or unlocked: My window and Mom's window."]
+

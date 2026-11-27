@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.46.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- The BRAM camera card is a list, newest first, under Today, Yesterday, and older days: an icon, what happened, the time and camera, your model's words, and Frigate's picture. Choose how many with `count`, 1 to 20.
+- Fewer messages: two routine messages at once are one, where it took three. A routine message waits 20 seconds for others coming up with it. Important ones, such as unlocked at night or open while everyone is away, never wait.
+
 ## 0.45.1
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

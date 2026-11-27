@@ -28,7 +28,7 @@ from .const import (
     OPEN_TYPES,
 )
 from .feed import kind_of
-from .home_alerts import GROUP_MAX, GROUP_MIN, within
+from .home_alerts import GROUP_MAX, within
 from .names import name_of
 from .notifier import notify
 from .shared import shared
@@ -53,6 +53,9 @@ UNITS = {"°F": UnitOfTemperature.FAHRENHEIT, "°C": UnitOfTemperature.CELSIUS,
 LIMITS = {UnitOfTemperature.FAHRENHEIT: {"hot_above": 85, "cold_below": 55, "freeze_below": 38},
           UnitOfTemperature.CELSIUS: {"hot_above": 29, "cold_below": 13, "freeze_below": 3}}
 HUMID_ABOVE = 70
+# Routine messages that come up within the same moment go out as one. Important ones (night,
+# away) go at once; safety alerts are not here and never wait (C3).
+GATHER = 20  # seconds
 # Several of the same at once, in one sentence, such as two windows open when everyone leaves.
 TOGETHER = {
     "away": "Everyone I track is away, and these are open or unlocked: {names}.",
@@ -107,6 +110,7 @@ class HouseRules:
         self._muted: list[str] = []
         self._sent: list[float] = []
         self._lock = asyncio.Lock()
+        self._due_since: dict[str, float] = {}
 
     async def start(self) -> Callable[[], None]:
         saved = await self._store.async_load() or {}
@@ -314,17 +318,13 @@ class HouseRules:
                     continue
                 due.append((rule in URGENT, key, text))
             self._watching(facts, now, quiet)
+            due = self._gathered(due, now)
             routine = [d for d in due if not d[0]]
-            # Several routine messages at once become one. Urgent ones that come due together,
-            # such as two windows open when everyone leaves, become one for each rule.
-            batches = []
-            for rule in dict.fromkeys(k.partition(":")[0] for u, k, _ in due if u):
-                same = [d for d in due if d[0] and d[1].partition(":")[0] == rule]
-                batches += [same[i:i + GROUP_MAX] for i in range(0, len(same), GROUP_MAX)]
-            if len(routine) >= GROUP_MIN:
-                batches += [routine[i:i + GROUP_MAX] for i in range(0, len(routine), GROUP_MAX)]
-            else:
-                batches += [[d] for d in routine]
+            # What came due together is one message: the urgent ones in one, the routine
+            # ones in another, each in one sentence where they are the same kind.
+            urgent = [d for d in due if d[0]]
+            batches = [part[i:i + GROUP_MAX] for part in (urgent, routine)
+                       for i in range(0, len(part), GROUP_MAX)]
             for batch in batches:
                 if len(self._sent) >= DAILY:
                     break
@@ -345,6 +345,16 @@ class HouseRules:
                             self._teller.told(f"rule:{k}", text)
                     self._sent.append(now)
                     self._save()
+
+    def _gathered(self, due: list[tuple[bool, str, str]],
+                  now: float) -> list[tuple[bool, str, str]]:
+        """Hold routine messages for a moment, so whatever comes up with them is one message.
+        Important ones go at once."""
+        routine = {k for urgent, k, _ in due if not urgent}
+        self._due_since = {k: self._due_since.get(k, now) for k in routine}
+        if routine and now - min(self._due_since.values()) < GATHER:
+            return [d for d in due if d[0]]
+        return due
 
     def _together(self, batch: list[tuple[bool, str, str]]) -> str:
         """One message for a batch: one sentence when all are the same rule, else lines."""

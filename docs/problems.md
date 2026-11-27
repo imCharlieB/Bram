@@ -20,7 +20,7 @@ BRAM checks Home Assistant itself every 10 minutes, without being asked. Turn it
 
 ## Messages
 
-Each problem is told once, and again when it is fixed. Three or more at once are one message, and more than eight become a count, with the rest under [Findings](findings.md). At most eight messages a day. Quiet hours hold them. **Stop these** stops one; undo it with **Allow stopped messages**. A problem that comes and goes is told once a day at most.
+Each problem is told once, and again when it is fixed. Two or more at once are one message, and more than eight become a count, with the rest under [Findings](findings.md). At most eight messages a day. Quiet hours hold them. **Stop these** stops one; undo it with **Allow stopped messages**. A problem that comes and goes is told once a day at most.
 
 ## Left out
 

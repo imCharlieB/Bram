@@ -117,6 +117,7 @@ class Feed:
         # Cameras the server watches for this home, and each one's latest event (E2).
         self.camera_names: list[str] = []
         self.camera_events: dict[str, dict] = {}
+        self.camera_history: dict[str, list[dict]] = {}  # newest first, for the camera card
         self.camera_zones: dict[str, list[str]] = {}  # from Frigate, for the settings
 
     @property
@@ -298,6 +299,11 @@ class Feed:
                 self.camera_names = found
                 events = {n: cameras.event(e) for n, e in data["last"].items() if n in found}
                 self.camera_events = {n: e for n, e in events.items() if e is not None}
+                self.camera_history = {n: [e for e in self.camera_history.get(n, [])]
+                                       for n in found}
+                for n, e in self.camera_events.items():
+                    if not any(h["id"] == e["id"] for h in self.camera_history[n]):
+                        self.camera_history[n].insert(0, e)
                 self._notify()
                 return
         if (isinstance(data, dict) and data.keys() == {"type", "patterns"}
@@ -317,6 +323,9 @@ class Feed:
             found = cameras.event(data["event"])
             if found is not None:
                 self.camera_events[data["camera"]] = found
+                kept = self.camera_history.setdefault(data["camera"], [])
+                kept[:] = sorted([found, *(e for e in kept if e["id"] != found["id"])],
+                                 key=lambda e: -e["start"])[:20]
                 if self.camera_watch is not None:
                     self._hass.async_create_task(
                         self.camera_watch.weigh(data["camera"], found), "bram camera")

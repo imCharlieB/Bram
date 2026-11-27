@@ -77,9 +77,10 @@ async def test_the_camera_card_reads_only_what_bram_was_told(hass, hass_ws_clien
     ws = await hass_ws_client(hass, hass_read_only_access_token)  # anyone signed in may look
     await ws.send_json({"id": 1, "type": "bram/cameras"})
     reply = await ws.receive_json()
-    assert reply["result"]["cameras"] == [
-        {"name": "RoofCamera", "event": event, "image": None},  # no Frigate integration here
-        {"name": "porch", "event": None, "image": None}]
+    assert reply["result"]["cameras"] == [  # no Frigate integration here, so no pictures
+        {"name": "RoofCamera", "event": event, "image": None,
+         "events": [{**event, "image": None}]},
+        {"name": "porch", "event": None, "image": None, "events": []}]
     hass.config.components.add("frigate")
     await ws.send_json({"id": 2, "type": "bram/cameras"})
     reply = await ws.receive_json()

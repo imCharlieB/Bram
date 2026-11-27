@@ -112,6 +112,8 @@ async def test_rules_note_found_told_and_over(hass):
         assert notes == []
         now[0] += datetime.timedelta(minutes=10)
         await rules.run()
+        now[0] += datetime.timedelta(seconds=30)  # past the 20 seconds a routine one waits
+        await rules.run()
         hass.states.async_set("lock.a", "locked")
         await rules.run()
         stop()

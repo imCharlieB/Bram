@@ -33,7 +33,7 @@ SILENT_AFTER = 300
 SERVER_AFTER = 180
 ESCALATE_AFTER = 300
 DAILY_NOTICES = 10
-GROUP_MIN, GROUP_MAX = 3, 8
+GROUP_MIN, GROUP_MAX = 2, 8  # two of the same at once are one message
 DAY = 86400
 
 TEXT = {"leak": "Water leak detected", "smoke": "Smoke detected. Check now",

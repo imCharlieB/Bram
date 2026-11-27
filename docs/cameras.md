@@ -105,9 +105,18 @@ It comes with BRAM; there is nothing to install. Edit a dashboard, **Add card**,
 ```yaml
 type: custom:bram-camera-card
 camera: front_door
+count: 5
 ```
 
-`camera` is the camera's name in Frigate. Leave it out to show whichever camera saw something last. `title` changes the heading. The picture comes from the Frigate integration; without it, the card shows the words only. It updates every 10 seconds, and only shows: it changes nothing. If it does not appear in the list after updating BRAM, refresh the browser.
+It lists what the cameras saw, newest first, under **Today**, **Yesterday**, and older days: an icon for a person, car, or package, what happened, the time and camera, your model's description, and Frigate's picture on the right.
+
+| Option | Does | Default |
+|---|---|---|
+| `camera` | One camera, by its name in Frigate | Every camera BRAM watches |
+| `count` | How many events, 1 to 20 | 5 |
+| `title` | The heading; `""` for none | Cameras, or the camera's name |
+
+The list starts when Home Assistant starts, and keeps up to 20 events for each camera. The picture comes from the Frigate integration; without it, the card shows the words only. It updates every 10 seconds, and only shows: it changes nothing. If it does not appear in the list after updating BRAM, refresh the browser.
 
 ## Ask a camera
 

@@ -70,8 +70,10 @@ def _cameras(hass: HomeAssistant, connection: websocket_api.ActiveConnection,
         feed = getattr(entry, "runtime_data", None)
         for name in getattr(feed, "camera_names", []):
             event = feed.camera_events.get(name)
+            history = getattr(feed, "camera_history", {}).get(name) or ([event] if event else [])
             cameras.append({"name": name, "event": event,
-                            "image": picture(hass, event) if event else None})
+                            "image": picture(hass, event) if event else None,
+                            "events": [{**e, "image": picture(hass, e)} for e in history]})
     connection.send_result(msg["id"], {"cameras": cameras})
 
 
