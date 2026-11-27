@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.40.5
+
+Update the BRAM Server (pull the new image).
+
+- The version on Home turns amber only when the two halves differ in features, such as 0.40 and 0.41, not for a fix on one side.
+
 ## 0.40.4
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update, but stay on 0.40 there.

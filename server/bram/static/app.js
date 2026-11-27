@@ -116,7 +116,7 @@ async function loadStatus() {
   $("version").textContent = `BRAM Server ${version}`;
   // What is running, on Home: the server, and BRAM in each connected Home Assistant.
   const there = houses.filter((house) => house.connected && house.version);
-  const apart = there.some((house) => house.version !== version);
+  const apart = there.some((house) => release(house.version) !== release(version));  // fixes may differ
   $("hud-version").textContent = [`Server ${version}`, ...there.map((house) => `${houses.length > 1 ? house.name : "HA"} ${house.version}`)].join(" · ");
   $("hud-version").classList.toggle("apart", apart);
   $("hud-version").title = apart ? "The two halves of BRAM are on different versions. Update both." : "What is running";
