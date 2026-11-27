@@ -149,7 +149,7 @@ Chat answers from what you shared. It lists the readings it used under each answ
 | Part | How |
 |---|---|
 | Integration | HACS: update **BRAM**, then restart Home Assistant |
-| Server | Portainer: recreate the bram container with **Re-pull image** on |
+| Server | Download the new `ghcr.io/imcharlieb/bram-server` image and recreate the container, however you run Docker. Docker Compose: `docker compose pull`, then `docker compose up -d`. Portainer: recreate the container with **Re-pull image** on. Unraid, Synology, and others: their own update or re-pull button |
 
 Update both, and keep them on the same version. Each release in [Changes](../CHANGELOG.md) says which halves changed. When the versions differ, BRAM warns you on its page and in Home Assistant's Repairs. See [Installing](installation.md#updating).
 

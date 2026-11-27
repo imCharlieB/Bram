@@ -61,7 +61,7 @@ Quick setup turns on a few lock and door rules. To choose devices, turn on more 
 
 | Part | How |
 |---|---|
-| Server | Portainer: recreate the bram container with **Re-pull image** on; without it, Portainer keeps the old one. Compose: `docker compose pull`, then `docker compose up -d` |
+| Server | Download the new `ghcr.io/imcharlieb/bram-server` image and recreate the container, however you run Docker. Docker Compose: `docker compose pull`, then `docker compose up -d`. Portainer: recreate the container with **Re-pull image** on. Unraid, Synology, and others: their own update or re-pull button. Without re-pulling, Portainer keeps the old image |
 | Integration | HACS: update BRAM, then restart Home Assistant |
 
 Keep both on the same version; BRAM warns on its page and in Home Assistant's Repairs when they differ. The server's is at the bottom of BRAM's home page; the integration's is on its device page. Your login, pairing, and settings are kept in the `bram-data` volume; do not delete it. See [Changes](../CHANGELOG.md).

@@ -33,7 +33,8 @@ BRAM watches the devices you choose, tells your phone when something matters, re
 | **Security check** | New admins and tokens, failed sign-ins, locks exposed to voice assistants, public webhooks, offline cameras, and more |
 | **Findings** | One list of everything it found, with the story of each |
 | **History and trends** | Temperatures, and every heating and cooling run with its settings. Compares each thermostat with the room's own sensor |
-| **Learning** | Suggests better night hours from BRAM's history. Nothing changes until you approve |
+| **Learning** | Suggests better night hours from BRAM's history, and fewer messages about what you keep hiding. Nothing changes until you approve |
+| **Cameras** | Connects to Frigate, read only, and shows each camera's latest event. Camera rules and messages are being built |
 | **Chat and voice** | On its page, in Assist, and in Telegram, answering from live state with the facts listed underneath. Hold to talk and spoken answers, with your own Whisper and Piper |
 | **Personality** | Professional, friendly, dry, minimal, unhinged, or your own |
 | **Blueprints** | A yes-or-no check on a schedule, and a house summary, as automations you keep in Home Assistant |
@@ -44,6 +45,8 @@ Everything that shares or stores more is off until you turn it on.
 | Findings | History |
 |---|---|
 | ![Findings](https://raw.githubusercontent.com/imCharlieB/Bram/main/docs/images/findings.jpg) | ![History](https://raw.githubusercontent.com/imCharlieB/Bram/main/docs/images/history.jpg) |
+| **A closer look on Home** | **Suggestions, in Home Assistant** |
+| ![A closer look](https://raw.githubusercontent.com/imCharlieB/Bram/main/docs/images/home-closer.jpg) | ![The review page](https://raw.githubusercontent.com/imCharlieB/Bram/main/docs/images/review.jpg) |
 
 ## What you need
 
@@ -58,7 +61,7 @@ Everything that shares or stores more is off until you turn it on.
 
 BRAM has two halves. HACS installs the integration; the server runs in Docker.
 
-1. **Start the server.** In Portainer: **Stacks > Add stack > Repository**, with repository `https://github.com/imCharlieB/Bram`, reference `refs/heads/main`, and compose path `compose.yaml`. Or with Docker Compose:
+1. **Start the server** with Docker. With Docker Compose, as below. In Portainer: **Stacks > Add stack > Repository**, with repository `https://github.com/imCharlieB/Bram`, reference `refs/heads/main`, and compose path `compose.yaml`. Other Docker tools: use [compose.yaml](compose.yaml) as the guide.
 
    ```
    git clone https://github.com/imCharlieB/Bram.git
@@ -113,7 +116,7 @@ BRAM has two halves. HACS installs the integration; the server runs in Docker.
 | Part | How |
 |---|---|
 | Integration | HACS > update BRAM > restart Home Assistant |
-| Server | Portainer: recreate the bram container with **Re-pull image** on. Compose: `docker compose pull`, then `docker compose up -d` |
+| Server | Download the new `ghcr.io/imcharlieb/bram-server` image and recreate the container, however you run Docker. Docker Compose: `docker compose pull`, then `docker compose up -d`. Portainer: recreate the container with **Re-pull image** on. Unraid, Synology, and others: their own update or re-pull button |
 
 Update both and keep them on the same version; BRAM warns you when they differ. [Changes](https://github.com/imCharlieB/Bram/blob/main/CHANGELOG.md)
 

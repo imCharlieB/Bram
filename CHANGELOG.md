@@ -4,49 +4,49 @@
 
 ## 0.38.0
 
-Update the server in Portainer. Home Assistant needs no update for this one.
+Update the BRAM Server (pull the new image). Home Assistant needs no update for this one.
 
 - Cameras, part 1: connect Frigate under **Settings > Cameras** and choose which cameras BRAM watches. It reads only, and never changes Frigate. Frigate's login port works with a view-only Frigate user, and its certificate is pinned. Each watched camera's latest event shows under Settings and in a Cameras card on Home, and a camera Frigate gets no picture from says so. Rules and phone messages come next. See [Cameras](docs/cameras.md).
 - The plan now covers what BRAM is: the brain of the house that monitors and protects it. Added: security checks to match and go past Home Generative Agent, rules suggested from what BRAM sees, memory across chats, and cloud models for anyone who wants them.
 
 ## 0.37.0
 
-Update both: BRAM in HACS (then restart Home Assistant) and the server in Portainer.
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
 
 - BRAM notices what you do. When you keep hiding the same finding, or are told about it often and never act, it suggests **Stop these** or **Less often** on the review page in Home Assistant, opened from one phone message. Only routine messages, never safety. Nothing changes until an administrator answers.
 - Docs: a new guide, [Using BRAM day to day](docs/guide.md); a clearer README; every page checked against BRAM itself, with setting names as you see them; new screenshots of the review page, a closer look on Home, and the History page; and the [camera plan](docs/cameras.md) for your approval.
 
 ## 0.36.0
 
-Update both: BRAM in HACS (then restart Home Assistant) and the server in Portainer.
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
 
 - Suggestions have their own review page in the Home Assistant app instead of Repairs. Your phone gets a message that opens it, showing the evidence and each setting now and after. Only a Home Assistant administrator can answer.
 - **Hide** takes a finding off the list until it happens again; then it is back. Hidden findings are under **Show > Hidden**.
 
 ## 0.35.4
 
-Update BRAM in HACS and restart Home Assistant. Update the server in Portainer too to keep the versions together.
+Update BRAM in HACS and restart Home Assistant. Update the BRAM Server (pull the new image) too to keep the versions together.
 
 - Weather entities are offered under **Thermostats, temperature, humidity, and weather**, so the outside temperature is easy to share.
 - **Back** in BRAM's Devices and Watching menus returns to the main settings.
 
 ## 0.35.3
 
-Update the server in Portainer. Update BRAM in HACS too to keep the versions together.
+Update the BRAM Server (pull the new image). Update BRAM in HACS too to keep the versions together.
 
 - Home: a printer whose integration is failing is no longer listed under Needs you. Problems with Home Assistant reports failed integrations, if you turned it on.
 - Home: Climate says to share a weather entity when it has no outside temperature.
 
 ## 0.35.2
 
-Update both: BRAM in HACS (then restart Home Assistant) and the server in Portainer.
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
 
 - **Locks, doors, windows, and motion** settings are grouped: Locks, Doors and windows, While everyone is away, and Night hours. Your choices are kept.
 - Home: **Story** under Needs you opens that finding with its story, not just the Findings list.
 
 ## 0.35.1
 
-Update BRAM in HACS and restart Home Assistant. Update the server in Portainer too to keep the versions together.
+Update BRAM in HACS and restart Home Assistant. Update the BRAM Server (pull the new image) too to keep the versions together.
 
 - BRAM's blueprints appear in Home Assistant by themselves, under **Settings > Automations & scenes > Blueprints**. Nothing to import. A blueprint you changed is never replaced.
 
@@ -62,20 +62,20 @@ Update BRAM in HACS and restart Home Assistant. The server is unchanged, but upd
 
 ## 0.34.1
 
-Update both: BRAM in HACS and the server in Portainer.
+Update both: BRAM in HACS and the BRAM Server (pull the new image).
 
 - Tapping a BRAM phone message opens it on BRAM's page, under Findings, with its story and buttons, instead of Home Assistant's home page.
 
 ## 0.34.0
 
-Update both: BRAM in HACS and the server in Portainer.
+Update both: BRAM in HACS and the BRAM Server (pull the new image).
 
 - Learning reads its quiet nights and door times from BRAM's history instead of keeping its own notes, so there is one record. It needs **Keep history** on. Nights already in history count, so a suggestion can come without another two-week wait. Notes Learning kept before are dropped.
 - Docs: 3D printers start switched off.
 
 ## 0.33.0
 
-Update both: BRAM in HACS and the server in Portainer.
+Update both: BRAM in HACS and the BRAM Server (pull the new image).
 
 - **Stop these** and **Less often** on BRAM's page: under Needs you on Home and beside findings, whenever your phone was given them. Home Assistant accepts only a button it offered for that message, once. Acknowledge stays on the phone only.
 
