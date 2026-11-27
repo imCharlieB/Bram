@@ -11,6 +11,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import ssl
 import time
 from collections.abc import Callable
@@ -93,9 +94,15 @@ def event_from(raw: object) -> dict[str, Any] | None:
     }
 
 
+def place(camera: str) -> str:
+    """A camera's name as said in a sentence: RoofCamera and roof_camera are roof camera."""
+    return " ".join(re.sub(r"([a-z])([A-Z])", r"\1 \2", camera).replace("_", " ")
+                    .replace("-", " ").split()).lower()
+
+
 def describe(event: dict[str, Any]) -> str:
     """A few plain words, such as "Alex at front door, in driveway"."""
-    camera = event["camera"].replace("_", " ")
+    camera = place(event["camera"])
     what = event["who"] or event["label"]
     zones = ", ".join(z.replace("_", " ") for z in event["zones"])
     where = f", in {zones}" if zones else ""
@@ -215,13 +222,20 @@ class Frigate:
         return {c for c in cameras if isinstance(found.get(c), dict)
                 and not found[c].get("camera_fps")}
 
-    async def picture(self, event_id: str) -> tuple[bytes, str] | None:
-        found = await self._get(f"/api/events/{quote(event_id, safe='')}/snapshot.jpg?bbox=1",
-                                as_json=False, limit=MAX_PICTURE)
-        if not found:
-            return None
-        body, kind = found
-        return (body, "image/jpeg") if kind == "image/jpeg" and body[:2] == b"\xff\xd8" else None
+    async def picture(self, event: dict[str, Any]) -> bytes | None:
+        """The event's snapshot; without snapshots on in Frigate, its thumbnail; without
+        that, the camera's latest frame."""
+        event_id, camera = quote(event["id"], safe=""), quote(event["camera"], safe="")
+        tries = [f"/api/events/{event_id}/snapshot.jpg?bbox=1"] if event["picture"] else []
+        tries += [f"/api/events/{event_id}/thumbnail.jpg", f"/api/{camera}/latest.jpg?h=480"]
+        for path in tries:
+            try:
+                found = await self._get(path, as_json=False, limit=MAX_PICTURE)
+            except FrigateError:
+                continue
+            if found and found[1] == "image/jpeg" and found[0][:2] == b"\xff\xd8":
+                return found[0]
+        return None
 
     async def close(self) -> None:
         if self._own and self._session is not None:
@@ -324,7 +338,8 @@ class Cameras:
             "connected": bool(saved.get("url")) and not self.reason and bool(self.found),
             "reason": self.reason, "pinned": bool(saved.get("pin")),
             "cameras": [{"name": c, "on": c in on, "offline": c in self.offline,
-                         "last": (self.events.get(c) or [None])[0]} for c in self.found],
+                         "last": (self.events.get(c) or [None])[0],
+                         "shot": c in self.pictures} for c in self.found],
         }
 
     def _client(self) -> Frigate | None:
@@ -427,13 +442,12 @@ class Cameras:
         kept[:] = sorted([event, *(e for e in kept if e["id"] != event["id"])],
                          key=lambda e: -e["start"])[:KEEP]
         newest = kept[0]["id"] == event["id"]
-        if newest and event["picture"] and self.pictures.get(camera, ("",))[0] != event["id"]:
-            try:
-                found = await frigate.picture(event["id"])
-            except FrigateError:
-                found = None
+        # Again when a snapshot turns up for an event that had none.
+        mark = f"{event['id']}:{event['picture']}"
+        if newest and self.pictures.get(camera, ("",))[0] != mark:
+            found = await frigate.picture(event)
             if found:
-                self.pictures[camera] = (event["id"], found[0])
+                self.pictures[camera] = (mark, found)
         if self.on_event is not None:
             result = self.on_event(event, old is None)
             if asyncio.iscoroutine(result):

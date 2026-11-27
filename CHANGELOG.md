@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.40.2
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Alert windows on Home look like the command center's screens: see-through, cut corners, a glowing edge, corner brackets, a label tab, and a framed picture. The newest is open and older ones fold to their title.
+- Fixed: camera windows and **Looking at** had no picture when snapshots are off in Frigate, which is Frigate's default. BRAM now uses the event's thumbnail, or else the camera's latest frame. Phone messages use the thumbnail too.
+- Camera names read the way people say them: `RoofCamera` is shown as **Roof camera**.
+
 ## 0.40.1
 
 Update BRAM in HACS, then restart Home Assistant. The server has no change; updating it too keeps the versions the same.

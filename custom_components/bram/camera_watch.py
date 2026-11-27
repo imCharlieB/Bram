@@ -6,6 +6,7 @@ camera entities of its own.
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import quote
@@ -29,18 +30,22 @@ TOO_OLD = 600  # an event this old when BRAM first hears of it is not news
 DAILY = 30
 DAY = 86400
 MUTE = "BRAM_CAMERA_"
-PROXY = "/api/frigate/notifications/{id}/snapshot.jpg"
+PROXY = "/api/frigate/notifications/{id}/{kind}.jpg"
 
 
-def picture(hass: HomeAssistant, event_id: str) -> str | None:
-    """Frigate's own picture for a phone message, if its integration is installed."""
+def picture(hass: HomeAssistant, event: dict) -> str | None:
+    """Frigate's own picture for a phone message, if its integration is installed: the
+    snapshot, or the thumbnail when snapshots are off in Frigate."""
     if "frigate" not in hass.config.components:
         return None
-    return PROXY.format(id=quote(event_id, safe=""))
+    return PROXY.format(id=quote(event["id"], safe=""),
+                        kind="snapshot" if event["picture"] else "thumbnail")
 
 
 def place(camera: str) -> str:
-    return camera.replace("_", " ").replace("-", " ").strip()
+    """A camera's name as said in a sentence: RoofCamera and roof_camera are roof camera."""
+    return " ".join(re.sub(r"([a-z])([A-Z])", r"\1 \2", camera).replace("_", " ")
+                    .replace("-", " ").split()).lower()
 
 
 class CameraWatch:
@@ -132,7 +137,7 @@ class CameraWatch:
                    "medium" if rule in URGENT else "low")
         if await notify(self._hass, self._phones, "BRAM camera", text, f"bram_camera_{what}",
                         safety=False, actions=actions, finding=f"cameras:{key}",
-                        image=picture(self._hass, event["id"])):
+                        image=picture(self._hass, event)):
             self._last[key] = self._last[across] = now
             self._sent.append(now)
             self._note(f"cameras:{key}", "sent", f"Phone: {text}", "cameras", "low")

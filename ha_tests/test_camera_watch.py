@@ -75,6 +75,9 @@ async def test_picture_from_the_frigate_integration(hass, env):
     await env.start(camera_package=True)
     await env.see("porch", event("1.5-ab", "package"))
     assert env.calls[0].data["data"]["image"] == "/api/frigate/notifications/e1.5-ab/snapshot.jpg"
+    env.now += __import__("datetime").timedelta(hours=1)
+    await env.see("porch", {**event("2", "package", at=env.now), "picture": False})
+    assert env.calls[1].data["data"]["image"] == "/api/frigate/notifications/e2/thumbnail.jpg"
 
 
 async def test_once_per_camera_and_across_cameras(env):

@@ -48,7 +48,7 @@ Coming: a person at a door that is open or unlocked, with each camera linked to 
 
 ## The message
 
-The camera, who Frigate recognized, what is true in the rest of the home, and the zones, such as "Someone at front door, and it's night. In porch." With the [Frigate integration](https://docs.frigate.video/integrations/home-assistant) installed in Home Assistant, it shows Frigate's picture of the event. Tap it to open the finding on BRAM's page. Coming: your model's description, such as "A delivery driver left a box on the porch."
+The camera, who Frigate recognized, what is true in the rest of the home, and the zones, such as "Someone at front door, and it's night. In porch." With the [Frigate integration](https://docs.frigate.video/integrations/home-assistant) installed in Home Assistant, it shows Frigate's picture of the event: its snapshot, or its smaller thumbnail when snapshots are off for that camera in Frigate. Turn snapshots on in Frigate for a better picture. Tap it to open the finding on BRAM's page. Coming: your model's description, such as "A delivery driver left a box on the porch."
 
 ## On BRAM's page
 
@@ -82,7 +82,7 @@ On BRAM's page, **Settings > Cameras**:
 2. Select **Connect** and enter your BRAM password.
 3. Under **Which cameras BRAM watches**, turn on **Watch** for each camera.
 
-BRAM checks Frigate every 10 seconds. A camera you add in Frigate shows up within 10 minutes. Each watched camera shows its latest event under Settings and in the **Cameras** card on Home. If Frigate stops getting a picture from a camera, it says so, and never treats it as nothing there. Turning a camera off drops its events and picture from BRAM. **Disconnect** forgets the address, login, and choices.
+BRAM checks Frigate every 10 seconds. A camera you add in Frigate shows up within 10 minutes. Each watched camera shows its latest event under Settings and in **Looking at** on Home, with Frigate's snapshot, or its thumbnail when snapshots are off in Frigate, or else the camera's latest frame. If Frigate stops getting a picture from a camera, it says so, and never treats it as nothing there. Turning a camera off drops its events and picture from BRAM. **Disconnect** forgets the address, login, and choices.
 
 Only an address on your own network is accepted. If you type the address without `http://` or `https://`, BRAM tries both.
 

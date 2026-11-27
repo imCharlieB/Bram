@@ -6,7 +6,7 @@ In the middle is BRAM's brain, a knot of light threads. Your home's systems orbi
 
 ## Alerts over the brain
 
-When something needs you, a window opens over the brain, like a message on a command center's screen:
+When something needs you, a window opens over the brain, like a screen in a command center: see-through, with cut corners, a glowing edge, and its label on a tab. The newest is open; older ones fold down to their title, and clicking a title opens that one:
 
 | Window | When | Closes |
 |---|---|---|

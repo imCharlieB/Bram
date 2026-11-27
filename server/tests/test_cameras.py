@@ -6,6 +6,8 @@ from bram.cameras import Cameras, Frigate, FrigateError, describe, event_from
 from bram.settings import Settings
 
 JPEG = b"\xff\xd8 a picture"
+THUMB = b"\xff\xd8 a thumbnail"
+LATEST = b"\xff\xd8 the camera now"
 
 
 class FakeFrigate:
@@ -13,6 +15,7 @@ class FakeFrigate:
 
     def __init__(self, login=False):
         self.login, self.asked, self.stats = login, [], {"front_door": 5, "yard": 5}
+        self.thumbnails = True
         self.events = [
             {"id": "1.1-a", "camera": "front_door", "label": "person",
              "sub_label": ["Alex", 0.9], "zones": ["porch"], "start_time": 1000.0,
@@ -49,6 +52,10 @@ class FakeFrigate:
                 return web.json_response([e for e in self.events if e["camera"] in wanted])
             if request.path.endswith("/snapshot.jpg"):
                 return web.Response(body=JPEG, content_type="image/jpeg")
+            if request.path.endswith("/thumbnail.jpg") and self.thumbnails:
+                return web.Response(body=THUMB, content_type="image/jpeg")
+            if request.path.endswith("/latest.jpg"):
+                return web.Response(body=LATEST, content_type="image/jpeg")
             return web.Response(status=404)
 
         app.router.add_route("*", "/{tail:.*}", handle)
@@ -221,3 +228,28 @@ async def test_login_port_certificate_is_pinned(tmp_path):
     await cameras.close()
     await runner.cleanup()
     settings.close()
+
+
+def test_camera_names_as_people_say_them():
+    from bram.cameras import place
+    assert place("RoofCamera") == place("roof_camera") == place("Roof-Camera") == "roof camera"
+
+
+async def test_without_snapshots_a_thumbnail_or_the_camera_now(env):
+    env.frigate.events[0]["has_snapshot"] = False  # snapshots are off in Frigate by default
+    await env.cameras.connect(env.url)
+    env.cameras.choose("front_door", True)
+    await env.cameras.tick()
+    assert env.cameras.picture("front_door") == THUMB
+    assert env.cameras.view()["cameras"][0]["shot"]
+    env.frigate.thumbnails = False
+    env.frigate.events[0]["end_time"] = 1020.0  # changed, but no snapshot yet: kept as is
+    await env.cameras.tick()
+    assert env.cameras.picture("front_door") == THUMB
+    env.cameras.pictures.clear()
+    env.frigate.events[0]["end_time"] = 1030.0
+    await env.cameras.tick()
+    assert env.cameras.picture("front_door") == LATEST  # no thumbnail either: the camera now
+    env.frigate.events[0]["has_snapshot"] = True  # Frigate saved one after all
+    await env.cameras.tick()
+    assert env.cameras.picture("front_door") == JPEG

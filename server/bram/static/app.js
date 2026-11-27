@@ -293,7 +293,7 @@ function showCameras(view) {
     return option;
   }));
   $("camera-list").replaceChildren(...view.cameras.map((camera) => {
-    const row = element("li"), left = element("span", camera.name.replaceAll("_", " ")), box = element("label", undefined, "check");
+    const row = element("li"), left = element("span", cameraName(camera.name)), box = element("label", undefined, "check");
     const input = element("input");
     input.type = "checkbox";
     input.checked = camera.on;
@@ -311,19 +311,25 @@ function showCameras(view) {
   $("home-cameras-card").hidden = !on.length;
   dots("home-cameras", on.map((camera) => {
     const [text, good] = cameraLine(camera);
-    return [camera.name.replaceAll("_", " "), good, text];
+    return [cameraName(camera.name), good, text];
   }));
+}
+
+// Camera names as people say them: RoofCamera is Roof camera.
+function cameraName(name) {
+  const words = name.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").trim().toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 const PEOPLE_AND_THINGS = { person: "Person", car: "Car", package: "Package", dog: "Dog", cat: "Cat" };
 
 function showLooking(view, on) {
-  const pretty = (name) => name.replaceAll("_", " ");
+  const pretty = cameraName;
   const latest = on.filter((camera) => camera.last).sort((a, b) => b.last.start - a.last.start)[0];
   $("look-quiet").hidden = Boolean(on.length);
   $("look-count").textContent = on.length ? `${on.length} camera${on.length === 1 ? "" : "s"}` : "Nothing";
-  $("look-shot").hidden = !latest?.last.picture;
-  if (latest?.last.picture) {
+  $("look-shot").hidden = !latest?.shot;
+  if (latest?.shot) {
     const src = `/api/camera-picture?camera=${encodeURIComponent(latest.name)}&e=${encodeURIComponent(latest.last.id)}`;
     if ($("look-img").getAttribute("src") !== src) $("look-img").src = src;
     $("look-img").alt = `${pretty(latest.name)}: ${cameraLine(latest)[0]}`;
@@ -344,7 +350,7 @@ function showLooking(view, on) {
     popUp(key, event.label === "person" ? "warn" : "good", `Camera · ${pretty(camera.name)}`, `${what} at ${pretty(camera.name)}`,
       [event.zones.join(", ").replaceAll("_", " "), new Date(event.start * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })].filter(Boolean).join(" · "),
       { href: "#cameras", label: "Cameras" },
-      event.picture ? `/api/camera-picture?camera=${encodeURIComponent(camera.name)}&e=${encodeURIComponent(event.id)}` : "");
+      camera.shot ? `/api/camera-picture?camera=${encodeURIComponent(camera.name)}&e=${encodeURIComponent(event.id)}` : "");
   }
   seen.camerasReady = true;
 }
@@ -841,19 +847,24 @@ function popUp(key, kind, title, text, detail = "", link = null, picture = "", a
   const box = $("hud-alerts");
   if (!box || $("deck").hidden || box.querySelector(`[data-key="${CSS.escape(key)}"]`)) return;
   while (box.children.length >= 3) box.firstChild.remove();
-  const win = element("section", undefined, `window ${kind}`), bar = element("div", undefined, "bar"), body = element("div", undefined, "body");
+  const win = element("section", undefined, `window ${kind}`), frame = element("div", undefined, "frame"), bar = element("div", undefined, "bar"), body = element("div", undefined, "body");
   win.dataset.key = key;
   win.setAttribute("role", kind === "bad" ? "alert" : "status");
   const close = element("button", "×");
   close.type = "button";
   close.setAttribute("aria-label", "Close");
   close.addEventListener("click", () => closePop(key));
-  bar.append(element("span", title), element("small", new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })), close);
+  const label = element("span", title);
+  label.title = "Open";
+  label.addEventListener("click", () => unfold(win));
+  bar.append(label, element("small", new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })), close);
   if (picture) {
-    const img = element("img");
+    const shot = element("div", undefined, "shot"), img = element("img");
     img.src = picture;
     img.alt = text;
-    body.append(img);
+    img.addEventListener("error", () => shot.remove());  // no picture yet: just the words
+    shot.append(img);
+    body.append(shot);
   }
   body.append(element("b", text));
   if (detail) body.append(element("small", detail));
@@ -865,10 +876,17 @@ function popUp(key, kind, title, text, detail = "", link = null, picture = "", a
     row.append(a);
   }
   if (row.children.length) body.append(row);
-  win.append(bar, body);
+  frame.append(element("i", undefined, "ticks"), bar, body);
+  win.append(frame, element("i", undefined, "wire"));
   box.append(win);
+  unfold(win);
   deck.pulse("", kind === "bad" ? "bad" : kind === "warn" ? "warn" : "main");
   if (kind !== "bad") setTimeout(() => closePop(key), kind === "warn" ? 30000 : 15000);
+}
+
+// One window open at a time; the others fold to their title bar.
+function unfold(win) {
+  for (const other of $("hud-alerts").children) other.classList.toggle("folded", other !== win);
 }
 
 function closePop(key) {
