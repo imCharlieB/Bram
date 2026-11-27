@@ -101,6 +101,7 @@ class Feed:
         self.alerts: Any = None  # set during setup
         self.rules: Any = None
         self.learner: Any = None
+        self.suggestions: Any = None
         self.outbox: Any = None
         self.problems: Any = None
         self.printers: Any = None
@@ -146,6 +147,14 @@ class Feed:
         """For the server's record. Never needed for an alert to work."""
         if self.outbox is not None:
             self.outbox.note(key, what, text, source, severity)
+
+    @callback
+    def act(self, action: str) -> None:
+        """A Stop these or Less often, handled as the phone button that was offered."""
+        pressed = Event("mobile_app_notification_action", {"action": action})
+        for part in (self.alerts, self.rules, self.problems, self.printers, self.teller):
+            if part is not None:
+                part.answered(pressed)
 
     @callback
     def offer(self, key: str, actions: list[dict[str, str]], source: str) -> None:
@@ -256,11 +265,12 @@ class Feed:
         if (isinstance(data, dict) and data.keys() == {"type", "key", "action"}
                 and data["type"] == "press" and self.outbox is not None
                 and self.outbox.press(data["key"], data["action"])):
-            # Pressed on BRAM's page: handled as the phone button that was offered.
-            pressed = Event("mobile_app_notification_action", {"action": data["action"]})
-            for part in (self.alerts, self.rules, self.problems, self.printers, self.teller):
-                if part is not None:
-                    part.answered(pressed)
+            self.act(data["action"])
+            return
+        if (isinstance(data, dict) and data.keys() == {"type", "key", "why"}
+                and data["type"] == "suggest" and self.suggestions is not None):
+            # Only a suggestion; nothing changes until an admin answers it (F4).
+            self.suggestions.received(data["key"], data["why"])
             return
         if (isinstance(data, dict) and data.keys() == {"type", "nights", "opens"}
                 and data["type"] == "learned" and self.learner is not None):

@@ -191,3 +191,33 @@ def test_only_stop_and_less_buttons_are_kept(env, buttons):
     env.note("open")
     with pytest.raises(ValueError):
         env.note("buttons", buttons=buttons)
+
+
+def test_hidden_again_and_again_becomes_a_suggestion(env):
+    for _ in range(3):
+        env.note("open")
+        env.f.ignore(env.only()["id"], True)
+        env.note("closed")
+    assert env.f.habits("h1") == [(KEY, "You hid it 3 times in two weeks.")]
+    env.f.suggested("h1", KEY)
+    assert env.f.habits("h1") == []  # not again for 30 days
+    env.now += 31 * 86400
+    assert env.f.habits("h1") == []  # and nothing new was hidden since
+
+
+def test_told_often_with_nothing_done(env):
+    env.note("open")
+    for _ in range(5):
+        env.note("sent")
+    (found,) = env.f.habits("h1")
+    assert "5 times" in found[1]
+    env.note("acked")
+    assert env.f.habits("h1") == []  # something was done
+
+
+@pytest.mark.rule("C3")
+def test_safety_is_never_suggested(env):
+    env.note("open", key="safety:leak", source="safety", severity="high")
+    for _ in range(9):
+        env.note("sent", key="safety:leak", source="safety", severity="high")
+    assert env.f.habits("h1") == []

@@ -173,3 +173,25 @@ async def test_a_page_press_acts_like_the_phone_button(hass):
     assert heard == []
     feed.handle_message(json.dumps({"type": "press", "key": "rules:k", "action": STOP["action"]}))
     assert heard == [{"action": STOP["action"]}] * 2
+
+
+async def test_buttons_are_remembered_after_it_is_over_for_suggestions(env):
+    env.box.note("rules:k", "open", *NOTE)
+    env.box.offer("rules:k", [STOP], "rules")
+    env.box.note("rules:k", "closed", *NOTE)
+    assert env.box.known("rules:k") == {"buttons": [STOP], "text": NOTE[0], "source": "rules"}
+    assert env.box.known(["rules:k"]) is None
+
+
+async def test_a_suggestion_from_the_server_goes_to_suggestions(hass):
+    feed = Feed(hass, MockConfigEntry(domain="bram"))
+    got = []
+
+    class Part:
+        def received(self, key, why):
+            got.append((key, why))
+
+    feed.suggestions = Part()
+    feed.handle_message(json.dumps({"type": "suggest", "key": "rules:k", "why": "w"}))
+    feed.handle_message(json.dumps({"type": "suggest", "key": "rules:k", "why": "w", "x": 1}))
+    assert got == [("rules:k", "w")]

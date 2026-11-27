@@ -89,9 +89,11 @@ class BramReview extends HTMLElement {
       }));
       card.append(table);
     }
-    card.append(this.el("p", `Nothing changes unless you approve. Waits until ${new Date(item.expires * 1000).toLocaleDateString()}. You can undo an approved change under BRAM, Configure, Learning.`, "note"));
+    const until = new Date(item.expires * 1000).toLocaleDateString();
+    card.append(this.el("p", item.note ? `${item.note} Waits until ${until}.` : `Nothing changes unless you approve. Waits until ${until}. You can undo an approved change under BRAM, Configure, Learning.`, "note"));
     const buttons = this.el("div", undefined, "buttons"), message = this.el("p", "", "error");
-    for (const [answer, words, main] of [["approve", "Approve", true], ["later", "Not now"], ["never", "Never suggest this"]]) {
+    const choices = item.choices || [{ answer: "approve", label: "Approve", main: true }, { answer: "later", label: "Not now" }, { answer: "never", label: "Never suggest this" }];
+    for (const { answer, label: words, main } of choices) {
       const button = this.el("button", words, main ? "main" : "");
       button.addEventListener("click", async () => {
         for (const other of buttons.children) other.disabled = true;

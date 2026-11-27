@@ -41,7 +41,7 @@ A device changes, or a timer runs
 | | Safety | Everything else |
 |---|---|---|
 | Repeats | Up to 11 times, until acknowledged | Once each time it happens |
-| Quiet hours | Ignored | Respected, except night, away, motion while away, and near freezing |
+| Quiet hours | Ignored | Respected, except unlocked at night, open at night, open or unlocked while away, motion while away, and near freezing |
 | Can be stopped | No, only acknowledged | Yes, with **Stop these** |
 | Daily limit | None | 10 for notices, 20 for lock and door rules |
 | If sending fails | Tried again every minute | Tried again |
@@ -55,7 +55,7 @@ If a device is unavailable, BRAM does not assume it is locked, closed, or dry. I
 
 ## Night hours
 
-You set when night starts and ends, separately from quiet hours. Night decides when an unlocked lock matters; quiet hours decide when routine messages wait.
+You set when night starts and ends, separately from quiet hours. Night decides when an unlocked lock or an open door matters; quiet hours decide when routine messages wait.
 
 Friday and Saturday nights can have their own hours. BRAM can [suggest better hours](learning.md); nothing changes until you approve it.
 
@@ -65,4 +65,13 @@ It does not watch cameras, tell people apart, lock or close anything, or call an
 
 ## Turning it on
 
-See [Alerts and messages](messages.md).
+Safety alerts are on for every safety sensor you share. Everything else is off until you turn it on in **BRAM > Configure > Watching**:
+
+| Page | Rules |
+|---|---|
+| **Locks, doors, and windows** | Unlocked at night, offline, left open, open at night, open while heating or cooling, while everyone is away, and night hours. See [Alerts and messages](messages.md#watching-locks-and-doors) |
+| **Temperature and humidity** | Too hot, too cold, near freezing, and humid, with your limits in your home's unit, and sensors to leave out, such as outdoor ones |
+| **Home Assistant and security** | [Problems with Home Assistant](problems.md) and the hourly [security check](security-check.md) |
+| **3D printers** | [Printer messages](printers.md), for each printer you switch on |
+
+Quick setup turns on unlocked at night, left open, and offline. Choose **Back** to return to the main settings. For a walkthrough, see [Using BRAM day to day](guide.md).

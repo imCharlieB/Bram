@@ -9,9 +9,9 @@ BRAM is in early development. It watches and sends alerts; it cannot control any
 | Home Assistant 2026.8 or later, with HACS | |
 | A 64-bit Intel/AMD machine with Docker | Best separate from Home Assistant, so each can report the other failing |
 | The Home Assistant app on your phone | For home alerts |
-| A model in Ollama | Optional for now; see [Testing your model](benchmark.md) |
+| A model in Ollama | Optional. Only chat and [blueprints](blueprints.md) need it; alerts never do. See [Testing your model](benchmark.md) |
 
-No database is needed. The HA App version is not built yet.
+No database is needed. A version that runs as a Home Assistant app (add-on) is not built yet.
 
 ## 1. Start the server
 
@@ -53,9 +53,9 @@ Do this right away. Setup closes 15 minutes after the server starts, and until t
 
 **Settings > Model**: enter `http://HOST:11434`, press **Find models**, then **Save model**. Pick a personality and press **Try it**.
 
-## 6. Set up alerts
+## 6. Set up alerts and watching
 
-See [Alerts and messages](messages.md).
+Quick setup turns on a few lock and door rules. To choose devices, turn on more watches, and keep history, follow [Using BRAM day to day](guide.md). For every message and button, see [Alerts and messages](messages.md).
 
 ## Updating
 
@@ -85,4 +85,9 @@ If you run a reverse proxy with a trusted certificate, point it at `https://SERV
 | Every line is Unavailable | The server is not connected |
 | Find models fails | The server must be able to reach Ollama on port 11434 |
 | Portainer fails to build | Update your copy; the image is now downloaded, not built |
-| Logo is missing | Refresh with Ctrl+F5. Needs Home Assistant 2026.3 or later |
+| Logo is missing in Home Assistant | Refresh with Ctrl+F5 |
+| HACS shows no icon | Not something BRAM can fix; the icon shows in Home Assistant |
+| Configure pages are blank after an update | Refresh the browser with Ctrl+F5 |
+| No test message | Choose a phone in **Configure > Messages**; allow notifications for the Home Assistant app |
+| An AC has no run times | It must report what it is doing, such as *cooling*, not only its mode |
+| Anything else | [Open an issue](https://github.com/imCharlieB/Bram/issues) with both version numbers. Remove addresses, tokens, and names first |

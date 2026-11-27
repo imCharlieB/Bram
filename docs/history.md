@@ -4,7 +4,7 @@ BRAM can remember what your shared devices did, in its own database. Off until y
 
 It records as things happen: each reading every minute, and each change when it happens. Nothing from before you turned it on is recorded, except the past readings below.
 
-[Learning](learning.md) reads its quiet nights and door times from this history, so it needs **Keep history** on.
+Without it, BRAM has no trends, no climate graph on Home, and nothing to learn from. [Learning](learning.md) reads its quiet nights and door times from this history, so it needs **Keep history** on.
 
 ## What it keeps
 
@@ -21,7 +21,7 @@ It records as things happen: each reading every minute, and each change when it 
 
 ## Past readings
 
-If **History of the devices BRAM can see** is on in Home Assistant, BRAM brings in the hourly averages Home Assistant already keeps for those sensors. Heating and cooling runs have no past to bring in.
+If **History of shared devices** is on in Home Assistant, under **BRAM > Configure > Server access**, BRAM brings in the hourly averages Home Assistant already keeps for those sensors. Heating and cooling runs have no past to bring in.
 
 ## Two sensors in one room
 

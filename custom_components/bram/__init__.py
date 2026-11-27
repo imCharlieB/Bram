@@ -22,6 +22,7 @@ from .printer_watch import PrinterWatch
 from .problem_watch import ProblemWatch
 from .security_watch import SecurityWatch
 from .shared import disabled, missing
+from .suggestions import Suggestions
 from .teller import Teller
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CONVERSATION,
@@ -58,6 +59,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                  feed.teller)
     entry.async_on_unload(await feed.printers.start())
     feed.learner = Learner(hass, entry, feed)
+    feed.suggestions = Suggestions(hass, entry, feed.outbox.known, feed.act, feed.note)
+    await feed.suggestions.start()
     entry.async_on_unload(await feed.learner.start())
     entry.async_on_unload(await SecurityWatch(hass, entry, feed.note).start())
     for entity_id in missing(hass, entry.options):

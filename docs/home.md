@@ -16,8 +16,8 @@ Screens down both sides each have a tab. Point at one, or tab into it, and it li
 | **3D printers** | Only while a print is running or paused: progress, time left, file, and nozzle, bed, and chamber temperatures against target. See [3D printers](printers.md) |
 | **Watching** | What is counting down: a door left open with the minutes until you are told, a print until it finishes, and when night starts. Each says why |
 | **Looking at** | The picture BRAM is reading. Until cameras come, it says there is nothing to look at |
-| **Climate** | Outside temperature, from a weather entity you share with BRAM; the last 24 hours inside and outside; and how long each thermostat has run today. Needs [Keep history](history.md) |
-| **Needs you** | Safety alarms, open alerts, and open [findings](findings.md) that matter, each with what to do. A finding has **Story**, which opens it under Findings; **Stop these** and **Less often** when your phone was given them (see [How often BRAM tells you](how-often.md)); and **Hide**, which takes it off the list until it happens again but does not change what is sent to your phone |
+| **Climate** | Outside temperature, from a weather entity you share with BRAM, such as `weather.home`; the last 24 hours inside and outside; and how long each thermostat has run today. Needs [Keep history](history.md). Without a weather entity, it says to share one |
+| **Needs you** | Safety alarms, open alerts, and open [findings](findings.md) that matter, each with what to do. A finding has **Story**, which opens it under Findings; **Stop these** and **Less often** when your phone was given them (see [How often BRAM tells you](how-often.md)); and **Hide**, which takes it off the list until it happens again but does not change what is sent to your phone. Hidden findings are under **Findings > Show > Hidden** |
 | **I noticed** | Patterns: a room sensor that reads warmer or cooler than its thermostat over the week, how many nights are learned, and things not reporting |
 | **What I did** | What BRAM told your phone, held back, or was told to stop today, and why something was held. See [How often BRAM tells you](how-often.md) |
 
@@ -28,6 +28,8 @@ With history off, **Climate** has **Turn on history**, which goes to the History
 ## A closer look
 
 Click a system on the orbit, or the House, System, 3D printers, Climate, or What I did screen, and its detail opens over the brain. It stays up to date while open. **Escape** or **Close** puts it away.
+
+![Home with the Climate closer look open over the brain](images/home-closer.jpg)
 
 | Click | Shows |
 |---|---|

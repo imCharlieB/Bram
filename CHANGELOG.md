@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.37.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the server in Portainer.
+
+- BRAM notices what you do. When you keep hiding the same finding, or are told about it often and never act, it suggests **Stop these** or **Less often** on the review page in Home Assistant, opened from one phone message. Only routine messages, never safety. Nothing changes until an administrator answers.
+- Docs: a new guide, [Using BRAM day to day](docs/guide.md); a clearer README; every page checked against BRAM itself, with setting names as you see them; new screenshots of the review page, a closer look on Home, and the History page; and the [camera plan](docs/cameras.md) for your approval.
+
 ## 0.36.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the server in Portainer.

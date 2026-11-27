@@ -12,13 +12,13 @@ A self-hosted agent for your home that reaches out, instead of waiting to be ask
 <a href="https://github.com/imCharlieB/Bram/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-26c6be.svg" alt="License: MIT"></a>
 </p>
 
-![BRAM's home page](https://raw.githubusercontent.com/imCharlieB/Bram/main/docs/images/home.jpg)
+BRAM watches the devices you choose, tells your phone when something matters, remembers what happened, and talks with you using your own model. It finds problems by itself, without being asked. It runs on your own network, and no cloud is required.
 
-BRAM watches the devices you choose, tells your phone when something matters, remembers what happened, and talks with you using your own model. It runs on your network, and no cloud is required.
+![BRAM's Home page](https://raw.githubusercontent.com/imCharlieB/Bram/main/docs/images/home.jpg)
 
 > **Early development.** BRAM watches, tells, and talks. **It cannot control anything yet**, and it does not replace certified smoke, CO, or security alarms.
 
-[What it does](#what-it-does) · [Install](#install) · [Using it](#using-it) · [What to ask](#what-to-ask) · [Update](#update) · [Problems](#problems) · [Documentation](#documentation)
+[What it does](#what-it-does) · [What you need](#what-you-need) · [Install](#install) · [First days](#first-days) · [Status](#status) · [Update](#update) · [Problems](#problems) · [Documentation](#documentation)
 
 ## What it does
 
@@ -26,17 +26,16 @@ BRAM watches the devices you choose, tells your phone when something matters, re
 |---|---|
 | **Safety alerts** | Leak, smoke, CO, gas, and heat. Repeats until someone acknowledges. Runs in Home Assistant, so it works with the server or model down |
 | **Silent sensors** | Tells you when a safety sensor stops reporting. Unknown is never treated as safe |
-| **Locks and doors** | Unlocked at night, open while away, left open, open at night, open while heating or cooling, offline |
-| **Motion and comfort** | Motion while everyone is away. Too hot, too cold, near freezing, humid, with your own limits |
-| **Problems** | Failed integrations, repeating errors, low batteries, offline devices, stuck sensors, broken automations, old backups. Found without being asked |
-| **3D printers** | Found by itself: progress, time left, temperatures. Told when finished, failed, paused, or a heater is left on |
+| **Locks, doors, and windows** | Unlocked at night, open while away, left open, open at night, open while heating or cooling, offline |
+| **Motion and comfort** | Motion while everyone is away. Too hot, too cold, near freezing, and humid, with your own limits |
+| **Problems with Home Assistant** | Failed integrations, repeating errors, low batteries, offline devices, stuck sensors, broken automations, old backups |
+| **3D printers** | Found by itself: progress, time left, temperatures. Told when a print finishes, fails, or pauses, or a heater is left on |
 | **Security check** | New admins and tokens, failed sign-ins, locks exposed to voice assistants, public webhooks, offline cameras, and more |
 | **Findings** | One list of everything it found, with the story of each |
 | **History and trends** | Temperatures, and every heating and cooling run with its settings. Compares each thermostat with the room's own sensor |
-| **Chat** | On its page, in Assist, and in Telegram. Answers from live state, with the facts listed underneath |
-| **Voice** | Hold to talk and spoken answers, with your own Whisper and Piper |
+| **Learning** | Suggests better night hours from BRAM's history. Nothing changes until you approve |
+| **Chat and voice** | On its page, in Assist, and in Telegram, answering from live state with the facts listed underneath. Hold to talk and spoken answers, with your own Whisper and Piper |
 | **Personality** | Professional, friendly, dry, minimal, unhinged, or your own |
-| **Learning** | Suggests better night hours from BRAM's history. Needs Keep history. Nothing changes until you approve |
 | **Blueprints** | A yes-or-no check on a schedule, and a house summary, as automations you keep in Home Assistant |
 | **Outside Home Assistant** | Telegram or ntfy if Home Assistant, Ollama, Frigate, or another device goes down |
 
@@ -50,113 +49,55 @@ Everything that shares or stores more is off until you turn it on.
 
 | | |
 |---|---|
-| Home Assistant 2026.8 or later, with HACS | This integration |
-| A 64-bit Intel or AMD machine with Docker | The **BRAM Server**. Best on a different machine, so each can report the other failing |
-| The Home Assistant app on your phone | Home alerts |
-| A chat model in [Ollama](https://ollama.com) | Optional. Only chat needs it; alerts never do |
+| Home Assistant 2026.8 or later, with HACS | For this integration |
+| A 64-bit Intel or AMD machine with Docker | For the **BRAM Server**. Best on a different machine, so each can report the other failing |
+| The Home Assistant app on your phone | For home alerts |
+| A chat model in [Ollama](https://ollama.com) | Optional. Only chat and blueprints need it; alerts never do |
 
 ## Install
 
-BRAM has two halves. HACS installs only the integration; the server runs in Docker.
+BRAM has two halves. HACS installs the integration; the server runs in Docker.
 
-### 1. Start the server
+1. **Start the server.** In Portainer: **Stacks > Add stack > Repository**, with repository `https://github.com/imCharlieB/Bram`, reference `refs/heads/main`, and compose path `compose.yaml`. Or with Docker Compose:
 
-**Portainer:** Stacks > Add stack > **Repository**
+   ```
+   git clone https://github.com/imCharlieB/Bram.git
+   cd Bram
+   docker compose up -d
+   ```
 
-| Field | Value |
-|---|---|
-| Repository URL | `https://github.com/imCharlieB/Bram` |
-| Reference | `refs/heads/main` |
-| Compose path | `compose.yaml` |
+2. **Create your login.** Open `https://SERVER:8765` right away, with **https**. The browser warns because the server makes its own certificate. Setup closes 15 minutes after the server starts; if it has closed, restart the container.
+3. **Add the integration.** HACS > three dots > **Custom repositories** > add `https://github.com/imCharlieB/Bram` as an **Integration**. Download **BRAM** and restart Home Assistant.
+4. **Pair them.** On BRAM's page: **Settings > Connect a Home Assistant > Get code**. In Home Assistant: **Settings > Devices & services > Add integration > BRAM**. Enter the server's address, port `8765`, and the code.
+5. **Run Quick setup.** **BRAM > Configure > Quick setup**: pick your phone, put anything you do not want to share under **Leave these out**, and **Submit**. Nothing is shared until you do.
+6. **Check it.** BRAM's device page says **Connected**. Press **Send test message**; it should reach your phone.
 
-**Or Docker Compose:**
+[Full install instructions](https://github.com/imCharlieB/Bram/blob/main/docs/installation.md)
 
-```
-git clone https://github.com/imCharlieB/Bram.git
-cd Bram
-docker compose up -d
-```
+## First days
 
-### 2. Create your login
+**[Using BRAM day to day](https://github.com/imCharlieB/Bram/blob/main/docs/guide.md)** walks you through the rest, in order:
 
-Open `https://SERVER:8765` right away, with **https**. The browser warns because the server makes its own certificate. Setup closes 15 minutes after the server starts; if it has closed, restart the container.
+- Choose devices in **Configure > Devices**. Share a weather entity for the outside temperature.
+- Turn on watches in **Configure > Watching**: Home Assistant and security, locks, doors, and windows, temperature and humidity, and 3D printers. Printers start switched off.
+- Use the buttons on phone messages, and see what BRAM is doing on its Home page.
+- Press **Start keeping history** on BRAM's History page, so it has trends and something to learn from.
+- Choose a model under **Settings > Model** to chat.
 
-### 3. Add the integration
+## Status
 
-HACS > three dots > **Custom repositories** > add `https://github.com/imCharlieB/Bram` as an **Integration**. Download **BRAM** and restart Home Assistant.
+| | Works today | Planned |
+|---|---|---|
+| **Watch and tell** | Safety alerts, silent sensors, locks, doors, windows, motion while away, temperature and humidity, phone messages with buttons, quiet hours, daily summary, Telegram, ntfy, monitors | Severity for every finding, safety acknowledge from BRAM's page |
+| **Find problems** | Home Assistant health, 3D printers, the security check | Power and energy, network devices, poor air, appliances left on |
+| **Remember** | Findings with their stories, history and trends, heating and cooling runs, prints | Memory of you and your corrections |
+| **Learn** | Suggested night hours and left-open time, approved on a review page | Usual routines, suggested rules and automations |
+| **Talk** | Chat on its page, in Assist, and in Telegram; voice; personalities; blueprints | Other model providers, speakers in rooms |
+| **Explain** | | Likely causes and what to do |
+| **Control and fix** | Nothing. BRAM cannot control anything | Lights, one-tap repairs, then locks with your approval |
+| **Cameras and people** | | What cameras saw, the right message to the right person |
 
-### 4. Connect them
-
-1. On BRAM's page: **Settings > Connect a Home Assistant > Get code**.
-2. In Home Assistant: **Settings > Devices & services > Add integration > BRAM**. Enter the server's address, port `8765`, and the code.
-
-### 5. Choose what it sees
-
-**BRAM > Configure > Quick setup**: pick your phone, put anything you do not want to share under **Leave these out**, and submit. Nothing is shared until you do.
-
-### 6. Check it
-
-- BRAM's device page says **Connected**.
-- Press **Send test message** there. It should reach your phone.
-- For chat, on BRAM's page: **Settings > Model**, enter `http://HOST:11434`, **Find models**, **Save model**.
-
-[Full instructions](https://github.com/imCharlieB/Bram/blob/main/docs/installation.md)
-
-## Using it
-
-### In Home Assistant: BRAM > Configure
-
-| Page | Use it to |
-|---|---|
-| Quick setup | Turn on what most people want |
-| Devices > Suggestions | Share important things it cannot see yet |
-| Devices > Add by type and room | Share many at once, by type and area |
-| Devices > Choose one by one | Add or remove one by one |
-| Messages | Phones, quiet hours, daily summary |
-| Watching | Home Assistant problems, 3D printers, lock and door rules, night hours, hourly security check |
-| Server access | Let the server read history, problems, and the security check |
-| Learning | Suggested hours, undo, delete |
-
-### On BRAM's page: `https://SERVER:8765`
-
-| Page | Use it to |
-|---|---|
-| Home | [BRAM's brain and what it sees](https://github.com/imCharlieB/Bram/blob/main/docs/home.md): your systems orbiting it, rooms, watching, what needs you, patterns, what it did, and talk |
-| Messages | Telegram, ntfy, and monitors |
-| Settings | Homes, model, personality, voice |
-| Findings | What it found, whether you were told, and how it ended |
-| History | Turn history on, see trends, clean up |
-| Log | Everything BRAM recorded |
-| Profile | Password, second factor, signed-in devices |
-
-### On your phone
-
-| Message | Buttons |
-|---|---|
-| Safety alert | **Acknowledge**. It repeats until you do |
-| Lock, door, or silent sensor | **Stop these**. Undo with **Allow stopped messages** on BRAM's device page |
-| Several routine messages at once | Arrive as one |
-| The same thing again and again | **Less often**, from the third time in a week |
-
-Maintenance reminders reach your phone once a month at most. See [How often BRAM tells you](https://github.com/imCharlieB/Bram/blob/main/docs/how-often.md).
-
-Quiet hours hold routine messages. Safety alerts, and locks and doors at night or while away, are never held.
-
-### In Assist
-
-**Settings > Voice assistants**: choose **BRAM Assist** as an assistant's conversation agent. BRAM itself cannot control anything; with **Prefer handling commands locally** on, Home Assistant still handles commands.
-
-## What to ask
-
-| Ask | Needs |
-|---|---|
-| "Is the back door locked?" "Who is home?" "What's on?" | The device shared |
-| "When was the garage last opened?" | History on, under Server access |
-| "Any errors in Home Assistant?" "Low batteries?" | Problems on |
-| "How is the print going?" | 3D printers on |
-| "Is my home secure?" | Security check on |
-| "How long did the AC run each day?" "Is the bedroom thermostat reading right?" | Keep history on, on BRAM's History page |
-| "Delete hall motion readings older than 90 days" | Keep history on. You confirm the list on the page |
+[The whole plan](https://github.com/imCharlieB/Bram/blob/main/docs/roadmap.md)
 
 ## Privacy and safety
 
@@ -174,7 +115,7 @@ Quiet hours hold routine messages. Safety alerts, and locks and doors at night o
 | Integration | HACS > update BRAM > restart Home Assistant |
 | Server | Portainer: recreate the bram container with **Re-pull image** on. Compose: `docker compose pull`, then `docker compose up -d` |
 
-Update both; BRAM warns you when they differ. [Changes](https://github.com/imCharlieB/Bram/blob/main/CHANGELOG.md)
+Update both and keep them on the same version; BRAM warns you when they differ. [Changes](https://github.com/imCharlieB/Bram/blob/main/CHANGELOG.md)
 
 ## Problems
 
@@ -185,21 +126,7 @@ Update both; BRAM warns you when they differ. [Changes](https://github.com/imCha
 | Configure pages are blank after an update | Refresh the browser with Ctrl+F5 |
 | Not connected | Check the address, and that both halves are updated |
 | No test message | Choose a phone in **Messages**; check the app's notification permission |
-| An AC has no run times | It must report what it is doing, such as *cooling*, not only its mode |
-| HACS shows no icon | Not something BRAM can fix; the icon shows in Home Assistant |
-| Anything else | [Open an issue](https://github.com/imCharlieB/Bram/issues) with both version numbers. Remove addresses, tokens, and names first |
-
-## Status
-
-| Phase | |
-|---|---|
-| 1. One record: findings, history, cleaning up | Built |
-| 2. Find: Home Assistant health, then 3D printers, climate, power, network | Home Assistant health and 3D printers built |
-| 3. Explain: causes and what to do | Planned |
-| 4. Control and fix: lights, one-tap repairs, then locks with approval | Planned |
-| 5 to 10. Memory, cameras, learning, people, models, speakers | Planned |
-
-[The whole plan](https://github.com/imCharlieB/Bram/blob/main/docs/roadmap.md)
+| Anything else | See [more problems](https://github.com/imCharlieB/Bram/blob/main/docs/installation.md#problems), or [open an issue](https://github.com/imCharlieB/Bram/issues) with both version numbers. Remove addresses, tokens, and names first |
 
 ## Documentation
 
@@ -207,19 +134,19 @@ Update both; BRAM warns you when they differ. [Changes](https://github.com/imCha
 
 | Start | Features | How it works |
 |---|---|---|
-| [Installing](https://github.com/imCharlieB/Bram/blob/main/docs/installation.md) | [Watching your home](https://github.com/imCharlieB/Bram/blob/main/docs/watching.md) | [Architecture](https://github.com/imCharlieB/Bram/blob/main/docs/architecture.md) |
-| [Devices](https://github.com/imCharlieB/Bram/blob/main/docs/devices.md) | [Alerts and messages](https://github.com/imCharlieB/Bram/blob/main/docs/messages.md) | [Security](https://github.com/imCharlieB/Bram/blob/main/docs/security.md) |
-| [Configuration](https://github.com/imCharlieB/Bram/blob/main/docs/configuration.md) | [Monitors](https://github.com/imCharlieB/Bram/blob/main/docs/monitors.md) | [What BRAM stores](https://github.com/imCharlieB/Bram/blob/main/docs/data.md) |
-| [Every setting](https://github.com/imCharlieB/Bram/blob/main/docs/settings.md) | [Chat](https://github.com/imCharlieB/Bram/blob/main/docs/chat.md) | [Hard rules](https://github.com/imCharlieB/Bram/blob/main/HARD_RULES.md) |
-| [Plan](https://github.com/imCharlieB/Bram/blob/main/docs/roadmap.md) | [Voice](https://github.com/imCharlieB/Bram/blob/main/docs/voice.md) | [Server commands](https://github.com/imCharlieB/Bram/blob/main/docs/server.md) |
-| [Changes](https://github.com/imCharlieB/Bram/blob/main/CHANGELOG.md) | [How often BRAM tells you](https://github.com/imCharlieB/Bram/blob/main/docs/how-often.md) | |
-| | [Personality](https://github.com/imCharlieB/Bram/blob/main/docs/personality.md) | [Development](https://github.com/imCharlieB/Bram/blob/main/docs/development.md) |
+| [Installing](https://github.com/imCharlieB/Bram/blob/main/docs/installation.md) | [BRAM's Home page](https://github.com/imCharlieB/Bram/blob/main/docs/home.md) | [Architecture](https://github.com/imCharlieB/Bram/blob/main/docs/architecture.md) |
+| [Using BRAM day to day](https://github.com/imCharlieB/Bram/blob/main/docs/guide.md) | [Watching your home](https://github.com/imCharlieB/Bram/blob/main/docs/watching.md) | [Security](https://github.com/imCharlieB/Bram/blob/main/docs/security.md) |
+| [Devices](https://github.com/imCharlieB/Bram/blob/main/docs/devices.md) | [Alerts and messages](https://github.com/imCharlieB/Bram/blob/main/docs/messages.md) | [What BRAM stores](https://github.com/imCharlieB/Bram/blob/main/docs/data.md) |
+| [Configuration](https://github.com/imCharlieB/Bram/blob/main/docs/configuration.md) | [How often BRAM tells you](https://github.com/imCharlieB/Bram/blob/main/docs/how-often.md) | [Hard rules](https://github.com/imCharlieB/Bram/blob/main/HARD_RULES.md) |
+| [Every setting](https://github.com/imCharlieB/Bram/blob/main/docs/settings.md) | [Findings](https://github.com/imCharlieB/Bram/blob/main/docs/findings.md) | [Server commands](https://github.com/imCharlieB/Bram/blob/main/docs/server.md) |
+| [Plan](https://github.com/imCharlieB/Bram/blob/main/docs/roadmap.md) | [History and trends](https://github.com/imCharlieB/Bram/blob/main/docs/history.md) | [Testing your model](https://github.com/imCharlieB/Bram/blob/main/docs/benchmark.md) |
+| [Changes](https://github.com/imCharlieB/Bram/blob/main/CHANGELOG.md) | [Learning](https://github.com/imCharlieB/Bram/blob/main/docs/learning.md) | [Development](https://github.com/imCharlieB/Bram/blob/main/docs/development.md) |
 | | [Problems with Home Assistant](https://github.com/imCharlieB/Bram/blob/main/docs/problems.md) | |
 | | [3D printers](https://github.com/imCharlieB/Bram/blob/main/docs/printers.md) | |
-| | [Security check](https://github.com/imCharlieB/Bram/blob/main/docs/security-check.md) | [Testing your model](https://github.com/imCharlieB/Bram/blob/main/docs/benchmark.md) |
-| | [Findings](https://github.com/imCharlieB/Bram/blob/main/docs/findings.md) | |
-| | [History and trends](https://github.com/imCharlieB/Bram/blob/main/docs/history.md) | |
-| | [Learning](https://github.com/imCharlieB/Bram/blob/main/docs/learning.md) | |
+| | [Security check](https://github.com/imCharlieB/Bram/blob/main/docs/security-check.md) | |
+| | [Monitors](https://github.com/imCharlieB/Bram/blob/main/docs/monitors.md) | |
+| | [Chat](https://github.com/imCharlieB/Bram/blob/main/docs/chat.md) and [Voice](https://github.com/imCharlieB/Bram/blob/main/docs/voice.md) | |
+| | [Personality](https://github.com/imCharlieB/Bram/blob/main/docs/personality.md) | |
 | | [Blueprints](https://github.com/imCharlieB/Bram/blob/main/docs/blueprints.md) | |
 
 MIT licensed. See [LICENSE](https://github.com/imCharlieB/Bram/blob/main/LICENSE).

@@ -265,6 +265,7 @@ async def _keep(app: web.Application) -> None:
             for house_id in list(app[SOCKETS]):
                 await bring_past(app, house_id, tries)
                 await tell_learning(app, house_id, told)
+                await tell_habits(app, house_id)
         except Exception as err:  # noqa: BLE001 - history must never stop the server
             print(f"History could not be kept: {type(err).__name__}", file=sys.stderr)
 
@@ -301,6 +302,19 @@ async def tell_learning(app: web.Application, house_id: str, told: dict[str, tup
     except ConnectionError:
         return
     told[house_id] = mark
+
+
+async def tell_habits(app: web.Application, house_id: str) -> None:
+    """Suggestions from what the owner does. Home Assistant checks each and an admin answers."""
+    ws, house, findings = app[SOCKETS].get(house_id), app[HOUSES].get(house_id), app.get(FINDINGS)
+    if ws is None or house is None or findings is None or _older(house[0].version, (0, 37)):
+        return
+    for key, why in findings.habits(house_id)[:3]:
+        try:
+            await ws.send_json({"type": "suggest", "key": key, "why": why})
+        except ConnectionError:
+            return
+        findings.suggested(house_id, key)
 
 
 async def bring_past(app: web.Application, house_id: str, tries: dict[int, float]) -> None:

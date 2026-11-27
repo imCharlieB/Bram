@@ -4,7 +4,7 @@ BRAM sees only the devices you choose. Choosing one does not let BRAM control it
 
 ## A device's other readings
 
-For a shared thermostat, fan, water heater, valve, vacuum, mower, or humidifier, BRAM also reads the other sensors on the same device, such as hot water left or compressor health. Select it on Home to see them; chat knows them too. Unknown values and text that is not meant to be read are left out.
+For a shared thermostat, fan, water heater, valve, vacuum, mower, or humidifier, BRAM also reads the other sensors on the same device, such as hot water left or compressor health. Chat knows them. Unknown values and text that is not meant to be read are left out.
 
 ## Renamed in Home Assistant
 
@@ -24,21 +24,23 @@ BRAM uses the names you see in Home Assistant. A name a device gave itself with 
 
 ## Devices > Suggestions
 
-**Configure > Devices > Suggestions** lists what matters most and BRAM cannot see yet: people, locks and doors, safety sensors, and a motion sensor for each area without one. Remove what you do not want, and **Submit**. Nothing is shared until you do. These come from simple rules, not a model.
+**Configure > Devices > Suggestions** lists what matters most and BRAM cannot see yet: people, locks and doors, safety sensors, and a motion sensor for each area without one. Put anything you do not want under **Leave these out**, and **Submit**. Nothing is shared until you do. These come from simple rules, not a model.
 
 ## Devices > Add by type and room
 
 **Settings > Devices & services > BRAM > Configure > Devices > Add by type and room**
 
-1. Choose types, such as locks and doors.
-2. Choose areas, or leave empty for the whole home.
-3. BRAM lists what it found. Remove what you do not want, and **Submit**.
+1. Under **Look for**, choose types, such as locks and doors. People, locks and doors, safety sensors, and motion are chosen to start.
+2. Under **Only in these areas**, choose areas, or leave empty for the whole home.
+3. BRAM lists what it found. Put anything you do not want under **Leave these out**, and **Submit**.
 
 It adds to what you already chose. It skips hidden devices, settings and health readings, and extra zones of the same presence sensor. Devices you add to Home Assistant later are not shared until you add them here.
 
 ## Choose one by one
 
 **Configure > Devices > Choose one by one** lists every choice by type. Remove one there to stop sharing it; its line disappears from BRAM's device page.
+
+The **Devices** menu ends with **Back**, which returns to BRAM's main settings.
 
 ## What BRAM understands
 
@@ -53,12 +55,13 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 | Switches and fans | `switch`, `fan` | on, off |
 | Media players and speakers | `media_player` | on, off or idle |
 | Voice assistants | `assist_satellite` | in use, idle |
-| Thermostats, temperature, humidity, and weather | `climate`, temperature and humidity sensors, and `weather` | The mode and readings. A shared weather entity gives the outside temperature on Home and in History |
-| Anything else | Other sensors, vacuums, water heaters, alarm panels, updates, and more; choose one by one | Its state as Home Assistant shows it; no alerts |
+| Thermostats, temperature, humidity, and weather | `climate`, temperature and humidity sensors, and `weather` | The mode and readings. A shared weather entity, such as `weather.home`, gives the outside temperature on Home and in History |
+| Water heaters, valves, and appliances | `water_heater`, `valve`, `vacuum`, `lawn_mower`, `humidifier` | Its state; a valve is open or closed, and a water heater shows its mode and setting |
+| Anything else | Other sensors, alarm panels, sirens, updates, helpers, and more; choose one by one | Its state as Home Assistant shows it; no alerts |
 
 "How long" restarts when Home Assistant restarts. BRAM also sees, for shared devices only: their room, how long they have been that way, brightness, position, battery, what a media player is playing and how loud, what a thermostat is doing, and the picture Home Assistant shows for a person or media player. It never gets a person's coordinates, or pictures from outside Home Assistant. Pictures are kept in memory only.
 
- History covers everything here except thermostats and readings. Anything else, or a state it does not recognize, is *unknown*.
+Asking chat about the past, with **History of shared devices** on, covers everything here except thermostats and readings, such as temperatures. [BRAM's own history](history.md) keeps readings too. A state BRAM does not recognize is *unknown*.
 
 ## Location
 
@@ -69,7 +72,7 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 | The room a person is in | Found by itself: room sensors on their devices, or a sensor with their name whose value is one of your areas, such as *Alex Room*. **Configure > Devices > People's rooms** overrides it |
 | A named place, such as Work | The person's zone in Home Assistant |
 
-Coordinates are never shared. If a room is not known, BRAM says only home or away. On the command deck, press **by type** to arrange the house by room.
+Coordinates are never shared. If a room is not known, BRAM says only home or away. On Home, the **House** screen shows your rooms from Home Assistant's areas.
 
 ## What to add first
 

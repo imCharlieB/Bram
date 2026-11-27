@@ -1,6 +1,6 @@
 # Problems with Home Assistant
 
-BRAM checks Home Assistant itself every 10 minutes, without being asked. Turn it on in **BRAM > Configure > Watching**, or in **Quick setup**. It reads only and fixes nothing yet.
+BRAM checks Home Assistant itself every 10 minutes, without being asked. Turn it on in **BRAM > Configure > Watching > Home Assistant and security** with **Watch Home Assistant for problems**, or in **Quick setup**. To ask chat about problems, also turn on **Home Assistant problems** under **Server access**. It reads only and fixes nothing yet.
 
 | Finds | When |
 |---|---|

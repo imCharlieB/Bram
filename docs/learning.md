@@ -23,6 +23,8 @@ Sunday to Thursday and Friday to Saturday are worked out separately.
 
 Your phones get one message, such as "Better night hours. Tap to review." Tapping it opens BRAM's review page in the Home Assistant app. It shows what BRAM noticed, how many nights support it, and a table of each setting now and what it would be.
 
+![The review page in the Home Assistant app](images/review.jpg)
+
 The page is also at `/bram-review` on your Home Assistant address, such as `http://homeassistant.local:8123/bram-review`. It is not in the sidebar. Only a Home Assistant administrator can open it or answer, and the answer is recorded with their name under Findings.
 
 | Choice | Result |
@@ -32,6 +34,10 @@ The page is also at `/bram-review` on your Home Assistant address, such as `http
 | Never suggest this | That kind is never suggested again |
 
 An unanswered suggestion goes away after 30 days. A suggestion can change only the hours and left-open time. It cannot turn a rule off or touch safety alerts.
+
+## Other suggestions
+
+The same review page also asks about fewer messages, when you keep hiding something or never act on it. See [How often BRAM tells you](how-often.md#suggestions-from-what-you-do).
 
 ## On BRAM's page
 

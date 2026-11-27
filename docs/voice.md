@@ -42,7 +42,7 @@ If nothing is found, the page shows how to add them. If they run on another mach
 
 ## Use it
 
-On the home page, hold **Hold to talk** (or hold Space or Enter on it), speak, and let go. Check **Speak answers** to hear them. Your browser asks for the microphone the first time.
+On the home page, hold **Hold to talk** (or hold Space or Enter on it), speak, and let go. To hear answers, press **Speak answers**, the round switch in the dock along the bottom; it lights up when on, and this browser remembers it. Your browser asks for the microphone the first time.
 
 - BRAM listens only while you hold the button, for up to 30 seconds.
 - Sound is not stored. What you said is handled like typed text.

@@ -15,7 +15,7 @@ How to configure each part, and what each uses. For a plain list, see [Every set
 | Vision | Ollama model with vision | Same as chat | Describe Frigate events | Planned |
 | Memory search | Ollama embedding model | None | Find memories by meaning | Planned; keyword search without it |
 | Summaries of long chats | Same as chat | | Keep long chats short | Planned |
-| Learning | Code, worded by the chat model | | Suggested times and patterns | Planned |
+| Learning | None | Code | [Suggested night hours and left-open time](learning.md) | Built; never uses a model. Patterns and suggested rules are planned |
 | Backup model | Another local Ollama model | None | When the first fails | Planned |
 
 ### Models tried
@@ -46,9 +46,9 @@ Any local Ollama chat model can be tried. Bigger models usually follow instructi
 | Page | Has |
 |---|---|
 | Quick setup | Your phone and the main switches, on one page. Start here |
-| Devices | **Suggestions**, **Add by type and room**, **Choose one by one**, and **People's rooms** |
-| Messages | Phones, quiet hours, daily summary, and the Telegram and ntfy fallback |
-| Watching | **Home Assistant and security** ([problems](problems.md) and the [security check](security-check.md)), **Locks, doors, and windows** with night hours, and **3D printers** ([printers](printers.md)) |
+| Devices | **Suggestions**, **Add by type and room**, **Choose one by one**, **People's rooms**, and **Back** |
+| Messages | Phones, quiet hours, daily summary, and the Telegram and ntfy fallback for safety alerts |
+| Watching | **Home Assistant and security** ([problems](problems.md) and the [security check](security-check.md)), **Locks, doors, and windows** with night hours ([rules](watching.md)), **Temperature and humidity**, **3D printers** ([printers](printers.md)), and **Back** |
 | Server access | What the BRAM Server may read: history, problems, and the security check |
 | Learning | [Suggested hours](learning.md), undo, or start over |
 
@@ -58,11 +58,13 @@ On the device page: **Mood**, **Visit**, **Send test message**, and **Allow stop
 
 | Page | Use it to |
 |---|---|
-| Home | [What BRAM is doing](home.md), chat, and the mood |
+| Home | [What BRAM is doing](home.md), what needs you, chat, and the mood |
 | Messages | Set up Telegram, ntfy, and [monitors](monitors.md) |
 | Settings | Connect homes; choose the model, personality, and [voice](voice.md) |
+| Findings | [What BRAM found](findings.md), whether you were told, and how it ended |
+| History | [Turn history on](history.md), see trends, and clean up |
 | Log | See what BRAM noticed, sent, and changed |
-| Profile | Change your login and sign out other devices |
+| Profile | Password, second factor, signed-in devices, and the look |
 
 ## Docker
 

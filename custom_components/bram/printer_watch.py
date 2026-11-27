@@ -96,6 +96,7 @@ class PrinterWatch:
             key = action[len(MUTE):]
             if key.partition(":")[0] in KINDS and len(key) < 100 and key not in self._muted:
                 self._muted.append(key)
+                self._note(f"printers:{key}", "stopped", "Stopped", "printers", "low")
                 self._save()
 
     @callback

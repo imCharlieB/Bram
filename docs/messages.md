@@ -22,11 +22,11 @@ Home Assistant and each of Telegram and ntfy send at most 10 routine messages a 
 3. Set quiet hours if you want them. They apply only to Home Assistant's messages and never to safety alerts.
 4. On BRAM's device page, press **Send test message**.
 
-Safety alerts have **Acknowledge**. Silent-sensor messages have **Stop these**.
+Safety alerts have **Acknowledge**. Lock, door, and silent-sensor messages have **Stop these**, and a message you get often also has **Less often**. To see the buttons, expand the message: drag it down on Android, or press and hold it on iPhone.
 
 Tap a message to open it on BRAM's page, under Findings, with its story and buttons. The phone opens the address you entered when adding BRAM to Home Assistant, so it must be able to reach the server there. The first time, the phone's browser may warn about BRAM's own certificate. A grouped message, the daily summary, and the security check open Findings.
 
-**Fallback (off by default):** a leak or smoke alert nobody answers for 5 minutes can also go to Telegram and ntfy. It needs the BRAM Server to be connected.
+**Fallback (off by default):** with **Also use Telegram and ntfy if nobody answers a safety alert in 5 minutes** on, a safety alert nobody answers can also go to Telegram and ntfy. It needs the BRAM Server to be connected.
 
 ## Who gets what
 
@@ -43,14 +43,21 @@ In **Messages**, set **Daily summary at**. Once a day it lists what is open, not
 
 ## Watching locks and doors
 
-**BRAM > Configure > Watching.** For problems with Home Assistant, see [Problems](problems.md). The lock and door rules are off until you turn them on, and cover only the locks, doors, windows, and garage doors BRAM can see.
+**BRAM > Configure > Watching > Locks, doors, and windows.** For problems with Home Assistant, see [Problems](problems.md); for temperature and humidity, see [How BRAM watches your home](watching.md). The lock and door rules are off until you turn them on, and cover only the locks, doors, windows, garage doors, and motion sensors BRAM can see.
 
-| Choice | Tells you when | In quiet hours |
-|---|---|---|
-| Unlocked at night | A lock has been unlocked for 2 minutes during your night hours | Yes |
-| Open or unlocked while away | It has been so for 2 minutes and everyone BRAM can see is away | Yes |
-| Left open | It has been open as long as you set | After they end |
-| Offline | It has been unreachable for 5 minutes | After they end |
+| Group | Choice | Tells you when | In quiet hours |
+|---|---|---|---|
+| Locks | Unlocked at night | A lock has been unlocked for 2 minutes during your night hours | Yes |
+| | A lock or door sensor goes offline | It has been unreachable for 5 minutes | After they end |
+| Doors and windows | Left open | It has been open longer than **Left open means this many minutes** | After they end |
+| | Count doors, count windows, count garage doors and gates | Which kinds Left open and Open at night cover. All on | |
+| | Open at night | One has been open for 2 minutes during your night hours | Yes |
+| | Open while heating or cooling | One stays open past the left-open minutes while a thermostat is heating or cooling | After they end |
+| While everyone is away | A lock unlocked, or a door or window open | It has been so for 2 minutes and everyone BRAM can see is away. Every door and window counts | Yes |
+| | Motion | Motion while everyone is away, once per sensor until someone is home. Pets can set it off | Yes |
+| Night hours | Night starts, night ends, and Friday and Saturday hours | | |
+
+The **Watching** menu ends with **Back**, which returns to BRAM's main settings.
 
 Three or more routine messages at once become one, without a button. Night and away messages are never grouped.
 

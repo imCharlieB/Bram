@@ -6,39 +6,43 @@
 
 | Page | Setting | Default |
 |---|---|---|
-| Quick setup | Phones, suggested devices, night, left open, offline, history, 8 AM summary | All on, if you submit it |
-| Devices > Suggestions | What it would add | |
-| Devices > Add by type and room | Types and areas to search | |
-| Devices > Choose one by one | People, locks and doors, safety, motion, lights, switches and fans, media, voice assistants, climate, anything else | None |
+| Quick setup | Phones that get everything | Your phone, if there is only one |
+| | Leave these out: suggested devices not to share | None |
+| | Unlocked at night, left open, offline, problems with Home Assistant, history of what it can see, daily summary at 8 AM | All on, if you submit it |
+| | Tell me about 3D printers, if any are found | On, if you submit it. Each printer still starts off |
+| Devices > Suggestions | What it would add, and what to leave out | |
+| Devices > Add by type and room | Look for: types; only in these areas | People, locks and doors, safety, motion; everywhere |
+| Devices > Choose one by one | People, locks and doors, safety sensors, motion and presence, lights, switches and fans, media players and speakers, voice assistants, thermostats, temperature, humidity, and weather, water heaters, valves, and appliances, anything else | None |
 | Devices > People's rooms | Override the sensor BRAM found | Usually not needed |
 | Messages | Phones that get everything | None |
 | | Phones that get safety alerts only | None |
 | | Quiet from, quiet until | Off |
 | | Daily summary at | Off |
-| | Use Telegram and ntfy after 5 unanswered minutes | Off |
-| Watching | Problems with Home Assistant | Off; on in Quick setup |
-| | 3D printers | Off; on in Quick setup if any are found |
-| 3D printers | One switch for each printer | Off: only printers you switch on are watched or shown |
-| | Unlocked at night | Off |
-| | Open or unlocked while away | Off |
-| | Left open: doors, windows, garage doors and gates | On, once Left open is on |
-| | Left open | Off |
-| | Offline | Off |
+| | Also use Telegram and ntfy if nobody answers a safety alert in 5 minutes | Off |
+| Watching > Home Assistant and security | Watch Home Assistant for problems | Off; on in Quick setup |
+| | Run the security check every hour | Off |
+| Watching > Locks, doors, and windows: Locks | Unlocked at night | Off; on in Quick setup |
+| | A lock or door sensor goes offline | Off; on in Quick setup |
+| Doors and windows | Left open | Off; on in Quick setup |
+| | Left open means this many minutes | 10 |
+| | Count doors, count windows, count garage doors and gates | On |
 | | Open at night | Off |
 | | Open while heating or cooling | Off |
-| | Motion while everyone is away | Off |
-| Temperature and humidity | Too hot, too cold, near freezing, humid | Off |
+| While everyone is away | A lock unlocked, or a door or window open | Off |
+| | Motion | Off |
+| Night hours | Night starts, night ends | 10 PM, 6 AM |
+| | Friday and Saturday night starts, ends | Empty: same as other nights |
+| Watching > Temperature and humidity | Too hot, too cold, near freezing, humid | Off |
 | | Too hot above, too cold below, near freezing below | 85, 55, 38 °F (29, 13, 3 °C) |
 | | Humid above | 70% |
 | | Leave out these sensors | None |
-| | The security check finds something new | Off |
-| | Night starts, night ends | 10 PM, 6 AM |
-| | Friday and Saturday night starts, ends | Same as other nights |
-| | Left open minutes | 10 |
-| Server access | History of the devices BRAM can see | Off |
+| Watching > 3D printers | Watch 3D printers | Off; on in Quick setup if any are found |
+| | One switch for each printer | Off: only printers you switch on are watched or shown |
+| Server access | History of shared devices | Off; on in Quick setup |
 | | Home Assistant problems | Off |
-| | Security check of Home Assistant | Off |
-| Learning | Suggest better hours | Off |
+| | Security check | Off |
+| Learning | Learning is on | Off |
+| | Undo the last change I approved, erase what BRAM has learned | |
 
 Quiet hours here affect only Home Assistant's messages.
 
@@ -46,7 +50,7 @@ Quiet hours here affect only Home Assistant's messages.
 
 | Where | Setting | Default |
 |---|---|---|
-| History | Keep history | Off |
+| History | Keep history (**Start keeping history** while it is off) | Off |
 | | Most space to use | 2048 MB |
 | Home | Mood | Professional |
 | Messages > Monitors | What to watch | None |

@@ -37,10 +37,20 @@ The phone shows the buttons when you expand the message: drag it down on Android
 
 BRAM never decides by itself that something told often is unimportant. A door left open every night may be exactly what you want to know.
 
+## Suggestions from what you do
+
+BRAM can ask instead. When, over two weeks, you **Hide** the same finding 3 times, or your phone is told about it 5 times and nothing is done (no button, no Hide), BRAM suggests fewer messages about it. Your phone gets one message, at most one a day, that opens the review page in the Home Assistant app. It shows the message and why, with **Stop these**, **Less often**, **Not now**, and **Never suggest this**. Nothing changes until an administrator answers there.
+
+- Only routine messages: locks and doors, 3D printers, and Home Assistant problems. Never a safety alert or a silent safety sensor.
+- Only the buttons your phone was really given for that message.
+- Each is asked about at most once in 30 days, and never again after **Never suggest this**.
+- Undo **Stop these** or **Less often** with **Allow stopped messages** on BRAM's device page.
+- Needs Home Assistant's BRAM and the server both on 0.37.0 or later.
+
 ## Never held back
 
 - Urgent alerts, which no quiet hours, limit, button, or grade can stop.
-- Locks and doors at night or while everyone is away: these ignore quiet hours, and **Less often** is not offered.
+- Locks and doors unlocked or open at night or while everyone is away, motion while everyone is away, and near freezing: these ignore quiet hours, and **Less often** is not offered.
 
 ## Also limiting messages
 

@@ -8,8 +8,8 @@ In **Settings > Devices & services > BRAM > Configure**:
 
 | Where | Setting | Does |
 |---|---|---|
-| Server access | Security check of Home Assistant | Lets you ask "Is my home secure?" |
-| Watching | The security check finds something new | Checks every hour and messages your phones once |
+| Server access | Security check | Lets you ask "Is my home secure?" |
+| Watching > Home Assistant and security | Run the security check every hour | Checks every hour and messages your phones once about anything new |
 
 Both are off by default. The hourly check first learns what is already there, so only later changes are messages. Quiet hours hold everything except new accounts, new tokens, and an unencrypted outside address.
 

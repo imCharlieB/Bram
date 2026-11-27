@@ -43,7 +43,7 @@ BRAM's job: **notice** what is happening, **remember** it, **explain** what is w
 | Personalities | ✅ | [Personality](personality.md) |
 | Suggested night hours | ✅ | [Learning](learning.md) |
 | A review page in Home Assistant for suggestions, opened from a phone message; admins only | ✅ 0.36 | [Learning](learning.md) |
-| Suggestions from what you do: something you hide or never act on, offered as Stop these or Less often | ⬜ | |
+| Suggestions from what you do: something you hide or never act on, offered as Stop these or Less often | ✅ 0.37 | [How often BRAM tells you](how-often.md) |
 | Command center page, second factor | ✅ | [Security](security.md) |
 
 ## 1. One record

@@ -16,7 +16,7 @@ One SQLite file, plus a key and certificate, in the data folder.
 | ntfy topics | Send messages | **Plain** |
 | Open and past alerts | Reminders after a restart | |
 | [Findings](findings.md) | What was found, told, and ended | |
-| Learned nights, if learning is on | A copy of Home Assistant's | |
+| Learned nights from before 0.34 | Sent by older versions of BRAM in Home Assistant; no longer added, since Learning reads history | |
 | [History](history.md), if on | Trends | **Plain**; off until you turn it on |
 | [Prints](printers.md), if history is on | Printer, file, result, length | |
 | Log | What happened and why | Entries cannot be changed or deleted through BRAM |

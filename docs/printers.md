@@ -1,12 +1,12 @@
 # 3D printers
 
-BRAM finds your printers by itself from the integration each one uses: Bambu Lab, Moonraker (Klipper), OctoPrint, PrusaLink, and others where they use the same names. Turn it on in **BRAM > Configure > 3D printers**, **Watching**, or **Quick setup**. **3D printers** has a switch for each printer found. Only the printers you switch on are watched, shown on Home, or mentioned; a new printer starts off.
+BRAM finds your printers by itself from the integration each one uses: Bambu Lab, Moonraker (Klipper), OctoPrint, PrusaLink, and others where they use the same names. Turn it on in **BRAM > Configure > Watching > 3D printers** with **Watch 3D printers**, or in **Quick setup**. The same **3D printers** page has a switch for each printer found. Only the printers you switch on there are watched, shown on Home, or mentioned; every printer starts off, even after Quick setup.
 
 **BRAM only watches.** It cannot start, pause, stop, or heat anything. It is not a fire alarm.
 
 ## Shown on Home
 
-State, progress, time left, file, and the nozzle, bed, and chamber temperatures with their targets. A printer whose integration is unreachable shows **Off**.
+The **3D printers** screen appears only while a print is running or paused: state, progress, time left, file, and the nozzle, bed, and chamber temperatures with their targets. Click it, or **Printers** on the orbit, to see every printer you switched on, printing or not. A printer whose integration is unreachable shows **Off**. A printer whose integration is failing is reported by [Problems with Home Assistant](problems.md), if you turned it on.
 
 ## Messages
 
@@ -24,7 +24,7 @@ State, progress, time left, file, and the nozzle, bed, and chamber temperatures 
 - Off while idle is normal and never a message. Cooling down after a print is not a heater left on.
 - Quiet hours hold messages until they end. **Stop these** stops one kind for one printer; undo it with **Allow stopped messages**.
 - Some printers do not say how a print ended. Then 99% or more counts as finished, and less as stopped.
-- The same printer connected through two integrations appears twice. Turn one off in **BRAM > Configure > 3D printers**, or remove or disable it in Home Assistant.
+- The same printer connected through two integrations appears twice. Turn one off in **BRAM > Configure > Watching > 3D printers**, or remove or disable it in Home Assistant.
 
 ## Remembered
 

@@ -38,6 +38,8 @@ class Outbox:
         self._waiting: list[dict[str, Any]] = []
         self._open: dict[str, list[str]] = {}
         self._offered: dict[str, list[dict[str, str]]] = {}
+        # The last buttons and words for each finding, kept after it is over, for suggestions.
+        self._known: dict[str, dict[str, Any]] = {}
         self._seen: set[str] = set()
         self._tried: dict[str, float] = {}
         self._started = 0.0
@@ -47,6 +49,7 @@ class Outbox:
         saved = await self._store.async_load() or {}
         self._waiting, self._open = saved.get("waiting", []), saved.get("open", {})
         self._offered = saved.get("offered", {})
+        self._known = saved.get("known", {})
         self._started = self._now()
         return async_track_time_interval(self._hass, self._tick, datetime.timedelta(seconds=15))
 
@@ -73,9 +76,17 @@ class Outbox:
             return
         self._offered.pop(key, None)
         self._offered[key] = kept
-        for old in list(self._offered)[:-MAX_OFFERED]:
-            del self._offered[old]
+        self._known.pop(key, None)
+        self._known[key] = {"buttons": kept, "text": self._open.get(key, [""])[0],
+                            "source": source}
+        for table in (self._offered, self._known):
+            for old in list(table)[:-MAX_OFFERED]:
+                del table[old]
         self._buttons(key, source)
+
+    def known(self, key: object) -> dict[str, Any] | None:
+        """The buttons and words last given on a phone for this finding, if any."""
+        return self._known.get(key) if isinstance(key, str) else None
 
     @callback
     def press(self, key: object, action: object) -> bool:
@@ -147,4 +158,5 @@ class Outbox:
     @callback
     def _save(self) -> None:
         self._store.async_delay_save(
-            lambda: {"waiting": self._waiting, "open": self._open, "offered": self._offered}, 1)
+            lambda: {"waiting": self._waiting, "open": self._open, "offered": self._offered,
+                     "known": self._known}, 1)

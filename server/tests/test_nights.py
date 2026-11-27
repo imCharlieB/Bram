@@ -101,3 +101,34 @@ async def test_sent_to_home_assistant_only_when_it_understands():
     await tell_learning(app, "h1", told)
     await tell_learning(app, "h1", told)  # unchanged, so not again
     assert ws.sent == [{"type": "learned", "nights": {"2026-01-04": [345, 780]}, "opens": {}}]
+
+
+async def test_habits_go_to_home_assistant_once_and_only_when_it_understands():
+    from bram.server import FINDINGS, HOUSES, SOCKETS, tell_habits
+
+    class Socket:
+        def __init__(self):
+            self.sent = []
+
+        async def send_json(self, message):
+            self.sent.append(message)
+
+    class Found:
+        def __init__(self):
+            self.asked = set()
+
+        def habits(self, house_id):
+            return [] if "rules:k" in self.asked else [("rules:k", "You hid it 3 times.")]
+
+        def suggested(self, house_id, key):
+            self.asked.add(key)
+
+    world, ws = World("h1"), Socket()
+    app = {SOCKETS: {"h1": ws}, HOUSES: {"h1": (world, None)}, FINDINGS: Found()}
+    world.version = "0.36.0"
+    await tell_habits(app, "h1")
+    assert ws.sent == []
+    world.version = "0.37.0"
+    await tell_habits(app, "h1")
+    await tell_habits(app, "h1")
+    assert ws.sent == [{"type": "suggest", "key": "rules:k", "why": "You hid it 3 times."}]

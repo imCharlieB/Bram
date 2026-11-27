@@ -24,6 +24,11 @@ _DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 # Buttons Home Assistant offered on a phone, which the page may show. Never Acknowledge.
 PRESSABLE = re.compile(r"BRAM_(QUIET|PRINTER|PROBLEM|MUTE|LESS)_[\w:.\-]{1,200}")
 TITLES = ("Stop these", "Less often")
+# Suggestions from what the owner does: only routine messages, never safety (C3).
+HABIT_SOURCES = ("rules", "printers", "problems")
+HABIT_DAYS = 14
+HIDDEN_TIMES, TOLD_TIMES = 3, 5
+ASK_AGAIN = 30 * 86400
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS finding (
@@ -59,10 +64,13 @@ class Findings:
         self._db = sqlite3.connect(path, timeout=10)
         self._db.row_factory = sqlite3.Row
         self._db.executescript(_SCHEMA)
-        if "buttons" not in [r[1] for r in self._db.execute("PRAGMA table_info(finding)")]:
-            with self._db:
+        columns = [r[1] for r in self._db.execute("PRAGMA table_info(finding)")]
+        with self._db:
+            if "buttons" not in columns:
                 self._db.execute("ALTER TABLE finding ADD COLUMN buttons TEXT NOT NULL "
                                  "DEFAULT '[]'")
+            if "suggested" not in columns:
+                self._db.execute("ALTER TABLE finding ADD COLUMN suggested REAL")
         self._clock = clock
 
     # --- writing ---
@@ -215,8 +223,42 @@ class Findings:
         if type(finding) is not int:
             return False
         with self._db:
-            return self._db.execute("UPDATE finding SET ignored = ? WHERE id = ?",
+            done = self._db.execute("UPDATE finding SET ignored = ? WHERE id = ?",
                                     (int(on), finding)).rowcount == 1
+            if done and on:
+                # Counted, so hiding the same thing again and again can become a suggestion.
+                self._db.execute("INSERT INTO story (finding, at, what, text) VALUES "
+                                 "(?, ?, 'hidden', 'Hidden on the page')",
+                                 (finding, self._clock()))
+            return done
+
+    def habits(self, house_id: str) -> list[tuple[str, str]]:
+        """Findings worth asking about, with why in fixed words: hidden again and again, or
+        told often with nothing done. Each is asked about at most once in 30 days."""
+        now = self._clock()
+        since = now - HABIT_DAYS * 86400
+        found = []
+        rows = self._db.execute(
+            "SELECT id, key FROM finding WHERE house_id = ? AND stopped IS NULL "
+            "AND source IN (?, ?, ?) "
+            "AND (suggested IS NULL OR suggested < ?) AND last >= ?",
+            (house_id, *HABIT_SOURCES, now - ASK_AGAIN, since)).fetchall()
+        for row in rows:
+            counts = dict(self._db.execute(
+                "SELECT what, COUNT(*) FROM story WHERE finding = ? AND at >= ? GROUP BY what",
+                (row["id"], since)).fetchall())
+            if counts.get("hidden", 0) >= HIDDEN_TIMES:
+                found.append((row["key"], f"You hid it {counts['hidden']} times in two weeks."))
+            elif counts.get("sent", 0) >= TOLD_TIMES and not any(
+                    counts.get(w) for w in ("acked", "stopped", "hidden")):
+                found.append((row["key"], f"I told your phone {counts['sent']} times in two "
+                                          "weeks and nothing was done about it."))
+        return found
+
+    def suggested(self, house_id: str, key: str) -> None:
+        with self._db:
+            self._db.execute("UPDATE finding SET suggested = ? WHERE house_id = ? AND key = ?",
+                             (self._clock(), house_id, key))
 
     # --- reading ---
 

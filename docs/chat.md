@@ -13,10 +13,11 @@ Type to BRAM on its home page. It uses the model and personality from **Settings
 
 | Turn on | Ask | It reads |
 |---|---|---|
-| History | "When was the back door last opened?" "How often did the garage open this week?" | 10 days of one to three devices named in the question, only devices BRAM can see |
-| Problems | "Any errors in Home Assistant?" "Any low batteries?" | Grouped errors and warnings, failed integrations, open repairs, low batteries, updates |
-| [BRAM's own history](history.md) | "How long did the AC run each day?" | Heating and cooling runs, and thermostats against room sensors, 7 days |
-| Security check | "Is my home secure?" "Is anything exposed?" | See [Security check](security-check.md) |
+| **History of shared devices** | "When was the back door last opened?" "How often did the garage open this week?" | 10 days of one to three devices named in the question, only devices BRAM can see |
+| **Home Assistant problems** | "Any errors in Home Assistant?" "Any low batteries?" | Grouped errors and warnings, failed integrations, open repairs, low batteries, updates |
+| **Security check** | "Is my home secure?" "Is anything exposed?" | See [Security check](security-check.md) |
+
+  [BRAM's own history](history.md) is separate: press **Start keeping history** on BRAM's **History** page. Then you can ask "How long did the AC run each day?" and it reads heating and cooling runs, and thermostats against room sensors, for 7 days.
 
   Lengths of time are worked out by code and shown under the answer, because models are bad at arithmetic. Use the device's name in a history question. Causes it suggests for a problem are guesses, and it fixes nothing.
 
@@ -26,6 +27,18 @@ Type to BRAM on its home page. It uses the model and personality from **Settings
 - **Stays on your network.** The model must be on your own network.
 - It answers one question at a time, and shares your model with anything else using it.
 - It is not an emergency service and cannot call one.
+
+## What to ask
+
+| Ask | Needs |
+|---|---|
+| "Is the back door locked?" "Who is home?" "What's on?" | The device shared |
+| "When was the garage last opened?" | **History of shared devices**, under **Server access** |
+| "Any errors in Home Assistant?" "Low batteries?" | **Home Assistant problems**, under **Server access** |
+| "How is the print going?" | **Watch 3D printers** on, and the printer switched on, under **Watching > 3D printers** |
+| "Is my home secure?" | **Security check**, under **Server access** |
+| "How long did the AC run each day?" "Is the bedroom thermostat reading right?" | **Keep history** on, on BRAM's History page |
+| "Delete hall motion readings older than 90 days" | **Keep history** on. You confirm the list on the page |
 
 ## In Telegram
 

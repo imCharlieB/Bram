@@ -22,11 +22,12 @@ READY = "bram_review_ready"
 
 
 def _learners(hass: HomeAssistant) -> list[Any]:
+    """Everything that can suggest: learned hours, and fewer messages."""
     found = []
     for entry in hass.config_entries.async_entries(DOMAIN):
-        learner = getattr(getattr(entry, "runtime_data", None), "learner", None)
-        if learner is not None:
-            found.append(learner)
+        feed = getattr(entry, "runtime_data", None)
+        found += [part for part in (getattr(feed, "learner", None),
+                                    getattr(feed, "suggestions", None)) if part is not None]
     return found
 
 
@@ -43,7 +44,7 @@ def _list(hass: HomeAssistant, connection: websocket_api.ActiveConnection,
 @websocket_api.websocket_command({
     vol.Required("type"): "bram/review/answer",
     vol.Required("item"): vol.All(str, vol.Length(max=100)),
-    vol.Required("answer"): vol.In(["approve", "later", "never"]),
+    vol.Required("answer"): vol.In(["approve", "stop", "less", "later", "never"]),
 })
 @callback
 def _answer(hass: HomeAssistant, connection: websocket_api.ActiveConnection,
