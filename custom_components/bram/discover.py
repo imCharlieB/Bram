@@ -12,6 +12,11 @@ from .feed import kind_of
 _BEST = ("occupancy", "presence", "motion", "moving")
 
 
+def picked_as(entity_id: str, kind: str | None) -> str | None:
+    """The kind a device is offered under. Weather sits with climate, for the outside reading."""
+    return "temperature" if entity_id.startswith("weather.") else kind
+
+
 def find(hass: HomeAssistant, groups: list[str], areas: list[str]) -> list[str]:
     """Everything in these groups, in these areas or anywhere if none are given."""
     entities, devices = er.async_get(hass), dr.async_get(hass)
@@ -20,7 +25,7 @@ def find(hass: HomeAssistant, groups: list[str], areas: list[str]) -> list[str]:
     motion: dict[str, tuple[int, str]] = {}
     for state in sorted(hass.states.async_all(), key=lambda s: s.entity_id):
         device_class = state.attributes.get("device_class")
-        kind = kind_of(state.entity_id, device_class)
+        kind = picked_as(state.entity_id, kind_of(state.entity_id, device_class))
         if kind not in wanted or kind == "other":  # far too many to offer
             continue
         entry = entities.async_get(state.entity_id)

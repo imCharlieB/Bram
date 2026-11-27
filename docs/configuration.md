@@ -84,3 +84,7 @@ On the device page: **Mood**, **Visit**, **Send test message**, and **Allow stop
 | `BRAM_WHISPER_MODEL` | `base-int8` |
 | `BRAM_WHISPER_LANGUAGE` | `en` |
 | `BRAM_PIPER_VOICE` | `en_US-lessac-medium` |
+
+## Moving around
+
+Home Assistant's settings windows have no back button. In BRAM's **Devices** and **Watching** menus, choose **Back** to return to the main settings. Saving a page closes the window; open **Configure** again for the next one.

@@ -56,7 +56,7 @@
         "switches": "Switches and fans",
         "media": "Media players and speakers",
         "voice": "Voice assistants",
-        "climate": "Thermostats, temperature, and humidity",
+        "climate": "Thermostats, temperature, humidity, and weather",
         "appliances": "Water heaters, valves, and appliances"
       }
     }
@@ -139,7 +139,7 @@
           "switches": "Switches and fans",
           "media": "Media players and speakers",
           "voice": "Voice assistants",
-          "climate": "Thermostats, temperature, and humidity",
+          "climate": "Thermostats, temperature, humidity, and weather",
           "appliances": "Water heaters, valves, and appliances",
           "other": "Anything else"
         }
@@ -261,13 +261,15 @@
           "suggest": "Suggestions",
           "quick": "Add by type and room",
           "see": "Choose one by one",
-          "rooms": "People's rooms"
+          "rooms": "People's rooms",
+          "init": "Back"
         },
         "menu_option_descriptions": {
           "suggest": "The important things BRAM cannot see yet, such as locks, doors, and safety sensors.",
           "quick": "Find everything of a type, such as lights or motion, in the rooms you pick.",
           "see": "Everything BRAM can see, by group. Add or remove one at a time.",
-          "rooms": "Only if a person shows the wrong room. BRAM normally finds this itself."
+          "rooms": "Only if a person shows the wrong room. BRAM normally finds this itself.",
+          "init": "To BRAM's main settings."
         }
       },
       "watching": {
@@ -277,13 +279,15 @@
           "watch_ha": "Home Assistant and security",
           "watch": "Locks, doors, and windows",
           "printers": "3D printers",
-          "comfort": "Temperature and humidity"
+          "comfort": "Temperature and humidity",
+          "init": "Back"
         },
         "menu_option_descriptions": {
           "watch_ha": "Failed integrations, errors, batteries, offline devices, backups, and new admins or tokens.",
           "watch": "Unlocked at night, open while away, left open, open at night, open while heating or cooling, motion while away, and offline, with your night hours.",
           "printers": "Prints finishing, failing, or pausing, and heaters left on, for each printer you choose.",
-          "comfort": "Too hot, too cold, near freezing, and humid, for the rooms BRAM can see."
+          "comfort": "Too hot, too cold, near freezing, and humid, for the rooms BRAM can see.",
+          "init": "To BRAM's main settings."
         }
       },
       "watch_ha": {

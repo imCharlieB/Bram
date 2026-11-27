@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.35.4
+
+Update BRAM in HACS and restart Home Assistant. Update the server in Portainer too to keep the versions together.
+
+- Weather entities are offered under **Thermostats, temperature, humidity, and weather**, so the outside temperature is easy to share.
+- **Back** in BRAM's Devices and Watching menus returns to the main settings.
+
 ## 0.35.3
 
 Update the server in Portainer. Update BRAM in HACS too to keep the versions together.

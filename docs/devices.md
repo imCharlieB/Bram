@@ -53,8 +53,8 @@ It adds to what you already chose. It skips hidden devices, settings and health 
 | Switches and fans | `switch`, `fan` | on, off |
 | Media players and speakers | `media_player` | on, off or idle |
 | Voice assistants | `assist_satellite` | in use, idle |
-| Thermostats, temperature, humidity | `climate`, temperature and humidity sensors | The mode and readings |
-| Anything else | Other sensors, weather, vacuums, water heaters, alarm panels, updates, and more; choose one by one | Its state as Home Assistant shows it; no alerts |
+| Thermostats, temperature, humidity, and weather | `climate`, temperature and humidity sensors, and `weather` | The mode and readings. A shared weather entity gives the outside temperature on Home and in History |
+| Anything else | Other sensors, vacuums, water heaters, alarm panels, updates, and more; choose one by one | Its state as Home Assistant shows it; no alerts |
 
 "How long" restarts when Home Assistant restarts. BRAM also sees, for shared devices only: their room, how long they have been that way, brightness, position, battery, what a media player is playing and how loud, what a thermostat is doing, and the picture Home Assistant shows for a person or media player. It never gets a person's coordinates, or pictures from outside Home Assistant. Pictures are kept in memory only.
 

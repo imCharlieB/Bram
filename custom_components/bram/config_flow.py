@@ -48,7 +48,7 @@ from .const import (
     OPEN_TYPES,
 )
 from .details import room_sensors
-from .discover import find, suggest
+from .discover import find, picked_as, suggest
 from .feed import kind_of
 from .house_rules import limits
 from .notifier import PREFIX, phones
@@ -92,12 +92,13 @@ class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_devices(self, user_input: dict[str, Any] | None = None,
                                  ) -> ConfigFlowResult:
         return self.async_show_menu(step_id="devices",
-                                    menu_options=["suggest", "quick", "see", "rooms"])
+                                    menu_options=["suggest", "quick", "see", "rooms", "init"])
 
     async def async_step_watching(self, user_input: dict[str, Any] | None = None,
                                   ) -> ConfigFlowResult:
         return self.async_show_menu(step_id="watching",
-                                    menu_options=["watch_ha", "watch", "comfort", "printers"])
+                                    menu_options=["watch_ha", "watch", "comfort", "printers",
+                                                  "init"])
 
     async def async_step_watch_ha(self, user_input: dict[str, Any] | None = None,
                                   ) -> ConfigFlowResult:
@@ -214,8 +215,8 @@ class BramOptionsFlow(OptionsFlowWithReload):
             chosen = [e for group in GROUPS for e in user_input.get(group, [])]
             return self.async_create_entry(data={**options, CONF_ENTITIES: chosen})
         chosen = options.get(CONF_ENTITIES, [])
-        kinds = {s.entity_id: kind_of(s.entity_id, s.attributes.get("device_class"))
-                 for s in self.hass.states.async_all()}
+        kinds = {s.entity_id: picked_as(s.entity_id, kind_of(
+            s.entity_id, s.attributes.get("device_class"))) for s in self.hass.states.async_all()}
         fields = {}
         for group, wanted in GROUPS.items():
             # A chosen device that is missing right now must not be dropped by saving.
