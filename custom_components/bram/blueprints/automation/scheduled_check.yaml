@@ -6,7 +6,7 @@ blueprint:
     only sends a message.
   domain: automation
   author: BRAM
-  source_url: https://github.com/imCharlieB/Bram/blob/main/blueprints/automation/bram/scheduled_check.yaml
+  source_url: https://github.com/imCharlieB/Bram/blob/main/custom_components/bram/blueprints/automation/scheduled_check.yaml
   input:
     question:
       name: Question

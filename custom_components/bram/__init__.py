@@ -9,6 +9,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 from homeassistant.loader import async_get_integration
 
+from . import blueprints
 from .const import CONF_ENTITIES, DOMAIN
 from .digest import Digest
 from .feed import Feed
@@ -39,6 +40,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if item.unique_id not in wanted:
             registry.async_remove(item.entity_id)
     set_page(hass, entry.data["host"], entry.data["port"])
+    await blueprints.install(hass)
     feed.outbox = Outbox(hass, entry, feed.send, feed.takes_notes)
     entry.async_on_unload(await feed.outbox.start())
     feed.teller = Teller(hass, entry, feed.note, feed.offer)

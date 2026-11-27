@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.setup import async_setup_component
@@ -9,7 +10,9 @@ from homeassistant.setup import async_setup_component
 async def custom(hass, enable_custom_integrations):
     # Assist needs this; a real Home Assistant always has it.
     assert await async_setup_component(hass, "homeassistant", {})
-    yield
+    # Setting BRAM up must not write blueprints into the test package's folder.
+    with patch("custom_components.bram.blueprints.install", AsyncMock()):
+        yield
 
 
 RULES = set(re.findall(r"^\| ([A-G]\d+) \|", (Path(__file__).parents[1] / "HARD_RULES.md")

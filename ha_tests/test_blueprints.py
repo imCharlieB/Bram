@@ -12,7 +12,7 @@ from pytest_homeassistant_custom_component.common import (
     async_mock_service,
 )
 
-ROOT = Path(__file__).parents[1] / "blueprints/automation/bram"
+ROOT = Path(__file__).parents[1] / "custom_components/bram/blueprints/automation"
 # The automations keep their schedule until Home Assistant stops.
 pytestmark = pytest.mark.parametrize("expected_lingering_timers", [True])
 
@@ -71,3 +71,19 @@ async def test_house_summary_at_its_time(hass, freezer, setup):
     await tick(hass, freezer, dt_util.parse_datetime("2026-01-01T18:00:00+00:00"))
     assert [c.data["message"] for c in sent] == [answer["text"]]
     assert sent[0].data["title"] == "BRAM house summary"
+
+
+def test_copied_once_updated_when_untouched_and_never_over_the_owners(tmp_path):
+    from custom_components.bram.blueprints import _mark, copy
+    source, target = tmp_path / "source", tmp_path / "target"
+    source.mkdir()
+    (source / "a.yaml").write_text("one", encoding="utf-8")
+    written = copy(source, target, {})
+    assert (target / "a.yaml").read_text(encoding="utf-8") == "one"
+    (source / "a.yaml").write_text("two", encoding="utf-8")
+    written = copy(source, target, written)
+    assert (target / "a.yaml").read_text(encoding="utf-8") == "two"
+    (target / "a.yaml").write_text("mine", encoding="utf-8")
+    (source / "a.yaml").write_text("three", encoding="utf-8")
+    assert copy(source, target, written) == {"a.yaml": _mark("two")}
+    assert (target / "a.yaml").read_text(encoding="utf-8") == "mine"

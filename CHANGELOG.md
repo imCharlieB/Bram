@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.35.1
+
+Update BRAM in HACS and restart Home Assistant. Update the server in Portainer too to keep the versions together.
+
+- BRAM's blueprints appear in Home Assistant by themselves, under **Settings > Automations & scenes > Blueprints**. Nothing to import. A blueprint you changed is never replaced.
+
 ## 0.35.0
 
 Update BRAM in HACS and restart Home Assistant. The server is unchanged, but update it in Portainer too to keep the versions together.

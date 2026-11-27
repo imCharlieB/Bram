@@ -5,7 +5,7 @@ blueprint:
     phone. BRAM only reads; this automation only sends a message.
   domain: automation
   author: BRAM
-  source_url: https://github.com/imCharlieB/Bram/blob/main/blueprints/automation/bram/house_summary.yaml
+  source_url: https://github.com/imCharlieB/Bram/blob/main/custom_components/bram/blueprints/automation/house_summary.yaml
   input:
     at:
       name: At
