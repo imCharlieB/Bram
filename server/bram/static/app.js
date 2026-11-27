@@ -882,12 +882,11 @@ function showNeeds(brain) {
   const rows = [
     ...(world.urgentNow || []).map((d) => row(`${d.name}: ${d.says}`, "now", "bad", d.area ? `In ${d.area}. Home Assistant has messaged your phones if you set that up.` : "", true)),
     ...(world.alertsNow || []).map((a) => row(a.text, ago(a.created), a.safety ? "bad" : "warn")),
-    ...(world.printersNow || []).filter((p) => p.state === "failing").map((p) => row(`${p.name}: integration failing`, "", "warn", "Its integration cannot start in Home Assistant. Check it under Settings, Devices and services.", true)),
     ...brain.needs.map((n) => [...row(n.text, n.times > 1 ? `${n.times} times` : ago(n.first), n.severity === "high" ? "bad" : "warn",
       `${n.times === 1 ? "Since" : "First"} ${ago(n.first)}${n.told ? ". I told you" : ""}.`, true), needActs(n)]),
   ];
   $("needs-pane").hidden = !rows.length;
-  $("needs-count").textContent = String((world.urgentNow || []).length + (world.alertsNow || []).length + brain.needs.length + (world.printersNow || []).filter((p) => p.state === "failing").length);
+  $("needs-count").textContent = String((world.urgentNow || []).length + (world.alertsNow || []).length + brain.needs.length);
   $("hud-needs").replaceChildren(...rows.flat());
 }
 
@@ -940,7 +939,7 @@ function showClimate(brain) {
   });
   $("hud-climate").replaceChildren(...(known.length > 1 ? [svg] : []), ...rows);
   const total = brain.climate.reduce((sum, day) => sum + Object.values(day.seconds).reduce((x, y) => x + y, 0), 0);
-  $("climate-why").textContent = known.length ? `Last 24 hours: inside solid, outside dashed.${total ? ` Ran ${lasted(total)} in all today.` : ""}` : brain.history ? "Nothing recorded in the last 24 hours yet." : "History is off, so BRAM cannot show the day.";
+  $("climate-why").textContent = known.length ? `Last 24 hours: inside solid, outside dashed.${total ? ` Ran ${lasted(total)} in all today.` : ""}${out === undefined ? " For outside, share a weather entity under What BRAM can see in Home Assistant." : ""}` : brain.history ? "Nothing recorded in the last 24 hours yet." : "History is off, so BRAM cannot show the day.";
 }
 
 // The system screen and the systems around the brain, from what is real.

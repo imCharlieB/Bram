@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.35.3
+
+Update the server in Portainer. Update BRAM in HACS too to keep the versions together.
+
+- Home: a printer whose integration is failing is no longer listed under Needs you. Problems with Home Assistant reports failed integrations, if you turned it on.
+- Home: Climate says to share a weather entity when it has no outside temperature.
+
 ## 0.35.2
 
 Update both: BRAM in HACS (then restart Home Assistant) and the server in Portainer.
