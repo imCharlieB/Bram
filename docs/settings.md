@@ -21,6 +21,8 @@
 | | Also use Telegram and ntfy if nobody answers a safety alert in 5 minutes | Off |
 | Watching > Home Assistant and security | Watch Home Assistant for problems | Off; on in Quick setup |
 | | Run the security check every hour | Off |
+| Watching > Cameras | A person while everyone is away, a person at night, a person Frigate does not know, a package | Off |
+| | Not again on the same camera for | 30 minutes |
 | Watching > Locks, doors, and windows: Locks | Unlocked at night | Off; on in Quick setup |
 | | A lock or door sensor goes offline | Off; on in Quick setup |
 | Doors and windows | Left open | Off; on in Quick setup |

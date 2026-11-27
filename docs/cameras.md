@@ -1,6 +1,6 @@
 # Cameras
 
-> **Being built.** Connecting Frigate and each camera's latest event on BRAM's page work now. The rules and phone messages are coming; [the order](#the-order-it-will-be-built) shows what is done.
+> **Being built.** Connecting Frigate, each camera's latest event on BRAM's page, and the first camera messages work now. Descriptions from your model and more rules are coming; [the order](#the-order-it-will-be-built) shows what is done.
 
 **Who talks to Frigate:** only BRAM's server. It reads Frigate's events, names, and pictures, and decides what matters. Home Assistant is told only what BRAM needs for its phone messages.
 
@@ -22,30 +22,33 @@ Frigate sees a person, car, animal, or package
 
 The decision is code, not the model. The model's words only describe; they never decide whether you are told, and a slow model never holds a message back (rule C6).
 
-## What it will tell you
+## What it tells you
+
+Turn these on in Home Assistant: **Settings > Devices & services > BRAM > Configure > Watching > Cameras**. They cover the cameras you turned on under **Settings > Cameras** on BRAM's page.
 
 | Rule | When | Default |
 |---|---|---|
-| Person while everyone is away | Frigate sees a person on a camera you chose, and everyone BRAM can see is away | Off |
-| Person at an open or unlocked door | A person near a door that is open or unlocked; you link each camera to its doors | Off |
-| Person at night | A person in your night hours | Off |
-| Someone Frigate does not know | Face recognition is on in Frigate and the face is not one it knows | Off |
-| Package delivered | Frigate sees a package that stays | Off |
-| Car arrived | A car stops in a zone you choose, such as the driveway | Off |
-| Camera offline | Frigate or a camera stops reporting | Already in the [security check](security-check.md) |
+| A person while everyone is away | Frigate sees a person, and everyone BRAM can see is away. Ignores quiet hours | Off |
+| A person at night | A person in your night hours, set under **Locks, doors, and windows**. Ignores quiet hours | Off |
+| A person Frigate does not know | A person Frigate did not name. Only useful with face recognition on in Frigate; without it, every person is unknown | Off |
+| A package | Frigate sees a package | Off |
+| Camera offline | Frigate or a camera stops reporting | In the [security check](security-check.md), and on BRAM's page |
 
-Each camera has its own switch for each rule, and the Frigate zones that count, so a person on the sidewalk is not a person at your door.
+A person Frigate knows is named in the message, such as "Alex at front door, and everyone I track is away."
+
+Coming: a person at a door that is open or unlocked, with each camera linked to its doors; a car arriving in a zone you choose; and choosing rules and zones for each camera.
 
 ## Fewer messages
 
-- **Same thing, once.** A parked car or a person already told about on that camera in the last 30 minutes is not told again. Someone Frigate does not know is always told the first time.
-- **Cooldown.** One message per camera every few minutes at most, and one across cameras for the same moment, such as a person walking past three cameras. Later ones update the same message quietly.
-- **Quiet hours** apply, except person while away and person at an open or unlocked door.
-- **Stop these**, **Less often**, and suggestions from what you do work as for other messages. See [How often BRAM tells you](how-often.md).
+- **Same thing, once.** A person or package already told about on that camera is not told again for 30 minutes. Change it with **Not again on the same camera for**.
+- **One moment, once.** One person walking past several cameras within 2 minutes is one message.
+- **Quiet hours** hold a stranger or a package, noted in Findings, but not a person while away or at night.
+- **Stop these** on the message stops that kind on that camera, such as people at the front door. **Less often**, **Allow stopped messages**, and suggestions from what you do work as for other messages. See [How often BRAM tells you](how-often.md).
+- At most 30 camera messages a day.
 
 ## The message
 
-The picture Frigate saved, the camera, the time, who Frigate recognized, and the model's description if you chose one, such as "A delivery driver left a box on the porch and walked back to a white van." Tap it to open the event on BRAM's page.
+The camera, who Frigate recognized, what is true in the rest of the home, and the zones, such as "Someone at front door, and it's night. In porch." With the [Frigate integration](https://docs.frigate.video/integrations/home-assistant) installed in Home Assistant, it shows Frigate's picture of the event. Tap it to open the finding on BRAM's page. Coming: your model's description, such as "A delivery driver left a box on the porch."
 
 ## On BRAM's page
 
@@ -106,6 +109,7 @@ On BRAM's page, **Settings > Cameras**:
 |---|---|---|
 | Frigate address | Such as `http://HOST:5000`, or the login port `https://HOST:8971` with a Frigate user that can only view | None |
 | Each camera | Watch events | Off |
+| In Home Assistant, Configure > Watching > Cameras | Each rule above, and **Not again on the same camera for** | Off; 30 minutes |
 | Each camera, coming | Which rules; which zones count; which doors it looks at | Off |
 | Describe with the model | Per camera; sends the event's picture and a few frames to your model | Off |
 | Cloud model may see pictures | Only if you also use a cloud model | Off |
@@ -124,7 +128,7 @@ On BRAM's page, **Settings > Cameras**:
 |---|---|---|
 | 1. Connect Frigate | The address and cameras on BRAM's page; each camera's switch | ✅ 0.38 |
 | 2. Events | Each camera's latest event and picture on BRAM's page; Home Assistant told of each event, for messages | ✅ 0.39 |
-| 3. Rules and messages | The rules above, with the picture in the message, same-thing-once, and cooldown | ⬜ |
+| 3. Rules and messages | Person while away, at night, or unknown, and packages, with Frigate's picture, same-thing-once, and one message across cameras ✅. Doors, cars, and rules for each camera ⬜ | 🟡 0.40 |
 | 4. Descriptions | The model describes events, per camera | ⬜ |
 | 5. Ask a camera | Chat questions and scheduled checks about what a camera sees | ⬜ |
 | 6. Camera card | A dashboard card with Frigate's picture and BRAM's description | ⬜ |

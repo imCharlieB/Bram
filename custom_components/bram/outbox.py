@@ -24,7 +24,7 @@ RESEND = 60
 # By now every watcher has looked again, so what nobody sees is over.
 SETTLED = 2 * 3600
 # What BRAM's page may press for you: Stop these and Less often. Never Acknowledge (C3, C4).
-PRESSABLE = re.compile(r"BRAM_(QUIET|PRINTER|PROBLEM|MUTE|LESS)_[\w:.\-]{1,200}")
+PRESSABLE = re.compile(r"BRAM_(QUIET|PRINTER|PROBLEM|MUTE|LESS|CAMERA)_[\w:.\-]{1,200}")
 TITLES = ("Stop these", "Less often")
 MAX_OFFERED = 200
 

@@ -163,7 +163,7 @@ class HouseRules:
             return "open_garages"
         return "open_doors"
 
-    def _everyone_away(self) -> bool:
+    def everyone_away(self) -> bool:
         """True only if every shared person is known to be away (B2)."""
         people = [e for e in self._entities if e.startswith("person.")]
         states = [self._hass.states.get(e) for e in people]
@@ -197,7 +197,7 @@ class HouseRules:
     def _facts(self) -> Iterator[tuple[str, str, float, str]]:
         """Rule, entity, seconds it must hold, and what to say."""
         night = self.is_night()
-        away = self._everyone_away()
+        away = self.everyone_away()
         running = self._running() if "open_climate" in self._on else None
         if not away:
             self._moved.clear()

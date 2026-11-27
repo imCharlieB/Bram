@@ -34,7 +34,7 @@ BRAM watches the devices you choose, tells your phone when something matters, re
 | **Findings** | One list of everything it found, with the story of each |
 | **History and trends** | Temperatures, and every heating and cooling run with its settings. Compares each thermostat with the room's own sensor |
 | **Learning** | Suggests better night hours from BRAM's history, and fewer messages about what you keep hiding. Nothing changes until you approve |
-| **Cameras** | Connects to Frigate, read only, and shows each camera's latest event and picture on BRAM's page. Camera rules and messages are being built |
+| **Cameras** | Connects to Frigate, read only. Tells you about a person while everyone is away, at night, or not known to Frigate, and packages, with Frigate's picture. Each camera's latest event on BRAM's page |
 | **Chat and voice** | On its page, in Assist, and in Telegram, answering from live state with the facts listed underneath. Hold to talk and spoken answers, with your own Whisper and Piper |
 | **Personality** | Professional, friendly, dry, minimal, unhinged, or your own |
 | **Blueprints** | A yes-or-no check on a schedule, and a house summary, as automations you keep in Home Assistant |

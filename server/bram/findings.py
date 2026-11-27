@@ -14,7 +14,7 @@ from pathlib import Path
 from .history import number
 
 SOURCES = ("safety", "silent", "rules", "security", "monitors", "connection", "message",
-           "learning", "problems", "printers")
+           "learning", "problems", "printers", "cameras")
 SEVERITIES = ("high", "medium", "low")
 WHATS = ("open", "closed", "sent", "not sent", "acked", "stopped", "snoozed", "held")
 DECIDED = ("sent", "not sent", "acked", "stopped", "snoozed", "held")
@@ -22,10 +22,10 @@ PAGE = 50
 OLDEST = 30 * 86400
 _DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 # Buttons Home Assistant offered on a phone, which the page may show. Never Acknowledge.
-PRESSABLE = re.compile(r"BRAM_(QUIET|PRINTER|PROBLEM|MUTE|LESS)_[\w:.\-]{1,200}")
+PRESSABLE = re.compile(r"BRAM_(QUIET|PRINTER|PROBLEM|MUTE|LESS|CAMERA)_[\w:.\-]{1,200}")
 TITLES = ("Stop these", "Less often")
 # Suggestions from what the owner does: only routine messages, never safety (C3).
-HABIT_SOURCES = ("rules", "printers", "problems")
+HABIT_SOURCES = ("rules", "printers", "problems", "cameras")
 HABIT_DAYS = 14
 HIDDEN_TIMES, TOLD_TIMES = 3, 5
 ASK_AGAIN = 30 * 86400
@@ -239,8 +239,8 @@ class Findings:
         since = now - HABIT_DAYS * 86400
         found = []
         rows = self._db.execute(
-            "SELECT id, key FROM finding WHERE house_id = ? AND stopped IS NULL "
-            "AND source IN (?, ?, ?) "
+            "SELECT id, key FROM finding WHERE house_id = ? AND stopped IS NULL "  # noqa: S608
+            f"AND source IN ({', '.join('?' * len(HABIT_SOURCES))}) "  # placeholders only
             "AND (suggested IS NULL OR suggested < ?) AND last >= ?",
             (house_id, *HABIT_SOURCES, now - ASK_AGAIN, since)).fetchall()
         for row in rows:

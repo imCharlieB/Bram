@@ -10,6 +10,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.loader import async_get_integration
 
 from . import blueprints, review
+from .camera_watch import CameraWatch
 from .const import CONF_ENTITIES, DOMAIN
 from .digest import Digest
 from .feed import Feed
@@ -52,6 +53,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(Digest(hass, entry, feed).start())
     feed.rules = HouseRules(hass, entry, feed.note, feed.teller, feed.send_watching)
     entry.async_on_unload(await feed.rules.start())
+    feed.camera_watch = CameraWatch(hass, entry, feed.rules.everyone_away, feed.rules.is_night,
+                                    feed.note, feed.teller)
+    entry.async_on_unload(await feed.camera_watch.start())
     feed.problems = ProblemWatch(hass, entry, feed.rules.is_night, feed.note,
                                  feed.teller)
     entry.async_on_unload(await feed.problems.start())

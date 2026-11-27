@@ -106,6 +106,7 @@ class Feed:
         self.problems: Any = None
         self.printers: Any = None
         self.teller: Any = None
+        self.camera_watch: Any = None
         self._queue: asyncio.Queue[dict] | None = None
         self._queries: set[asyncio.Task] = set()
         self._asked: dict[str, asyncio.Future[str]] = {}
@@ -155,7 +156,8 @@ class Feed:
     def act(self, action: str) -> None:
         """A Stop these or Less often, handled as the phone button that was offered."""
         pressed = Event("mobile_app_notification_action", {"action": action})
-        for part in (self.alerts, self.rules, self.problems, self.printers, self.teller):
+        for part in (self.alerts, self.rules, self.problems, self.printers, self.teller,
+                     self.camera_watch):
             if part is not None:
                 part.answered(pressed)
 
@@ -294,6 +296,9 @@ class Feed:
             found = cameras.event(data["event"])
             if found is not None:
                 self.camera_events[data["camera"]] = found
+                if self.camera_watch is not None:
+                    self._hass.async_create_task(
+                        self.camera_watch.weigh(data["camera"], found), "bram camera")
                 self._notify()
                 return
         if (isinstance(data, dict) and data.keys() == {"type", "mode"}

@@ -17,6 +17,8 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from . import printers
+from .camera_watch import DEFAULT_REPEAT
+from .camera_watch import RULES as CAMERA_RULES
 from .client import CannotConnect, InvalidCode, pair
 from .const import (
     CONF_CODE,
@@ -97,8 +99,8 @@ class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_watching(self, user_input: dict[str, Any] | None = None,
                                   ) -> ConfigFlowResult:
         return self.async_show_menu(step_id="watching",
-                                    menu_options=["watch_ha", "watch", "comfort", "printers",
-                                                  "init"])
+                                    menu_options=["watch_ha", "watch", "comfort", "cameras",
+                                                  "printers", "init"])
 
     async def async_step_watch_ha(self, user_input: dict[str, Any] | None = None,
                                   ) -> ConfigFlowResult:
@@ -361,6 +363,23 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 "suggested_value": options.get("comfort_skip", [])}): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain=["sensor", "climate"], multiple=True)),
         }))
+
+    async def async_step_cameras(self, user_input: dict[str, Any] | None = None,
+                                 ) -> ConfigFlowResult:
+        """Camera messages, for the cameras chosen on BRAM's page. Each off until turned on."""
+        options = dict(self.config_entry.options)
+        if user_input is not None:
+            return self.async_create_entry(data={**options, **user_input})
+        return self.async_show_form(step_id="cameras", data_schema=vol.Schema({
+            **{vol.Required(rule, default=options.get(rule, False)): bool
+               for rule in CAMERA_RULES},
+            vol.Required("camera_repeat", default=options.get(
+                "camera_repeat", DEFAULT_REPEAT)): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=1, max=1440, step=1,
+                                              unit_of_measurement="min",
+                                              mode=selector.NumberSelectorMode.BOX)),
+        }), description_placeholders={
+            "frigate": "is" if "frigate" in self.hass.config.components else "is not"})
 
     def _kind(self, entity_id: str, kinds: dict[str, str | None]) -> str:
         """What a chosen device is, even if it is missing right now."""

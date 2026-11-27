@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.40.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Camera messages: a person while everyone is away, a person at night, a person Frigate does not know, and packages, for the cameras BRAM watches. Turn them on under **Configure > Watching > Cameras** in Home Assistant. With the Frigate integration installed, each message shows Frigate's picture. The same thing on a camera is told once in 30 minutes, and one person passing several cameras is one message. **Stop these** works per camera. See [Cameras](docs/cameras.md#what-it-tells-you).
+
 ## 0.39.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

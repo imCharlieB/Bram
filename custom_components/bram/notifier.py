@@ -32,10 +32,13 @@ def phones(hass: HomeAssistant) -> list[str]:
 
 async def notify(hass: HomeAssistant, targets: list[str], title: str, text: str, tag: str, *,
                  safety: bool, actions: list[dict[str, str]], finding: str | None = None,
-                 url: str | None = None) -> bool:
+                 url: str | None = None, image: str | None = None) -> bool:
     """Send to every chosen phone. True if at least one accepted it. A url that starts with /
-    opens that page of the Home Assistant app."""
+    opens that page of the Home Assistant app; an image that starts with / is a picture from
+    Home Assistant itself, such as the Frigate integration's."""
     data: dict = {"tag": tag, "actions": actions}
+    if image is not None and image.startswith("/api/"):
+        data["image"] = image
     if (url := url or link(hass, finding)) is not None:
         data |= {"url": url, "clickAction": url}  # iPhone, Android
     if safety:

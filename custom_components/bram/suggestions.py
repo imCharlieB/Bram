@@ -22,7 +22,7 @@ REVIEW = "/bram-review"
 EXPIRES = 30 * 86400
 ANNOUNCE_EVERY = 86400  # at most one phone message a day about suggestions
 MAX_WAITING = 10
-SOURCES = ("rules", "printers", "problems")  # routine messages only
+SOURCES = ("rules", "printers", "problems", "cameras")  # routine messages only
 WORDS = {"Stop these": "stop", "Less often": "less"}
 
 

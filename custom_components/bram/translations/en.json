@@ -261,14 +261,16 @@
           "watch": "Locks, doors, and windows",
           "printers": "3D printers",
           "comfort": "Temperature and humidity",
-          "init": "Back"
+          "init": "Back",
+          "cameras": "Cameras"
         },
         "menu_option_descriptions": {
           "watch_ha": "Failed integrations, errors, batteries, offline devices, backups, and new admins or tokens.",
           "watch": "Unlocked at night, open while away, left open, open at night, open while heating or cooling, motion while away, and offline, with your night hours.",
           "printers": "Prints finishing, failing, or pausing, and heaters left on, for each printer you choose.",
           "comfort": "Too hot, too cold, near freezing, and humid, for the rooms BRAM can see.",
-          "init": "To BRAM's main settings."
+          "init": "To BRAM's main settings.",
+          "cameras": "A person while everyone is away or at night, someone Frigate does not know, and packages."
         }
       },
       "watch_ha": {
@@ -299,6 +301,23 @@
         },
         "data_description": {
           "comfort_skip": "Outdoor sensors, freezers, attics, and others that are meant to be hot or cold."
+        }
+      },
+      "cameras": {
+        "title": "Cameras",
+        "description": "For the cameras you turn on under Settings, Cameras on BRAM's page, which reads Frigate. The Frigate integration {frigate} installed here; with it, each message shows Frigate's picture.",
+        "data": {
+          "camera_away": "A person while everyone is away",
+          "camera_night": "A person at night",
+          "camera_stranger": "A person Frigate does not know",
+          "camera_package": "A package",
+          "camera_repeat": "Not again on the same camera for"
+        },
+        "data_description": {
+          "camera_away": "Away counts only the people BRAM can see. Ignores quiet hours.",
+          "camera_night": "Uses your night hours under Locks, doors, and windows. Ignores quiet hours.",
+          "camera_stranger": "Only useful with face recognition on in Frigate; without it, every person is unknown.",
+          "camera_repeat": "One person walking past several cameras is also one message."
         }
       }
     }

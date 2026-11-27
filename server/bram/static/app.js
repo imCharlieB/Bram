@@ -1366,7 +1366,7 @@ async function loadHistory() {
 }
 
 const WHAT = { open: "Found", closed: "Over", sent: "Told", "not sent": "Could not be sent", acked: "Acknowledged", stopped: "Stopped", snoozed: "Snoozed" };
-const FROM = { safety: "Safety", silent: "Silent sensor", rules: "Locks and doors", security: "Security", monitors: "Monitor", connection: "Connection", message: "Message", learning: "Learning", problems: "Problem", printers: "Printer" };
+const FROM = { safety: "Safety", silent: "Silent sensor", rules: "Locks and doors", security: "Security", monitors: "Monitor", connection: "Connection", message: "Message", learning: "Learning", problems: "Problem", printers: "Printer", cameras: "Camera" };
 let lastFinding = null;
 
 function findingRow(item) {
