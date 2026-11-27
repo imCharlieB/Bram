@@ -1098,6 +1098,17 @@ function happen(text, kind = "", detail = "", system = "") {
   setTimeout(() => card.remove(), 10500);
 }
 
+// The room is on the card's tab, so the words do not say it again: under MASTER BEDROOM,
+// "Master Bedroom motion: motion detected" is "Motion detected", and a bed lamp is "Bed lamp: on".
+function cardText(device) {
+  const area = (device.area || "").toLowerCase();
+  let rest = device.name;
+  if (area && rest.toLowerCase().startsWith(area)) rest = rest.slice(area.length).trim();
+  const says = device.says || "";
+  const text = !rest || says.toLowerCase().includes(rest.toLowerCase()) ? says : `${rest}: ${says}`;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function happenings(devices) {
   const now = new Map(devices.map((d) => [d.id, d]));
   if (seen.states) {
@@ -1109,7 +1120,7 @@ function happenings(devices) {
       if (["temperature", "humidity", "other"].includes(device.kind)) continue;
       if (device.kind === "motion" && /^(no motion|clear|not detected|no presence)/i.test(device.says)) continue;
       const kind = device.state === "alert" ? "bad" : device.state === "warn" ? "warn" : "";
-      happen(`${device.name}: ${device.says}`, kind, device.area || "", systemOf(device));
+      happen(cardText(device), kind, device.area || "", systemOf(device));
     }
   }
   seen.states = new Map([...now].map(([id, d]) => [id, { says: d.says, state: d.state }]));
@@ -1641,11 +1652,39 @@ const MESSAGES = {
   findings: "findings-message", history: "history-message", log: "log-message", profile: "session-message",
 };
 
+// A page with several sections shows one at a time, with tabs across the top.
+const TABS = {
+  settings: [["homes", "Homes"], ["model", "Model"], ["personality", "Personality"], ["voice", "Voice"], ["memory", "Memory"], ["cameras", "Cameras"], ["router", "Router"]],
+  messages: [["messages", "Messages"], ["monitors", "Monitors"]],
+};
+
+function showTabs(page, wanted) {
+  const tabs = TABS[page];
+  document.getElementById("pages").classList.toggle("tabbed", Boolean(tabs));
+  const bar = $("page-tabs");  // a div, not a nav: the main menu owns those
+  if (!tabs) {
+    bar.hidden = true;
+    return;
+  }
+  const chosen = tabs.some(([place]) => place === wanted) ? wanted : (tabs.find(([place]) => place === seen.tab?.[page]) || tabs[0])[0];
+  seen.tab = { ...(seen.tab || {}), [page]: chosen };
+  bar.hidden = false;
+  bar.replaceChildren(...tabs.map(([place, words]) => {
+    const link = element("a", words);
+    link.href = `#${place}`;
+    if (place === chosen) link.setAttribute("aria-current", "page");
+    return link;
+  }));
+  for (const [place] of tabs) $(`at-${place}`).hidden = place !== chosen;
+}
+
 async function openPage() {
   if (!signedIn) return;
   const wanted = location.hash.slice(1), target = wanted.startsWith("finding=") ? safeDecode(wanted.slice(8)) : null;
   const page = target !== null ? "findings" : PLACES[wanted] || (PAGES.includes(wanted) ? wanted : "overview");
+  if (wanted === "messages") PLACES.messages = "messages";
   for (const section of document.querySelectorAll("[data-page]")) section.hidden = section.dataset.page !== page;
+  showTabs(page, wanted);
   for (const link of document.querySelectorAll("nav a:not(.brand)")) {
     if (link.hash === "#" + page) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
@@ -1663,7 +1702,7 @@ async function openPage() {
   scrollTo(0, 0);
   try {
     await LOADERS[page]();
-    if (PLACES[wanted]) $("at-" + wanted).scrollIntoView();
+
     if (target !== null) await showFinding(target);
   } catch (error) {
     say(MESSAGES[page], error.message, "bad");
@@ -1837,7 +1876,7 @@ onClick("memory-toggle", "memory-message", async () => {
   }
   const confirm = await askPassword("Turn memory on? BRAM keeps what you ask it to remember, and your conversation, on this server.");
   showMemory(await api("memory-on", { confirm, on: true }));
-  return "On";
+  return "Say \"Remember that...\" in chat to keep something.";
 });
 onClick("memory-forget", "memory-message", async () => {
   const confirm = await askPassword("Forget everything BRAM remembers, and your conversation? This cannot be undone.");

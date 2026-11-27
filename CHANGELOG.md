@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.50.1
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- Home has a new command bar along the bottom: the pages on each side and the chat box in the middle, with send, talk, and speak as icons inside it.
+- The brain takes on the color of what just happened, such as warm yellow for lights or green for people, for a few seconds.
+- Settings and Messages show one section at a time, with tabs, instead of uneven columns. Each camera's switches sit side by side.
+- The cards on Home do not repeat the room: under the MASTER BEDROOM tab, "Motion detected".
+
 ## 0.50.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

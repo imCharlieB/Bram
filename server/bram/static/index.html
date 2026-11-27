@@ -71,6 +71,7 @@
   </nav>
 
   <main id="pages">
+    <div id="page-tabs" class="page-tabs" aria-label="Sections" hidden></div>
     <section data-page="overview" id="deck" hidden>
       <div class="hero" id="hero">
         <svg class="butler" viewBox="0 0 200 200" aria-hidden="true">
@@ -156,10 +157,10 @@
         <div id="chat-log" role="log" aria-live="polite"></div>
         <form id="chat-form" class="row">
           <input id="chat-text" maxlength="2000" autocomplete="off" placeholder="Ask about your home, or anything" aria-label="Message" required>
-          <button id="chat-send">Send</button>
-          <button type="button" id="talk" class="quiet" hidden>Hold to talk</button>
+          <button id="chat-send" title="Send"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="label">Send</span></button>
+          <button type="button" id="talk" class="quiet" title="Hold to talk" hidden><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="label">Hold to talk</span></button>
         </form>
-        <label id="aloud-box" hidden><input type="checkbox" id="aloud"> Speak answers</label>
+        <label id="aloud-box" title="Speak answers" hidden><input type="checkbox" id="aloud"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h4l5-4v13l-5-4H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="label">Speak answers</span></label>
         <p class="message" id="chat-message" role="status"></p>
         <p class="note">Talk only: it cannot control anything. Nothing is saved unless <a href="#memory">memory</a> is on. It can be wrong, so check the sensor readings shown under its answers.</p>
       </div>

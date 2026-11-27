@@ -52,6 +52,8 @@ Quiet hours here affect only Home Assistant's messages.
 
 ## On BRAM's page
 
+**Settings** and **Messages** show one section at a time, with tabs across the top.
+
 | Where | Setting | Default |
 |---|---|---|
 | History | Keep history (**Start keeping history** while it is off) | Off |

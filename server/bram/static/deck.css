@@ -344,3 +344,43 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 #hud .side .glass.folded { min-height: 0; height: 22px; padding: 0; flex: 0 0 auto; }
 #hud .side .glass.folded > :not(h2) { display: none; }
 #hud .side .glass > h2:focus-visible { outline: 2px solid var(--hud-warn); outline-offset: 2px; }
+
+/* The command bar: one holographic panel along the bottom, like the alert windows. Pages on
+   each side, and the chat in the middle with send, talk, and speak as icons inside it. */
+#dock { left: 50%; right: auto; bottom: 14px; width: min(1180px, calc(100% - 32px)); transform: translateX(-50%); box-sizing: border-box; justify-content: space-between; gap: 4px; padding: 8px 10px; background: linear-gradient(180deg, color-mix(in srgb, var(--hud) 12%, transparent), rgb(0 8 20 / .88) 60%); border: 1px solid color-mix(in srgb, var(--hud) 55%, transparent); clip-path: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); filter: drop-shadow(0 0 14px color-mix(in srgb, var(--hud) 28%, transparent)); }
+#dock::before { content: ""; position: absolute; left: 22%; right: 22%; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--hud), transparent); opacity: .8; }
+#dock > a { width: auto; height: 40px; flex: none; padding: 0 14px; border: 1px solid transparent; border-radius: 0; background: none; box-shadow: none; font: 700 .66rem var(--mono); letter-spacing: .18em; color: var(--hud-text); opacity: .78; clip-path: polygon(0 6px, 6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }
+#dock > a::after { display: none; }
+#dock > a:hover, #dock > a:focus-visible { opacity: 1; color: var(--hud); border-color: color-mix(in srgb, var(--hud) 60%, transparent); background: var(--hud-fill); box-shadow: none; outline: none; }
+#slot-chat { flex: 1 1 auto; min-width: 0; max-width: 620px; flex-direction: row; align-items: center; gap: 0; height: 44px; margin: 0 8px; padding: 0 4px 0 0; border: 1px solid var(--hud-line); background: rgb(0 4 12 / .85); clip-path: polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+#slot-chat:focus-within { border-color: var(--hud); }
+#slot-chat form { flex: 1; min-width: 0; gap: 2px; height: 100%; }
+#hud #chat-text { flex: 1; width: auto; min-width: 0; height: 100%; padding: 0 14px; border: 0; border-radius: 0; background: none; color: var(--hud-text); font: .9rem var(--mono); outline: none; }
+#hud #chat-send, #hud #talk, #slot-chat #aloud-box { flex: none; display: grid; place-items: center; width: 38px; height: 34px; padding: 0; border: 1px solid transparent; border-radius: 0; background: none; color: var(--hud-text); opacity: .8; box-shadow: none; cursor: pointer; }
+#hud #chat-send:hover, #hud #talk:hover, #slot-chat #aloud-box:hover { opacity: 1; color: var(--hud); background: var(--hud-fill); }
+#hud #chat-send { color: var(--hud); opacity: 1; }
+#hud #talk[hidden], #slot-chat #aloud-box[hidden] { display: none; }
+#hud #talk.live { color: #02131a; background: var(--hud); opacity: 1; box-shadow: 0 0 18px var(--hud); }
+#slot-chat #aloud-box { position: relative; }
+#slot-chat #aloud-box:has(:checked) { color: var(--hud); opacity: 1; border-color: color-mix(in srgb, var(--hud) 60%, transparent); background: var(--hud-fill); box-shadow: none; }
+#slot-chat .icon { display: block; width: 20px; height: 20px; }
+#slot-chat .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#states { bottom: 84px; }
+/* Pages with several sections: one at a time, tabs across the top. */
+.command:not(.on-deck) #pages.tabbed { grid-template-columns: minmax(0, 900px); justify-content: center; }
+.page-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--hud-line); }
+.page-tabs[hidden] { display: none; }
+.page-tabs a { padding: 8px 14px; color: var(--hud-text); opacity: .7; text-decoration: none; font: 700 .7rem var(--mono); letter-spacing: .16em; text-transform: uppercase; clip-path: polygon(0 6px, 6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }
+.page-tabs a:hover { opacity: 1; background: var(--hud-fill); }
+.page-tabs a[aria-current] { opacity: 1; color: #02131a; background: var(--hud); }
+/* Each camera: its name and last event, its switches side by side, then what it sees. */
+#camera-list > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: start; }
+#camera-list > li > span:last-child { display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: flex-end; }
+#camera-list details.scene { grid-column: 1 / -1; }
+@media (max-width: 1200px) {
+  #dock > a { display: grid; padding: 0 8px; letter-spacing: .1em; }
+}
+@media (max-width: 900px), (max-height: 640px) {
+  #dock { width: auto; transform: none; flex-wrap: wrap; justify-content: center; clip-path: none; }
+  #slot-chat { order: -1; flex-basis: 100%; max-width: none; margin: 0 0 6px; }
+}

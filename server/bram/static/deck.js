@@ -12,6 +12,9 @@ const deck = (() => {
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   const TAU = Math.PI * 2;
   let w = 0, h = 0, spin = 0, last = 0, speed = 1, frame = 0, mood = "ok", alarm = "", lastAlarm = 0;
+  // When something happens, the brain takes that system's color for a few seconds.
+  const HUES = { People: "#5dff9d", Lights: "#ffe066", Security: "#ffb84d", Safety: "#ff4d63", Climate: "#7ad7ff", Printers: "#b88cff", Messages: "#ff7ad9", Learning: "#b88cff", "Home Assistant": "#2fe6ff" };
+  let tint = null;
   let color = {}, dust = [], threads = [], systems = [], pulses = [], waves = [], flashes = {};
   let placed = [];
   let ear = null, earKind = "", heard = null, talking = 0, voice = [], sayTimer = 0, outdoor = null;
@@ -44,8 +47,10 @@ const deck = (() => {
   function pulse(name, kind = "main") {
     const i = systems.findIndex((s) => s.name === name), now = performance.now();
     flashes[name] = now;
-    if (i >= 0) pulses.push({ i, born: now, color: color[kind] || color.main });
-    else waves.push({ born: now, color: color[kind] || color.main });
+    const hue = kind === "bad" || kind === "warn" ? color[kind] : HUES[name] || color[kind] || color.main;
+    if (i >= 0) pulses.push({ i, born: now, color: hue });
+    else waves.push({ born: now, color: hue });
+    tint = { color: hue, born: now, hold: kind === "bad" ? 6000 : 3500 };
     wake();
   }
 
@@ -206,6 +211,8 @@ const deck = (() => {
     nodes.filter((n) => n.depth < .5).forEach(node);
 
     // the brain of light
+    const lit = tint ? Math.max(0, 1 - (now - tint.born) / tint.hold) : 0;
+    if (tint && !lit) tint = null;
     g.globalCompositeOperation = "lighter";
     const energy = .45 + talking * .55;
     for (const th of threads) {
@@ -213,7 +220,10 @@ const deck = (() => {
       const L = r * 1.6 * th.len * (1 + talking * .15 * Math.sin(t * 8 + th.ph));
       const ex = o.x + Math.cos(a) * L, ey = o.y + Math.sin(a) * L * .9;
       const cx = o.x + Math.cos(a + th.bend + sway) * L * .55, cy = o.y + Math.sin(a + th.bend + sway) * L * .5;
-      g.globalAlpha = .22 * energy + .1; g.strokeStyle = mood === "ok" ? th.color : base; g.lineWidth = th.width;
+      // A share of the threads take the color of what just happened, more at first.
+      const tinted = lit > 0 && (th.ph % 1) < lit * .85;
+      g.globalAlpha = .22 * energy + .1 + (tinted ? lit * .35 : 0);
+      g.strokeStyle = tinted ? tint.color : mood === "ok" ? th.color : base; g.lineWidth = th.width + (tinted ? lit : 0);
       g.beginPath(); g.moveTo(o.x, o.y); g.quadraticCurveTo(cx, cy, ex, ey); g.stroke();
       g.globalAlpha = .7 * energy; g.fillStyle = g.strokeStyle;
       g.beginPath(); g.arc(ex, ey, th.width + .6, 0, TAU); g.fill();
@@ -222,6 +232,12 @@ const deck = (() => {
     core.addColorStop(0, "rgba(255,255,255,.95)"); core.addColorStop(.25, "rgba(150,240,255,.6)"); core.addColorStop(.6, "rgba(90,110,255,.18)"); core.addColorStop(1, "rgba(47,230,255,0)");
     g.globalAlpha = .7 + .2 * Math.sin(t * 2) + talking * .2; g.fillStyle = core;
     g.beginPath(); g.arc(o.x, o.y, r * 1.1, 0, TAU); g.fill();
+    if (lit > 0) {  // the core blooms in that color, then fades back
+      const bloom = g.createRadialGradient(o.x, o.y, 0, o.x, o.y, r * (1.3 + (1 - lit) * .8));
+      bloom.addColorStop(0, tint.color); bloom.addColorStop(.55, tint.color + "55"); bloom.addColorStop(1, tint.color + "00");
+      g.globalAlpha = .75 * lit; g.fillStyle = bloom;
+      g.beginPath(); g.arc(o.x, o.y, r * 2.2, 0, TAU); g.fill();
+    }
     g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
 
     // the voice ring
