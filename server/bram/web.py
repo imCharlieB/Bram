@@ -59,7 +59,7 @@ FILES = {"": "index.html", "app.js": "app.js", "style.css": "style.css", "icon.p
 
 wall = time.time
 FACTOR_WINDOW = 600
-CAMERAS_IN_HOME = (0, 40)  # Home Assistant shows cameras from this version
+CAMERAS_IN_HOME = (0, 39)  # Home Assistant shows cameras from this version
 
 
 class ConfigPage:

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.39.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Cameras, part 2: BRAM's server tells Home Assistant about each event on the cameras it watches, ready for camera messages. BRAM adds no camera entities; the Frigate integration already has them. With more than one home, choose which one the cameras belong to under **Settings > Cameras**; no other home is told.
+
 ## 0.38.4
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.

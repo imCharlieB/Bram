@@ -16,7 +16,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
 
-from . import gate
+from . import cameras, gate
 from .client import connect
 from .const import CONF_FINGERPRINT, CONF_ROOMS, DOMAIN, MOODS
 from .details import WITH_PARTS, detail, room_sensors, siblings
@@ -113,6 +113,9 @@ class Feed:
         self.beliefs: dict[str, str] = {}
         self.server_version: str | None = None
         self.mood: str | None = None
+        # Cameras the server watches for this home, and each one's latest event (E2).
+        self.camera_names: list[str] = []
+        self.camera_events: dict[str, dict] = {}
 
     @property
     def entities(self) -> list[str]:
@@ -277,6 +280,22 @@ class Feed:
             # Summaries for suggestions only; the owner approves any change (F4).
             self.learner.received(data["nights"], data["opens"])
             return
+        if (isinstance(data, dict) and data.keys() == {"type", "names", "last"}
+                and data["type"] == "cameras"):
+            found = cameras.names(data["names"])
+            if found is not None and isinstance(data["last"], dict):
+                self.camera_names = found
+                events = {n: cameras.event(e) for n, e in data["last"].items() if n in found}
+                self.camera_events = {n: e for n, e in events.items() if e is not None}
+                self._notify()
+                return
+        if (isinstance(data, dict) and data.keys() == {"type", "camera", "event"}
+                and data["type"] == "camera" and data["camera"] in self.camera_names):
+            found = cameras.event(data["event"])
+            if found is not None:
+                self.camera_events[data["camera"]] = found
+                self._notify()
+                return
         if (isinstance(data, dict) and data.keys() == {"type", "mode"}
                 and data["type"] == "mood" and data["mode"] in tuple(MOODS)):
             self.mood = data["mode"]

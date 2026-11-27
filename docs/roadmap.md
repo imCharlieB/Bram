@@ -233,8 +233,7 @@ Optional, for the installation and per person.
 | Unknown person, through Frigate's face recognition | ⬜ |
 | One summary per event: frames while the event lasts, unchanged frames dropped, frames with a person always kept, then the vision model sums it up | ⬜ |
 | Tell only when unusual: the same scene (a parked car, an empty porch) is not told again, the same person not within 30 minutes; a cooldown per camera and across cameras | ⬜ |
-| Recognized people for each camera, as a Home Assistant sensor, with names from Frigate | ⬜ |
-| Last event picture for each camera, as a Home Assistant image, with its summary | ⬜ |
+| A BRAM camera card for dashboards: Frigate's picture with BRAM's description and whether you were told. No camera entities of BRAM's own; the Frigate integration has those | ⬜ |
 | Scheduled camera checks, such as "any packages on the porch?" every hour, told only when the answer is yes | ⬜ |
 
 Blueprints keep these in Home Assistant, where you can see and change them:
@@ -243,7 +242,7 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 |---|---|---|
 | BRAM scheduled check | On a schedule, asks BRAM a question, such as "any packages on the porch?", and tells your phone only when the answer is yes | ✅ 0.35, see [Blueprints](blueprints.md) |
 | BRAM house summary | On a schedule, asks BRAM for the state of the home, cameras included, and sends it | ✅ 0.35, cameras when they come |
-| BRAM camera event | When a camera's recognized people or last event changes, sends the picture, the summary, and the names | ⬜ |
+| BRAM camera event | When BRAM tells you about a camera event, also runs actions you choose, such as turning on a porch light | ⬜ |
 | BRAM finding router | When BRAM finds something, runs a script you choose for that kind of finding. Anything that unlocks, opens, or disarms still needs your approval by a tap (rules A3, A15) | ⬜ |
 
 ## 7. Learning

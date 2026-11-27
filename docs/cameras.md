@@ -1,6 +1,8 @@
 # Cameras
 
-> **Being built.** Part 1, connecting Frigate, works now, and BRAM's page shows each camera's latest event. The rules, messages, and Home Assistant entities below are coming; [the order](#the-order-it-will-be-built) shows what is done.
+> **Being built.** Connecting Frigate and each camera's latest event on BRAM's page work now. The rules and phone messages are coming; [the order](#the-order-it-will-be-built) shows what is done.
+
+**Who talks to Frigate:** only BRAM's server. It reads Frigate's events, names, and pictures, and decides what matters. Home Assistant is told only what BRAM needs for its phone messages.
 
 BRAM watches your cameras through [Frigate](https://frigate.video). Frigate already finds people, cars, animals, and packages, and with face recognition on, who someone is. BRAM adds what Frigate does not: it knows the rest of your home (who is home, what is open or unlocked, night hours), so it can tell you what matters and stay quiet about what does not. A vision model on your own network can describe what happened in a sentence.
 
@@ -45,65 +47,23 @@ Each camera has its own switch for each rule, and the Frigate zones that count, 
 
 The picture Frigate saved, the camera, the time, who Frigate recognized, and the model's description if you chose one, such as "A delivery driver left a box on the porch and walked back to a white van." Tap it to open the event on BRAM's page.
 
-## On BRAM's page and in Home Assistant
+## On BRAM's page
 
 | Where | Shows |
 |---|---|
-| Home, **Looking at** | The latest event: picture, camera, who, and the description |
-| Home, the brain | A **Cameras** system on the orbit, with a closer look listing each camera's last event |
-| Findings | Each event told, with its story |
-| Home Assistant | For each camera: **Last event** (a picture) and **Recognized people** (a sensor), for your own dashboards and automations |
+| Home, **Looking at** | The latest picture from the cameras BRAM watches, and each camera's last event ✅ |
+| Home, over the brain | A window with the picture when something happens on a camera ✅ |
+| Settings > Cameras | Each camera, with its switch and last event ✅ |
+| Findings | Each camera event BRAM told you about, with its story |
 
 ## In Home Assistant
 
-For each camera you turn on, BRAM's device in Home Assistant gets:
+BRAM adds no camera entities. If you use the [Frigate integration](https://docs.frigate.video/integrations/home-assistant), Home Assistant already has each camera, its pictures, and Frigate's sensors; BRAM would only repeat them.
 
-| Entity | Shows | Attributes |
-|---|---|---|
-| `image.bram_<camera>_last_event` | The picture of the latest event told or seen | `camera`, `at`, `summary` |
-| `sensor.bram_<camera>_recognized_people` | Who Frigate recognized in the latest event, such as `Alex, Sam`, or `none` | `people` (a list), `unknown` (how many faces it did not know), `summary`, `label` (person, car, package), `at` |
-| `sensor.bram_<camera>_last_event` | What happened, in a few words, such as `person at the front door` | `label`, `zones`, `at`, `told` (whether your phone was told) |
+What BRAM adds is what Frigate does not have:
 
-They change only when a new event comes in. Use them on your own dashboards and in your own automations; BRAM's messages do not depend on them.
-
-### Example: a dashboard card
-
-```yaml
-type: picture-entity
-entity: image.bram_front_door_last_event
-name: Front door
-show_state: false
-```
-
-Put the summary under it with a markdown card:
-
-```yaml
-type: markdown
-content: >-
-  {{ state_attr('image.bram_front_door_last_event', 'summary') }}
-```
-
-### Example: your own automation
-
-Turn on the porch light when someone Frigate knows arrives after dark:
-
-```yaml
-triggers:
-  - trigger: state
-    entity_id: sensor.bram_front_door_recognized_people
-conditions:
-  - condition: template
-    value_template: "{{ state_attr('sensor.bram_front_door_recognized_people', 'people') | length > 0 }}"
-  - condition: state
-    entity_id: sun.sun
-    state: below_horizon
-actions:
-  - action: light.turn_on
-    target:
-      entity_id: light.porch
-```
-
-This is your automation, not BRAM's: BRAM itself only reads cameras and sends messages.
+- **Phone messages** that decide what matters, using the rest of your home. Their picture comes from the Frigate integration when it is installed.
+- **A BRAM camera card** for your dashboards: Frigate's picture with BRAM's description of what happened and whether you were told. Planned.
 
 ## Ask a camera
 
@@ -163,8 +123,8 @@ On BRAM's page, **Settings > Cameras**:
 | Part | What you get | Status |
 |---|---|---|
 | 1. Connect Frigate | The address and cameras on BRAM's page; each camera's switch | ✅ 0.38 |
-| 2. Events | Each camera's latest event and picture on BRAM's page ✅; the Home Assistant picture and sensors per camera ⬜ | 🟡 |
+| 2. Events | Each camera's latest event and picture on BRAM's page; Home Assistant told of each event, for messages | ✅ 0.39 |
 | 3. Rules and messages | The rules above, with the picture in the message, same-thing-once, and cooldown | ⬜ |
 | 4. Descriptions | The model describes events, per camera | ⬜ |
 | 5. Ask a camera | Chat questions and scheduled checks about what a camera sees | ⬜ |
-| 6. Camera blueprint | A blueprint for your own automations on camera events | ⬜ |
+| 6. Camera card | A dashboard card with Frigate's picture and BRAM's description | ⬜ |

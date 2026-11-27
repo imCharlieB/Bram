@@ -23,6 +23,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
     entry.async_on_unload(async_at_started(hass, add))
 
 
+
 class Belief(BramEntity, SensorEntity):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, source: str) -> None:
         super().__init__(entry, source)
