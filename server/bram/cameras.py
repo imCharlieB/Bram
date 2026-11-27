@@ -532,6 +532,37 @@ class Cameras:
             if asyncio.iscoroutine(result):
                 await result
 
+    def asked_about(self, text: str, house: str | None) -> str | None:
+        """The camera a question names, by its name or one of its Frigate zones. Only cameras
+        chosen for the model, and only for the home they belong to (E2, E4)."""
+        if house not in (None, self.house()):
+            return None
+        words = f" {' '.join(re.sub(r'[^a-z0-9 ]', ' ', text.lower()).split())} "
+        ready = self.described()
+        for camera in ready:
+            names = {place(camera).removesuffix(" camera").removesuffix(" cam"),
+                     *(place(z) for z in self.zones.get(camera, []))}
+            if any(len(n) > 2 and f" {n} " in words for n in names):
+                return camera
+        if len(ready) == 1 and re.search(r"\bcam(era)?s?\b", words):
+            return ready[0]
+        return None
+
+    async def look(self, text: str, house: str | None = None) -> tuple[str, bytes] | None:
+        """A camera's picture now, for a question about it. None if none is meant or ready."""
+        camera = self.asked_about(text, house)
+        frigate = self._client()
+        if camera is None or frigate is None:
+            return None
+        try:
+            found = await frigate._get(f"/api/{quote(camera, safe='')}/latest.jpg?h=720",
+                                       as_json=False, limit=MAX_PICTURE)
+        except FrigateError:
+            return None
+        if not found or found[1] != "image/jpeg" or found[0][:2] != b"\xff\xd8":
+            return None
+        return place(camera), found[0]
+
     def picture(self, camera: object) -> bytes | None:
         if not isinstance(camera, str) or camera not in self.chosen():
             return None

@@ -459,3 +459,17 @@ async def test_a_devices_other_readings_are_in_the_report(env):
             parts=[["Available hot water", "66%"], ["Running", "yes"]])
     await env.chat.ask("k", "how much hot water is left?")
     assert "electric, set to 120; Available hot water 66%, Running yes" in env.system
+
+
+async def test_a_question_about_a_camera_sees_its_picture(env):
+    async def look(text, house):
+        return ("front door", b"\xff\xd8 now") if "porch" in text else None
+
+    env.chat._look = look
+    await env.chat.ask("k", "Is anyone on the porch?")
+    asked = env.seen[-1][0][-1]
+    assert asked.images[0].data == b"\xff\xd8 now"
+    assert "picture from the front door camera, taken just now" in env.system
+    await env.chat.ask("k", "And the kitchen light?")
+    asked = env.seen[-1][0]
+    assert not asked[-1].images and not any(m.images for m in asked)  # the picture is not kept

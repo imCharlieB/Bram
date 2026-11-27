@@ -294,3 +294,20 @@ async def test_only_cameras_chosen_for_it_go_to_the_model(env):
 
     env.cameras.choose("front_door", False)  # off: not described, and nothing kept
     assert not env.cameras.saved()["describe"] and env.cameras.descriptions == {}
+
+
+@pytest.mark.rule("E2")
+async def test_asking_a_camera(env):
+    await env.cameras.connect(env.url)
+    env.cameras.choose("front_door", True)
+    env.cameras.choose("yard", True)
+    env.cameras.zones = {"front_door": ["porch"]}
+    assert env.cameras.asked_about("Is anyone on the porch?", None) is None  # not for the model
+    env.cameras.set_describe("front_door", True)
+    assert env.cameras.asked_about("Is anyone on the porch?", None) == "front_door"
+    assert env.cameras.asked_about("What's at the front door?", None) == "front_door"
+    assert env.cameras.asked_about("Any packages on the cameras?", None) == "front_door"
+    assert env.cameras.asked_about("Anyone in the yard?", None) is None  # watched, not described
+    assert env.cameras.asked_about("Is the kitchen light on?", None) is None
+    assert env.cameras.asked_about("Is anyone on the porch?", "another home") is None
+    assert await env.cameras.look("Is anyone on the porch?") == ("front door", LATEST)

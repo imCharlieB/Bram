@@ -56,6 +56,6 @@ BRAM can ask instead. When, over two weeks, you **Hide** the same finding 3 time
 
 - **Quiet hours** hold routine messages until they end.
 - **Daily limits**: 10 notices, 20 lock and door messages, 8 problem messages, and 30 printer messages a day.
-- **Grouping**: three or more routine messages at once arrive as one.
+- **Grouping**: three or more routine messages at once arrive as one. Urgent ones that come due together, such as several windows open when everyone leaves, arrive as one for each rule.
 
 Everything held back is still in [Findings](findings.md), with its story.

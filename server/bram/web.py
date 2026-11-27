@@ -106,7 +106,7 @@ class ConfigPage:
         self._worlds = worlds or dict
         self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors,
                          look_up=look_up, past=history, findings=findings,
-                         cleanup=self.cleanup, printers=self.printers)
+                         cleanup=self.cleanup, printers=self.printers, look=self.cameras.look)
         self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk,
                                  hear=self.speech.hear)
         self._sessions: dict[str, tuple[float, float, str]] = {}

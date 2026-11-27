@@ -1,6 +1,6 @@
 # Cameras
 
-> **Being built.** Connecting Frigate, each camera's latest event on BRAM's page, and the first camera messages work now. Asking a camera in chat and a dashboard card are coming; [the order](#the-order-it-will-be-built) shows what is done.
+> **Built,** part by part; the last parts came in 0.43. More rules may come; [the order](#the-order-it-will-be-built) shows what is done.
 
 **Who talks to Frigate:** only BRAM's server. It reads Frigate's events, names, and pictures, and decides what matters. Home Assistant is told only what BRAM needs for its phone messages.
 
@@ -89,11 +89,24 @@ BRAM adds no camera entities. If you use the [Frigate integration](https://docs.
 What BRAM adds is what Frigate does not have:
 
 - **Phone messages** that decide what matters, using the rest of your home. Their picture comes from the Frigate integration when it is installed.
-- **A BRAM camera card** for your dashboards: Frigate's picture with BRAM's description of what happened and whether you were told. Planned.
+- **The BRAM camera card** for your dashboards: Frigate's picture of the latest event, what happened, and your model's description.
+
+### The BRAM camera card
+
+It comes with BRAM; there is nothing to install. Edit a dashboard, **Add card**, and search for **BRAM camera**, or add it in YAML:
+
+```yaml
+type: custom:bram-camera-card
+camera: front_door
+```
+
+`camera` is the camera's name in Frigate. Leave it out to show whichever camera saw something last. `title` changes the heading. The picture comes from the Frigate integration; without it, the card shows the words only. It updates every 10 seconds, and only shows: it changes nothing. If it does not appear in the list after updating BRAM, refresh the browser.
 
 ## Ask a camera
 
-In chat: "What is on the porch?" or "Is anyone in the backyard?" BRAM takes the camera's picture now and the model answers, saying it is a description. The scheduled check [blueprint](blueprints.md) can then ask, for example, "Is there a package on the porch?" every hour.
+In chat, on BRAM's page, in Assist, or in Telegram: "Is anyone on the porch?" or "What's in the driveway?" BRAM finds the camera by its name, or by one of its Frigate zones, takes its picture now, and your model answers from it, saying it is what the picture shows. If you have one camera that can be asked, "Any packages on the camera?" works too.
+
+Only cameras with **Describe** on can be asked, since the picture goes to your model. The picture is not kept with the chat. The scheduled check [blueprint](blueprints.md) can ask, for example, "Is there a package on the porch?" every hour, and tell your phone only when the answer is yes.
 
 ## Connect Frigate
 
@@ -153,5 +166,5 @@ On BRAM's page, **Settings > Cameras**:
 | 2. Events | Each camera's latest event and picture on BRAM's page; Home Assistant told of each event, for messages | ✅ 0.39 |
 | 3. Rules and messages | Person while away, at an open or unlocked door, at night, or unknown; packages; cars that stay in a zone; with Frigate's picture, same-thing-once, one message across cameras, and settings for each camera | ✅ 0.41 |
 | 4. Descriptions | Your own model describes events, for the cameras you choose | ✅ 0.42 |
-| 5. Ask a camera | Chat questions and scheduled checks about what a camera sees | ⬜ |
-| 6. Camera card | A dashboard card with Frigate's picture and BRAM's description | ⬜ |
+| 5. Ask a camera | Chat questions and scheduled checks about what a camera sees | ✅ 0.43 |
+| 6. Camera card | A dashboard card with Frigate's picture and BRAM's description | ✅ 0.43 |

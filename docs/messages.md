@@ -59,7 +59,7 @@ In **Messages**, set **Daily summary at**. Once a day it lists what is open, not
 
 The **Watching** menu ends with **Back**, which returns to BRAM's main settings.
 
-Three or more routine messages at once become one, without a button. Night and away messages are never grouped.
+Three or more routine messages at once become one, without a button. Night and away messages that come due together become one for each rule, such as "Everyone I track is away, and these are open or unlocked: Bedroom window and Office window." They are never held back or mixed with routine ones.
 
 ### How often
 

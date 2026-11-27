@@ -53,6 +53,15 @@ UNITS = {"°F": UnitOfTemperature.FAHRENHEIT, "°C": UnitOfTemperature.CELSIUS,
 LIMITS = {UnitOfTemperature.FAHRENHEIT: {"hot_above": 85, "cold_below": 55, "freeze_below": 38},
           UnitOfTemperature.CELSIUS: {"hot_above": 29, "cold_below": 13, "freeze_below": 3}}
 HUMID_ABOVE = 70
+# Several of the same at once, in one sentence, such as two windows open when everyone leaves.
+TOGETHER = {
+    "away": "Everyone I track is away, and these are open or unlocked: {names}.",
+    "night": "It's night, and these are unlocked: {names}.",
+    "open_night": "It's night, and these are open: {names}.",
+    "left_open": "These have been open for {minutes} minutes: {names}.",
+    "offline": "I can't see these. They are offline: {names}.",
+    "motion_away": "Motion while everyone I track is away: {names}.",
+}
 
 
 def limits(unit: str, options: dict[str, Any]) -> dict[str, float]:
@@ -306,11 +315,16 @@ class HouseRules:
                 due.append((rule in URGENT, key, text))
             self._watching(facts, now, quiet)
             routine = [d for d in due if not d[0]]
-            # Several routine messages at once become one. Urgent ones stay on their own.
-            alone = [d for d in due if d[0]] + (routine if len(routine) < GROUP_MIN else [])
-            batches = [[d] for d in alone]
+            # Several routine messages at once become one. Urgent ones that come due together,
+            # such as two windows open when everyone leaves, become one for each rule.
+            batches = []
+            for rule in dict.fromkeys(k.partition(":")[0] for u, k, _ in due if u):
+                same = [d for d in due if d[0] and d[1].partition(":")[0] == rule]
+                batches += [same[i:i + GROUP_MAX] for i in range(0, len(same), GROUP_MAX)]
             if len(routine) >= GROUP_MIN:
                 batches += [routine[i:i + GROUP_MAX] for i in range(0, len(routine), GROUP_MAX)]
+            else:
+                batches += [[d] for d in routine]
             for batch in batches:
                 if len(self._sent) >= DAILY:
                     break
@@ -319,7 +333,7 @@ class HouseRules:
                            *([] if batch[0][0] else self._teller.actions(f"rule:{key}"))
                            ] if len(batch) == 1 else []
                 if await notify(self._hass, self._phones, "BRAM watch",
-                                "\n".join(text for _, _, text in batch), f"bram_{key}",
+                                self._together(batch), f"bram_{key}",
                                 safety=False, actions=actions,
                                 finding=f"rules:{key}" if len(batch) == 1 else None):
                     self._told.update(k for _, k, _ in batch)
@@ -331,6 +345,17 @@ class HouseRules:
                             self._teller.told(f"rule:{k}", text)
                     self._sent.append(now)
                     self._save()
+
+    def _together(self, batch: list[tuple[bool, str, str]]) -> str:
+        """One message for a batch: one sentence when all are the same rule, else lines."""
+        rules = {k.partition(":")[0] for _, k, _ in batch}
+        rule = next(iter(rules))
+        if len(batch) == 1 or len(rules) > 1 or rule not in TOGETHER:
+            return "\n".join(text for _, _, text in batch)
+        names = [self._name(k.partition(":")[2]) for _, k, _ in batch]
+        listed = ", ".join(names[:-1]) + f", and {names[-1]}" if len(names) > 2 else \
+            " and ".join(names)
+        return TOGETHER[rule].format(names=listed, minutes=self._open_seconds // 60)
 
     def _watching(self, facts: dict, now: float, quiet: bool) -> None:
         """What is counting down, for BRAM's page. Holds are written down once, with why."""

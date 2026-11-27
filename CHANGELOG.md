@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.43.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Ask a camera: "Is anyone on the porch?" in chat, Assist, or Telegram. BRAM takes that camera's picture now and your model answers from it. Only cameras with **Describe** on can be asked. See [Ask a camera](docs/cameras.md#ask-a-camera).
+- The BRAM camera card for dashboards: Frigate's picture of the latest event with what happened and your model's description. Add a card and search for **BRAM camera**; nothing to install. See [the card](docs/cameras.md#the-bram-camera-card).
+- One message instead of several: night and away messages that come due together, such as two windows open when everyone leaves, arrive as one, such as "Everyone I track is away, and these are open or unlocked: My window and Mom's window."
+
 ## 0.42.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

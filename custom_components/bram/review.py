@@ -13,6 +13,7 @@ from homeassistant.components import frontend, panel_custom, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant, callback
 
+from .camera_watch import picture
 from .const import DOMAIN
 
 PANEL = "bram-review"
@@ -57,6 +58,23 @@ def _answer(hass: HomeAssistant, connection: websocket_api.ActiveConnection,
         connection.send_error(msg["id"], "gone", "This suggestion is no longer waiting.")
 
 
+@websocket_api.websocket_command({vol.Required("type"): "bram/cameras"})
+@callback
+def _cameras(hass: HomeAssistant, connection: websocket_api.ActiveConnection,
+             msg: dict[str, Any]) -> None:
+    """For the BRAM camera card: each watched camera's latest event, BRAM's words, and the
+    Frigate integration's picture of it. Shows only; anyone signed in may see it, as they may
+    see the cameras themselves."""
+    cameras = []
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        feed = getattr(entry, "runtime_data", None)
+        for name in getattr(feed, "camera_names", []):
+            event = feed.camera_events.get(name)
+            cameras.append({"name": name, "event": event,
+                            "image": picture(hass, event) if event else None})
+    connection.send_result(msg["id"], {"cameras": cameras})
+
+
 async def start(hass: HomeAssistant) -> None:
     """Once per Home Assistant run: the page, its script, and its two commands."""
     if hass.data.get(READY):
@@ -64,11 +82,14 @@ async def start(hass: HomeAssistant) -> None:
     hass.data[READY] = True
     websocket_api.async_register_command(hass, _list)
     websocket_api.async_register_command(hass, _answer)
+    websocket_api.async_register_command(hass, _cameras)
     # Home Assistant always runs its frontend; a bare test setup may not.
     if "frontend" not in hass.config.components or hass.http is None:
         return
     await hass.http.async_register_static_paths(
         [StaticPathConfig(STATIC, str(FILES), cache_headers=False)])
+    # The BRAM camera card, ready to add to any dashboard; nothing to install by hand.
+    frontend.add_extra_js_url(hass, f"{STATIC}/camera-card.js")
     if PANEL not in hass.data.get(frontend.DATA_PANELS, {}):
         await panel_custom.async_register_panel(
             hass, frontend_url_path=PANEL, webcomponent_name="bram-review",

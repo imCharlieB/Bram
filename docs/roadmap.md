@@ -227,7 +227,7 @@ Optional, for the installation and per person.
 | Connect Frigate, with its login port and a pinned certificate; choose cameras | ✅ 0.38, [Cameras](cameras.md) |
 | Frigate events: people, vehicles, pets, packages | 🟡 latest event and picture on BRAM's page |
 | A vision model describes each event, for the cameras you choose | ✅ 0.42 |
-| Ask what a camera sees | ⬜ |
+| Ask what a camera sees, in chat and in scheduled checks | ✅ 0.43 |
 | Person while away, at night, or not known to Frigate; packages | ✅ 0.40, [Cameras](cameras.md) |
 | Person at an open or unlocked door; a car that stays in a zone; zones and messages for each camera | ✅ 0.41 |
 | Motion with no camera activity | ⬜ |
@@ -236,7 +236,7 @@ Optional, for the installation and per person.
 | Unknown person, through Frigate's face recognition | ⬜ |
 | One summary per event: frames while the event lasts, unchanged frames dropped, frames with a person always kept, then the vision model sums it up | ⬜ |
 | Tell only when unusual: the same scene (a parked car, an empty porch) is not told again, the same person not within 30 minutes; a cooldown per camera and across cameras | ⬜ |
-| A BRAM camera card for dashboards: Frigate's picture with BRAM's description and whether you were told. No camera entities of BRAM's own; the Frigate integration has those | ⬜ |
+| A BRAM camera card for dashboards: Frigate's picture with BRAM's description. No camera entities of BRAM's own; the Frigate integration has those | ✅ 0.43 |
 | Scheduled camera checks, such as "any packages on the porch?" every hour, told only when the answer is yes | ⬜ |
 
 Blueprints keep these in Home Assistant, where you can see and change them:

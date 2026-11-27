@@ -14,6 +14,7 @@ Type to BRAM on its home page. It uses the model and personality from **Settings
 | Turn on | Ask | It reads |
 |---|---|---|
 | **History of shared devices** | "When was the back door last opened?" "How often did the garage open this week?" | 10 days of one to three devices named in the question, only devices BRAM can see |
+| **Cameras** | "Is anyone on the porch?" "What's in the driveway?" | The camera's picture now, for cameras with Describe on. See [Cameras](cameras.md#ask-a-camera) |
 | **Home Assistant problems** | "Any errors in Home Assistant?" "Any low batteries?" | Grouped errors and warnings, failed integrations, open repairs, low batteries, updates |
 | **Security check** | "Is my home secure?" "Is anything exposed?" | See [Security check](security-check.md) |
 

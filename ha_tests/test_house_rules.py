@@ -213,7 +213,7 @@ async def test_several_routine_messages_become_one(env):
     for door in doors:
         env.hass.states.async_set(door, "unavailable", {"device_class": "garage"})
     await env.wait(10)
-    assert len(env.calls) == 1 and env.texts()[0].count("offline") == 4
+    assert env.texts() == ["I can't see these. They are offline: d0, d1, d2, and d3."]
     assert env.calls[0].data["data"]["actions"] == []
 
 
@@ -344,3 +344,15 @@ async def test_asleep_helper_makes_it_night(env):
     assert env.texts() == ["Front lock is unlocked, and it's night."]
     env.hass.states.async_set("input_boolean.asleep", "unavailable")
     assert not env.rules.is_night()  # unknown changes nothing; the hours still count
+
+
+async def test_everything_open_when_everyone_leaves_is_one_message(env):
+    windows = ["binary_sensor.w1", "binary_sensor.w2"]
+    await env.start(entities=[*windows, ALEX], away=True)
+    for window, name in zip(windows, ("My window", "Mom's window"), strict=True):
+        env.hass.states.async_set(window, "on", {"device_class": "window",
+                                                 "friendly_name": name})
+    await env.set(ALEX, "not_home")
+    await env.wait(5)
+    assert env.texts() == [
+        "Everyone I track is away, and these are open or unlocked: My window and Mom's window."]
