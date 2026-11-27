@@ -42,7 +42,7 @@ Leak, smoke, CO, gas, and heat alerts are always on for the safety sensors you s
 
 | Page | What it watches |
 |---|---|
-| **Home Assistant and security** | Failed integrations, repeating errors, low batteries, offline devices, broken automations, old backups. Also the hourly security check. See [Problems with Home Assistant](problems.md) and [Security check](security-check.md) |
+| **Home Assistant and security** | Failed integrations, repeating errors, low batteries, offline devices, broken automations, old backups. Also the security check, every 10 minutes. See [Problems with Home Assistant](problems.md) and [Security check](security-check.md) |
 | **Locks, doors, and windows** | Locks, doors, windows, garage doors, and motion. See below |
 | **Temperature and humidity** | Too hot, too cold, near freezing, and humid, with your own limits in your home's unit. Leave out sensors that are outside, or meant to be hot or cold |
 | **Cameras** | A person while everyone is away, at an open or unlocked door, or at night; a person Frigate does not know; packages; cars that stay in your driveway. See [Cameras](#cameras) below |

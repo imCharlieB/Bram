@@ -16,12 +16,16 @@ from .home_alerts import within
 from .notifier import notify
 from .security import check
 
+EVERY = datetime.timedelta(minutes=10)  # a new device while everyone is away is not an hour old
+
 
 class SecurityWatch:
-    """Checks every hour and tells once about anything new. Off by default."""
+    """Checks every 10 minutes and tells once about anything new. Off by default."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry,
-                 note: Callable[..., None] = lambda *a: None) -> None:
+                 note: Callable[..., None] = lambda *a: None,
+                 away: Callable[[], bool] = lambda: False) -> None:
+        self._away = away
         self._note = note
         self._hass = hass
         self._on: bool = entry.options.get(CONF_SECURITY_WATCH, False)
@@ -36,13 +40,13 @@ class SecurityWatch:
         self._known, self._told = saved.get("known"), set(saved.get("told", []))
         if not self._on:
             return lambda: None
-        return async_track_time_interval(self._hass, self._tick, datetime.timedelta(hours=1))
+        return async_track_time_interval(self._hass, self._tick, EVERY)
 
     async def _tick(self, now: datetime.datetime) -> None:
         await self.run()
 
     async def run(self) -> None:
-        result = await check(self._hass, self._known)
+        result = await check(self._hass, self._known, self._away())
         first = self._known is None
         new = [f for f in result["findings"] if f["key"] not in self._told]
         current = {f["key"] for f in result["findings"]}
@@ -66,6 +70,8 @@ class SecurityWatch:
         if "Accounts and tokens" in result["not_checked"] and first:
             return  # learning from an empty list would call every account new
         self._told = current
+        # A kind that could not be looked at this time is not learned from an empty list.
         self._known = {kind: sorted(set(ids) | set((self._known or {}).get(kind, [])))
-                       for kind, ids in result["ids"].items()}
+                       for kind, ids in result["ids"].items()
+                       if ids or kind in (self._known or {})}
         await self._store.async_save({"known": self._known, "told": sorted(self._told)})

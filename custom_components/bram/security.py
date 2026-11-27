@@ -10,6 +10,7 @@ from typing import Any
 
 from homeassistant.auth.models import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
 from homeassistant.core import HomeAssistant, State
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
@@ -19,8 +20,15 @@ PRINTERS = {"bambu_lab", "moonraker", "octoprint", "prusalink", "elegoo_printer"
             "creality", "ha_creality_ws", "anycubic_cloud"}
 OFFLINE = datetime.timedelta(minutes=30)
 ASSISTANTS = {"conversation": "Assist", "cloud.alexa": "Alexa", "cloud.google_assistant": "Google"}
-NOT_CHECKED = ["Your router and network", "Remote access through Home Assistant Cloud",
-               "Z-Wave security levels", "App ports", "Passwords and two-factor sign-in"]
+NOT_CHECKED = ["Remote access through Home Assistant Cloud",
+               "Passwords and two-factor sign-in"]
+# Router integrations: their device list, firmware, and guest Wi-Fi.
+ROUTERS = {"opnsense", "pfsense", "unifi", "fritz", "eero", "netgear", "asuswrt", "tplink_omada",
+           "openwrt", "luci", "ubus", "keenetic_ndms2", "mikrotik", "ruckus_unleashed",
+           "tplink_router", "huawei_lte", "synology_srm", "vodafone_station", "nmap_tracker",
+           "ping"}
+RADIOS = {"zha": "Zigbee", "deconz": "Zigbee", "zwave_js": "Z-Wave", "matter": "Matter",
+          "thread": "Thread", "homekit_controller": "HomeKit"}
 
 
 def _sensitive(state: State) -> bool:
@@ -33,11 +41,26 @@ def _finding(key: str, level: str, text: str) -> dict[str, str]:
     return {"key": key, "level": level, "text": text}
 
 
-async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None) -> dict[str, Any]:
+def _zwave_security(hass: HomeAssistant, device_id: str) -> str | None:
+    """A Z-Wave device's best security class, such as S2_ACCESS_CONTROL, or None."""
+    from homeassistant.components.zwave_js.helpers import async_get_node_from_device_id
+    node = async_get_node_from_device_id(hass, device_id)
+    found = getattr(node, "highest_security_class", None)
+    return getattr(found, "name", None) if found is not None else None
+
+
+async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None,
+                away: bool = False) -> dict[str, Any]:
     """Findings, most serious first. Each check that fails is listed as not run."""
     found: list[dict[str, str]] = []
     missed = list(NOT_CHECKED)
-    ids: dict[str, list[str]] = {"admins": [], "tokens": []}
+    ids: dict[str, list[str]] = {"admins": [], "tokens": [], "network": [], "radio": []}
+    registry, devices = er.async_get(hass), dr.async_get(hass)
+    domains = {e.entry_id: e.domain for e in hass.config_entries.async_entries()}
+
+    def owner(entity_id: str) -> str | None:
+        entry = registry.async_get(entity_id)
+        return domains.get(entry.config_entry_id) if entry and entry.config_entry_id else None
 
     async def accounts() -> None:
         now = dt_util.utcnow()
@@ -155,11 +178,115 @@ async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None) 
         if names:
             found.append(_finding("updates", "low", f"Updates waiting: {', '.join(names[:4])}"))
 
+    def network() -> None:
+        """Devices on the network: from Home Assistant's own DHCP discovery, which sees any
+        device that asks the network for an address, whatever the router, and from any router
+        integration's device list. New ones are told once."""
+        seen: dict[str, str] = {}
+        for state in hass.states.async_all("device_tracker"):
+            if state.attributes.get("source_type") == "router" or owner(state.entity_id) in ROUTERS:
+                seen[state.entity_id] = state.name
+        # Home Assistant's DHCP discovery keeps what it has seen under its own name.
+        addresses = getattr(hass.data.get("dhcp"), "address_data", None) or {}
+        for mac, data in list(addresses.items()):
+            name = str(data.get("hostname") or "").strip()
+            where = data.get("ip") or "an unknown address"
+            seen[f"dhcp:{mac.lower()}"] = name or f"a device at {where}"
+        if not seen:
+            missed.append("Devices on your network: Home Assistant's network discovery has seen "
+                          "none yet")
+            return
+        ids["network"] = sorted(seen)
+        if known is None or "network" not in known:
+            return  # the first look learns what is already there
+        for key, name in seen.items():
+            if key in known["network"]:
+                continue
+            where = " while everyone is away" if away else ""
+            found.append(_finding(f"new:network:{key}", "high" if away else "medium",
+                                  f"A new device joined your network{where}: {name}"))
+
+    def radio() -> None:
+        """New Zigbee, Z-Wave, Matter, and other paired devices, told once."""
+        here: dict[str, tuple[str, str]] = {}
+        for entry in hass.config_entries.async_entries():
+            kind = RADIOS.get(entry.domain) or ("Zigbee" if entry.domain == "mqtt" else None)
+            if kind is None:
+                continue
+            for device in dr.async_entries_for_config_entry(devices, entry.entry_id):
+                # Zigbee2MQTT's devices; not everything else that speaks MQTT.
+                if entry.domain == "mqtt" and not any(
+                        "zigbee2mqtt" in str(part) for part in device.identifiers):
+                    continue
+                if device.entry_type is None:
+                    here[device.id] = (kind, device.name_by_user or device.name or "A device")
+        ids["radio"] = sorted(here)
+        if known is None or "radio" not in known:
+            return
+        for device_id, (kind, name) in here.items():
+            if device_id not in known["radio"]:
+                found.append(_finding(f"new:radio:{device_id}", "medium",
+                                      f"A new {kind} device was paired: {name}"))
+
+    def zwave_locks() -> None:
+        """Z-Wave locks joined without S2, the strong kind of Z-Wave security."""
+        weak = []
+        for entry in hass.config_entries.async_entries("zwave_js"):
+            for item in er.async_entries_for_config_entry(registry, entry.entry_id):
+                if item.domain != "lock" or not item.device_id:
+                    continue
+                level = _zwave_security(hass, item.device_id)
+                if level is None or not level.startswith("S2"):
+                    state = hass.states.get(item.entity_id)
+                    weak.append(state.name if state else item.entity_id)
+        if weak:
+            found.append(_finding("zwave_weak", "medium", "Z-Wave lock without S2 security, so "
+                                  f"its radio is easier to fool: {', '.join(sorted(weak)[:4])}. "
+                                  "Pair it again with S2"))
+
+    def router() -> None:
+        """The router's own firmware, and guest Wi-Fi left on."""
+        waiting = [s.name for s in hass.states.async_all("update")
+                   if s.state == "on" and owner(s.entity_id) in ROUTERS]
+        if waiting:
+            found.append(_finding("router_update", "medium",
+                                  f"Router update waiting: {', '.join(waiting[:3])}"))
+        guests = [s.name for s in hass.states.async_all("switch")
+                  if s.state == "on" and "guest" in s.entity_id and owner(s.entity_id) in ROUTERS]
+        if guests:
+            found.append(_finding("guest_wifi", "low",
+                                  f"Guest Wi-Fi is on: {', '.join(guests[:3])}"))
+
+    def apps() -> None:
+        """Home Assistant apps with protection off, or with ports open on the host."""
+        if "hassio" not in hass.config.components:
+            return
+        from homeassistant.components.hassio import get_addons_info
+        unprotected, ports = [], []
+        for slug, info in (get_addons_info(hass) or {}).items():
+            if not isinstance(info, dict) or info.get("state") not in ("started", None):
+                continue
+            name = str(info.get("name") or slug)
+            if info.get("protected") is False:
+                unprotected.append(name)
+            network = info.get("network")
+            if isinstance(network, dict) and any(v for v in network.values()):
+                ports.append(name)
+        if unprotected:
+            found.append(_finding("apps_unprotected", "medium", "Apps running with protection "
+                                  f"mode off: {', '.join(sorted(unprotected)[:4])}"))
+        if ports:
+            found.append(_finding("apps_ports", "low", "Apps with ports open on the host: "
+                                  f"{', '.join(sorted(ports)[:6])}. Close any you do not use"))
+
     for label, step in (("Accounts and tokens", accounts), ("Failed sign-ins", logins),
                         ("Sign-in bypass", bypass), ("Voice assistant exposure", exposed),
                         ("Webhooks", webhooks), ("Offline security devices", offline),
                         ("Zigbee joining", joining), ("Outside address", address),
-                        ("UPnP", upnp), ("Updates", updates)):
+                        ("UPnP", upnp), ("Updates", updates),
+                        ("Devices on your network", network), ("New paired devices", radio),
+                        ("Z-Wave lock security", zwave_locks), ("Router", router),
+                        ("App protection and ports", apps)):
         try:
             result = step()
             if asyncio.iscoroutine(result):

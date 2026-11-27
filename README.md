@@ -30,7 +30,7 @@ BRAM watches the devices you choose, tells your phone when something matters, re
 | **Motion and comfort** | Motion while everyone is away. Too hot, too cold, near freezing, and humid, with your own limits |
 | **Problems with Home Assistant** | Failed integrations, repeating errors, low batteries, offline devices, stuck sensors, broken automations, old backups |
 | **3D printers** | Found by itself: progress, time left, temperatures. Told when a print finishes, fails, or pauses, or a heater is left on |
-| **Security check** | New admins and tokens, failed sign-ins, locks exposed to voice assistants, public webhooks, offline cameras, and more |
+| **Security check** | New devices on your network, new paired Zigbee and Z-Wave devices, weak Z-Wave locks, router updates, app ports, new admins and tokens, failed sign-ins, locks exposed to voice assistants, public webhooks, offline cameras, and more |
 | **Findings** | One list of everything it found, with the story of each |
 | **History and trends** | Temperatures, and every heating and cooling run with its settings. Compares each thermostat with the room's own sensor |
 | **Learning** | Suggests better night hours from BRAM's history, and fewer messages about what you keep hiding. Nothing changes until you approve |

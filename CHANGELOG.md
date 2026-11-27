@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.48.0
+
+Update BRAM in HACS, then restart Home Assistant. The server has no change; updating it too keeps the versions the same.
+
+- The security check now also tells you about a new device on your network, from Home Assistant's own network discovery and any router integration, urgent if everyone is away; a new Zigbee, Z-Wave, Matter, Thread, or HomeKit device paired; Z-Wave locks without S2 security; a router update waiting or guest Wi-Fi on; and apps with protection off or ports open. It first learns what is already there.
+- It runs every 10 minutes instead of every hour. See [Security check](docs/security-check.md).
+
 ## 0.47.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

@@ -28,7 +28,7 @@ The log holds events such as connections, sign-ins, alerts, and messages sent, i
 
 ## In Home Assistant
 
-The connection token, BRAM's options, open alerts, stopped messages, which device types it has seen, and notes waiting for the server. If the hourly security check is on, the ids of known administrators and tokens (never the tokens) and the findings already told. If [learning](learning.md) is on, the nights and door times the server sent, for the last 60 days. BRAM's [blueprints](blueprints.md), as files under `blueprints/automation/bram`; they do nothing until you make an automation from one. Home Assistant's own history records the lines on BRAM's device page like any other sensor.
+The connection token, BRAM's options, open alerts, stopped messages, which device types it has seen, and notes waiting for the server. If the security check is on, the ids of known administrators and tokens (never the tokens), the devices already seen on your network and paired by radio, and the findings already told. If [learning](learning.md) is on, the nights and door times the server sent, for the last 60 days. BRAM's [blueprints](blueprints.md), as files under `blueprints/automation/bram`; they do nothing until you make an automation from one. Home Assistant's own history records the lines on BRAM's device page like any other sensor.
 
 ## Kept only in memory
 

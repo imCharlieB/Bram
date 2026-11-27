@@ -33,7 +33,7 @@ BRAM is the brain of the house: it monitors and protects it. Its job: **notice**
 | Recommended setup and suggestions | ✅ | [Configuration](configuration.md) |
 | Leak, smoke, CO, gas, and heat alerts that repeat until acknowledged | ✅ | [Watching](watching.md) |
 | Lock and door rules, silent sensors | ✅ | [Watching](watching.md) |
-| Home Assistant security check, hourly or when asked | ✅ | [Security check](security-check.md) |
+| Home Assistant security check, every 10 minutes or when asked | ✅ | [Security check](security-check.md) |
 | HA phone app, Telegram, ntfy | ✅ | [Messages](messages.md) |
 | Quiet hours, daily limits, Stop these, grouping, daily summary | ✅ | [Messages](messages.md) |
 | Monitors for things outside Home Assistant | ✅ | [Monitors](monitors.md) |
@@ -139,10 +139,14 @@ BRAM looks by itself. Plain rules decide what is a problem. One finding per prob
 |---|---|
 | New admins and tokens, old tokens, failed sign-ins, login bypass | ✅ |
 | Locks exposed to voice assistants, webhooks, offline locks and cameras, UPnP set up, Zigbee joining | ✅ |
-| Apps with open ports or protection off, HA Cloud remote access, sign-in blocking misconfigured | ⬜ |
-| New Zigbee, Z-Wave, Bluetooth, or Matter device; Z-Wave joining open; weak Z-Wave security; coordinator updates | ⬜ |
-| New device on the network, with Trust; unconfigured discovered devices | ⬜ |
-| Router update, changed public address, new port opened, guest Wi-Fi left on, router protection off, unusual data use | ⬜ |
+| Apps with open ports or protection off | ✅ 0.48 |
+| HA Cloud remote access, sign-in blocking misconfigured | ⬜ |
+| New Zigbee, Z-Wave, Matter, Thread, or HomeKit device; Z-Wave locks without S2 | ✅ 0.48 |
+| Z-Wave joining open; coordinator updates; Bluetooth trackers | ⬜ |
+| New device on the network, from Home Assistant's network discovery and any router integration; urgent while everyone is away | ✅ 0.48 |
+| Connect an OPNsense router directly, with a read-only key: every device, firmware | ⬜ next |
+| Router update waiting, guest Wi-Fi left on | ✅ 0.48 |
+| Changed public address, new port opened, router protection off, unusual data use | ⬜ |
 | Z-Wave locks without S2 security; Bluetooth trackers that follow you home | ⬜ |
 | The model sees only counts and fixed titles from the check; addresses and device IDs removed | ⬜ |
 | Beyond HGA: a new network device while everyone is away is urgent; Home Assistant backups missing or older than a week; certificates about to expire; a security device's battery low | ⬜ |

@@ -293,7 +293,7 @@
         "description": "What BRAM finds is sent to the BRAM Server for Findings, with passwords, tokens, and addresses removed. Removal cannot catch everything.",
         "data": {
           "problem_watch": "Watch Home Assistant for problems",
-          "security_watch": "Run the security check every hour"
+          "security_watch": "Run the security check every 10 minutes"
         },
         "data_description": {
           "problem_watch": "On: you are told about failed integrations, repeating errors, low batteries, offline devices, broken automations, old backups, and a full disk.",

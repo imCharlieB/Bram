@@ -10,7 +10,7 @@ Everything BRAM found and what became of it, on BRAM's page under **Findings**.
 | [Learning](learning.md) | A suggestion waiting, and how it was answered |
 | [Problems](problems.md), if turned on | Failed integrations, repeating errors, batteries, offline devices, automations, backups |
 | [3D printers](printers.md), if turned on | Finished, failed, paused, heater left on |
-| [Security check](security-check.md), if its hourly check is on | New token, failed sign-in, offline camera |
+| [Security check](security-check.md), if its regular check is on | New token, new device on your network, failed sign-in, offline camera |
 | [Monitors](monitors.md) and connection | A monitor not answering, Home Assistant not answering |
 | Messages | Daily summary |
 

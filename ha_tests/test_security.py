@@ -27,7 +27,7 @@ def texts(result):
 async def test_a_plain_home_has_no_findings_but_says_what_it_skipped(hass):
     result = await check(hass)
     assert result["findings"] == []
-    assert "Your router and network" in result["not_checked"]
+    assert any(n.startswith("Devices on your network") for n in result["not_checked"])
 
 
 async def test_findings(hass):
@@ -111,3 +111,54 @@ async def test_printer_cameras_are_not_security_devices(hass, freezer):
         hass.states.async_set(entry.entity_id, "unavailable", {"friendly_name": platform.title()})
     freezer.tick(datetime.timedelta(minutes=31))
     assert texts(await check(hass)) == ["Offline: Generic"]
+
+
+async def test_new_devices_on_the_network_and_paired(hass):
+    from homeassistant.helpers import device_registry as dr
+
+    DATA_DHCP = "dhcp"  # Home Assistant's own key for what its DHCP discovery has seen
+    hass.data[DATA_DHCP] = SimpleNamespace(address_data={
+        "aa:bb:cc:00:00:01": {"hostname": "laptop", "ip": "10.0.0.5"}})
+    zigbee = MockConfigEntry(domain="zha")
+    zigbee.add_to_hass(hass)
+    first = await check(hass, {})
+    assert first["ids"]["network"] == ["dhcp:aa:bb:cc:00:00:01"]
+    known = {k: v for k, v in first["ids"].items()}
+    assert not [f for f in first["findings"] if f["key"].startswith("new:")]
+    hass.data[DATA_DHCP].address_data["AA:BB:CC:00:00:02"] = {"hostname": "", "ip": "10.0.0.9"}
+    dr.async_get(hass).async_get_or_create(config_entry_id=zigbee.entry_id, name="Door sensor",
+                                           identifiers={("zha", "x")})
+    later = await check(hass, known, away=True)
+    news = {f["key"]: (f["level"], f["text"]) for f in later["findings"]
+            if f["key"].startswith("new:")}
+    assert news["new:network:dhcp:aa:bb:cc:00:00:02"] == (
+        "high", "A new device joined your network while everyone is away: a device at 10.0.0.9")
+    (paired,) = [v for k, v in news.items() if k.startswith("new:radio:")]
+    assert paired == ("medium", "A new Zigbee device was paired: Door sensor")
+    del hass.data[DATA_DHCP]
+
+
+async def test_router_update_guest_wifi_and_weak_zwave_locks(hass):
+    router = MockConfigEntry(domain="opnsense")
+    router.add_to_hass(hass)
+    registry = er.async_get(hass)
+    for domain, object_id, state in (("update", "firmware", "on"), ("switch", "guest_wifi", "on")):
+        made = registry.async_get_or_create(domain, "opnsense", object_id,
+                                            config_entry=router, suggested_object_id=object_id)
+        hass.states.async_set(made.entity_id, state, {"friendly_name": object_id})
+    zwave = MockConfigEntry(domain="zwave_js")
+    zwave.add_to_hass(hass)
+    from homeassistant.helpers import device_registry as dr
+    device = dr.async_get(hass).async_get_or_create(config_entry_id=zwave.entry_id,
+                                                    identifiers={("zwave_js", "1")})
+    lock = registry.async_get_or_create("lock", "zwave_js", "1", config_entry=zwave,
+                                        device_id=device.id, suggested_object_id="front")
+    hass.states.async_set(lock.entity_id, "locked", {"friendly_name": "Front lock"})
+    with patch("custom_components.bram.security._zwave_security", return_value="S0_LEGACY"):
+        said = " | ".join(texts(await check(hass)))
+    for words in ("Router update waiting: firmware", "Guest Wi-Fi is on: guest_wifi",
+                  "Z-Wave lock without S2 security", "Front lock"):
+        assert words in said, words
+    with patch("custom_components.bram.security._zwave_security",
+               return_value="S2_ACCESS_CONTROL"):
+        assert "S2" not in " | ".join(texts(await check(hass)))
