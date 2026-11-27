@@ -72,3 +72,11 @@ def test_words_from_the_model_are_checked():
     assert cameras.event(base)["description"] is None
     assert cameras.event({**base, "description": "x" * 301}) is None
     assert cameras.event({**base, "description": ""}) is None
+
+
+def test_not_news_patterns_are_checked():
+    good = [{"camera": "yard", "label": "person", "zones": ["path", "gate"]}]
+    assert cameras.patterns(good) == [("yard", "person", ("gate", "path"))]
+    assert cameras.patterns([{**good[0], "extra": 1}]) is None
+    assert cameras.patterns([{**good[0], "camera": "../x"}]) is None
+    assert cameras.patterns("yard") is None

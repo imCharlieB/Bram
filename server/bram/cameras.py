@@ -316,6 +316,7 @@ class Cameras:
         # The owner's own model describes events, only for cameras chosen for it (E2).
         self.describer: Callable[[bytes, str], Any] | None = None
         self.descriptions: dict[str, str] = {}  # event id: the model's words
+        self.told: dict[str, None] = {}  # event ids Home Assistant told the owner about
         self.model_problem = ""
         self._describing: set[str] = set()
         self._tasks: set[asyncio.Task] = set()
@@ -359,6 +360,56 @@ class Cameras:
     def description(self, event: dict[str, Any] | None) -> str | None:
         return self.descriptions.get(event["id"]) if event else None
 
+    # --- told, and not news ---
+
+    def mark_told(self, camera: object) -> None:
+        """Home Assistant told the owner about this camera just now: its latest event."""
+        event = self.last(camera) if isinstance(camera, str) else None
+        if event is not None and self._clock() - event["start"] < RECENT:
+            self.told[event["id"]] = None
+            while len(self.told) > 200:
+                self.told.pop(next(iter(self.told)))
+
+    def quiet(self) -> list[dict[str, Any]]:
+        return self.saved().get("quiet", [])
+
+    def quiet_for(self, event: dict[str, Any] | None) -> dict[str, Any] | None:
+        """What the owner said about events like this one: same camera, same kind of thing,
+        same Frigate zones (none is a match for none)."""
+        if event is None:
+            return None
+        zones = sorted(event["zones"])
+        return next((q for q in self.quiet() if q["camera"] == event["camera"]
+                     and q["label"] == event["label"] and q["zones"] == zones), None)
+
+    def keep_quiet(self, camera: object, event_id: object, note: object) -> None:
+        if not isinstance(camera, str) or camera not in self.chosen():
+            raise FrigateError("Choose a camera BRAM watches")
+        event = next((e for e in self.events.get(camera, []) if e["id"] == event_id), None)
+        if event is None:
+            raise FrigateError("That event is no longer listed")
+        note = " ".join(note.split())[:80] if isinstance(note, str) else ""
+        found = {"camera": camera, "label": event["label"], "zones": sorted(event["zones"]),
+                 "note": note}
+        rest = [q for q in self.quiet() if (q["camera"], q["label"], q["zones"]) !=
+                (camera, event["label"], found["zones"])]
+        self._settings.update_channel(CHANNEL, {"quiet": [*rest, found][-50:]})
+
+    def allow(self, index: object) -> None:
+        items = self.quiet()
+        if not isinstance(index, int) or not 0 <= index < len(items):
+            raise FrigateError("That is no longer listed")
+        self._settings.update_channel(CHANNEL, {"quiet": items[:index] + items[index + 1:]})
+
+    def notes(self, camera: str) -> list[str]:
+        """What the owner said about this camera, for the model."""
+        found = []
+        for q in self.quiet():
+            if q["camera"] == camera and q["note"]:
+                where = f"in {', '.join(q['zones'])}" if q["zones"] else "outside every zone"
+                found.append(f"{q['label']} {where}: {q['note']}")
+        return found
+
     def view(self) -> dict[str, Any]:
         """For the page. Never the password."""
         saved = self.saved()
@@ -368,6 +419,7 @@ class Cameras:
             "connected": bool(saved.get("url")) and not self.reason and bool(self.found),
             "reason": self.reason, "pinned": bool(saved.get("pin")),
             "model_problem": self.model_problem,
+            "quiet": [{**q, "name": place(q["camera"])} for q in self.quiet()],
             "cameras": [{"name": c, "on": c in on, "offline": c in self.offline,
                          "describe": c in saved.get("describe", []),
                          "last": self._with_words(self.last(c)),
@@ -494,8 +546,12 @@ class Cameras:
                 await result
 
     def _with_words(self, event: dict[str, Any] | None) -> dict[str, Any] | None:
-        words = self.description(event)
-        return {**event, "description": words} if event and words else event
+        if event is None:
+            return None
+        words, quiet = self.description(event), self.quiet_for(event)
+        return {**event, **({"description": words} if words else {}),
+                "told": event["id"] in self.told and quiet is None,
+                "quiet": quiet["note"] or "not news" if quiet else ""}
 
     def _describe_later(self, event: dict[str, Any], picture: bytes) -> None:
         """On the side: a slow model never holds anything back (C6). One at a time."""
@@ -511,7 +567,8 @@ class Cameras:
     async def _describe(self, event: dict[str, Any], picture: bytes) -> None:
         try:
             async with self._model_lock, asyncio.timeout(90):
-                words = await self.describer(picture, place(event["camera"]))
+                words = await self.describer(picture, place(event["camera"]),
+                                             self.notes(event["camera"]))
             self.model_problem = ""
         except (ModelError, TimeoutError) as err:
             words = None

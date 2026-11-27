@@ -292,6 +292,12 @@ class Feed:
                 self.camera_events = {n: e for n, e in events.items() if e is not None}
                 self._notify()
                 return
+        if (isinstance(data, dict) and data.keys() == {"type", "patterns"}
+                and data["type"] == "camera_quiet" and self.camera_watch is not None):
+            found = cameras.patterns(data["patterns"])
+            if found is not None:
+                self.camera_watch.quiet = found
+                return
         if (isinstance(data, dict) and data.keys() == {"type", "zones"}
                 and data["type"] == "camera_zones"):
             found = cameras.zones(data["zones"])

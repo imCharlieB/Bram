@@ -228,6 +228,8 @@ Optional, for the installation and per person.
 | Frigate events: people, vehicles, pets, packages | 🟡 latest event and picture on BRAM's page |
 | A vision model describes each event, for the cameras you choose | ✅ 0.42 |
 | Ask what a camera sees, in chat and in scheduled checks | ✅ 0.43 |
+| Not news: the owner says what an event is; BRAM stays quiet about the same and tells the model | ✅ 0.44 |
+| Learn from Not news without being told: suggest a zone or a quiet rule after the same thing is dismissed a few times | ⬜ |
 | Person while away, at night, or not known to Frigate; packages | ✅ 0.40, [Cameras](cameras.md) |
 | Person at an open or unlocked door; a car that stays in a zone; zones and messages for each camera | ✅ 0.41 |
 | Motion with no camera activity | ⬜ |

@@ -52,6 +52,13 @@ A camera you have not set up sends every message you turned on, for its whole pi
 
 ## Fewer messages
 
+### Your own driveway, not the neighbors'
+
+Frigate sees everything in the picture, so a person in the neighbors' driveway is still "a person". Two ways to fix that, best first:
+
+1. **Draw a zone in Frigate** over only your own driveway, porch, or path (Frigate's settings, the camera, **Zones**). Then in BRAM, under **Set up one camera**, choose that zone under **Frigate zones that count**. Anything outside it is never told.
+2. **Not news.** When a camera window opens on Home about something that is not news, select **Not news**, say what it is, such as "the neighbors' driveway", and **Keep quiet**. BRAM stops telling you, on Home and on your phone, about the same kind of thing on that camera in the same Frigate zones; an event in no zone matches only others in no zone. What you wrote goes to your model, so its descriptions use it. They are listed under **Settings > Cameras > Not news**, each with **Tell me again**.
+
 - **Same thing, once.** A person or package already told about on that camera is not told again for 30 minutes. Change it with **Not again on the same camera for**.
 - **One moment, once.** One person walking past several cameras within 2 minutes is one message.
 - **Quiet hours** hold a stranger or a package, noted in Findings, but not a person while away or at night.
@@ -78,7 +85,7 @@ The words appear in the event's window on Home, in **Looking at**, and under **S
 | Where | Shows |
 |---|---|
 | Home, **Looking at** | The latest picture from the cameras BRAM watches, and each camera's last event ✅ |
-| Home, over the brain | A window with the picture when something happens on a camera ✅ |
+| Home, over the brain | A window with the picture and **Not news**, only for an event BRAM told you about or held for quiet hours; one window for all cameras ✅ |
 | Settings > Cameras | Each camera, with its switch and last event ✅ |
 | Findings | Each camera event BRAM told you about, with its story |
 

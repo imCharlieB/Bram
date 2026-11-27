@@ -67,6 +67,8 @@ class CameraWatch:
         self._on = {r for r in RULES if options.get(r)}
         # For each camera: the doors it looks at, the Frigate zones that count, and its rules.
         self._setup: dict[str, dict] = dict(options.get("camera_setup", {}))
+        # Said on BRAM's page to be not news: (camera, kind of thing, zones).
+        self.quiet: list[tuple[str, str, tuple[str, ...]]] = []
         self._repeat = int(options.get("camera_repeat", DEFAULT_REPEAT)) * 60
         self._phones: list[str] = options.get(CONF_PHONES, [])
         self._quiet = (options.get(CONF_QUIET_FROM), options.get(CONF_QUIET_TO))
@@ -142,6 +144,8 @@ class CameraWatch:
         self._seen = {k: v for k, v in self._seen.items() if now - v < DAY}
         if event["id"] in self._seen or now - event["start"] > TOO_OLD:
             return
+        if (camera, event["label"], tuple(sorted(event["zones"]))) in self.quiet:
+            return  # the owner said this is not news
         found = self._rule({**event, "camera": camera})
         if found is None:
             return  # not yet: Frigate may still name the person or add a zone

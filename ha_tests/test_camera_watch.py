@@ -177,3 +177,11 @@ async def test_the_models_words_when_ready(env):
     await env.start(camera_package=True)
     await env.see("porch", {**event(1, "package"), "description": "A brown box by the mat."})
     assert env.texts() == ["A package at porch. A brown box by the mat."]
+
+
+async def test_not_news_is_never_told(env):
+    await env.start(camera_stranger=True)
+    env.watch.quiet = [("yard", "person", ())]
+    await env.see("yard", event(1))  # a person outside every zone: the neighbors
+    await env.see("yard", event(2, zones=["path"]))  # on the owner's path: still news
+    assert env.texts() == ["A person Frigate does not know at yard. In path."]

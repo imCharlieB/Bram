@@ -14,7 +14,9 @@ When something needs you, a window opens over the brain, like a screen in a comm
 |---|---|---|
 | Red | A safety alarm, a safety alert, or a finding that matters most | Only when you close it with **×**, or when it is over |
 | Amber | Another alert or finding that needs you, or a person on a camera | After 30 seconds |
-| Cyan | A camera event, or a monitor answering again | After 15 seconds |
+| Cyan | Another camera event, or a monitor answering again | After 15 seconds |
+
+A camera window opens only for an event BRAM told your phone about, or held for quiet hours, under your [camera messages](cameras.md#what-it-tells-you). Every other event only updates **Looking at**. A camera window has **Not news**: see [Your own driveway](cameras.md#your-own-driveway-not-the-neighbors).
 
 A finding's window has the same **Story**, **Stop these**, **Less often**, and **Hide** as under **Needs you**. A camera's window shows Frigate's picture. Windows open only for what is new while the page is open; what was already there is listed under **Needs you**. At most three are open at once. Cameras share one window: a new camera event replaces the last one, so several cameras at once never pile up.
 

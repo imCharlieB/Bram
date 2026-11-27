@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.44.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Camera windows on Home open only for events BRAM told you about, or held for quiet hours. Everything else only updates **Looking at**.
+- **Not news**: on a camera window, say an event is not news and what it is, such as "the neighbors' driveway". BRAM stops telling you, on Home and on your phone, about the same kind of thing on that camera in the same Frigate zones, and your model uses what you wrote. Undo under **Settings > Cameras > Not news**.
+- The camera docs explain drawing a zone in Frigate over only your own driveway, the surest way to leave out the neighbors.
+
 ## 0.43.1
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.

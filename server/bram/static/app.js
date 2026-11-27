@@ -330,12 +330,54 @@ function showCameras(view) {
     return row;
   }));
   const on = view.cameras.filter((camera) => camera.on);
+  $("quiet-card").hidden = !view.quiet.length;
+  $("quiet-list").replaceChildren(...view.quiet.map((item, index) => {
+    const row = element("li"), left = element("span", `${cameraName(item.camera)}: ${item.label}${item.zones.length ? ` in ${item.zones.join(", ")}` : " outside every zone"}`);
+    if (item.note) left.append(element("span", item.note, "note sub"));
+    const allow = element("button", "Tell me again", "quiet small");
+    allow.addEventListener("click", () => busy(allow, "quiet-message", async () => {
+      showCameras(await api("camera-allow", { index }));
+      return "BRAM tells you about these again";
+    }));
+    row.append(left, allow);
+    return row;
+  }));
   showLooking(view, on);
   $("home-cameras-card").hidden = !on.length;
   dots("home-cameras", on.map((camera) => {
     const [text, good] = cameraLine(camera);
     return [cameraName(camera.name), good, text];
   }));
+}
+
+// "Not news", and what it is: BRAM stays quiet about the same kind of thing on that camera,
+// in the same zones, and tells the model what it is.
+function notNews(camera, event, key) {
+  const acts = element("div", undefined, "acts"), button = element("button", "Not news"), link = element("a", "Cameras");
+  button.type = "button";
+  link.href = "#cameras";
+  button.addEventListener("click", () => {
+    const form = element("form", undefined, "acts"), note = element("input"), save = element("button", "Keep quiet");
+    note.placeholder = "What is it? Such as the neighbor's driveway";
+    note.maxLength = 80;
+    note.setAttribute("aria-label", "What is it");
+    form.addEventListener("submit", async (submitted) => {
+      submitted.preventDefault();
+      save.disabled = true;
+      try {
+        showCameras(await api("camera-quiet", { camera: camera.name, id: event.id, note: note.value }));
+        closePop(key);
+      } catch (error) {
+        save.disabled = false;
+        save.textContent = error.message;
+      }
+    });
+    form.append(note, save);
+    acts.replaceWith(form);
+    note.focus();
+  });
+  acts.append(button, link);
+  return acts;
 }
 
 // Camera names as people say them: RoofCamera is Roof camera.
@@ -356,7 +398,7 @@ function showLooking(view, on) {
     const src = `/api/camera-picture?camera=${encodeURIComponent(latest.name)}&e=${encodeURIComponent(latest.last.id)}`;
     if ($("look-img").getAttribute("src") !== src) $("look-img").src = src;
     $("look-img").alt = `${pretty(latest.name)}: ${cameraLine(latest)[0]}`;
-    $("look-caption").textContent = `${pretty(latest.name)} · ${cameraLine(latest)[0]}${latest.last.description ? ` · ${latest.last.description}` : ""}`;
+    $("look-caption").textContent = `${pretty(latest.name)} · ${cameraLine(latest)[0]}${latest.last.quiet ? ` · ${latest.last.quiet}` : latest.last.description ? ` · ${latest.last.description}` : ""}`;
   }
   $("hud-cameras").replaceChildren(...on.flatMap((camera) => {
     const [text, good] = cameraLine(camera);
@@ -367,10 +409,11 @@ function showLooking(view, on) {
     const words = camera.last?.description, win = words && $("hud-alerts").querySelector(`[data-key="${CSS.escape(`camera:${camera.last.id}`)}"] .body`);
     if (win && !win.querySelector(".words")) win.insertBefore(element("p", words, "words"), win.querySelector("small")?.nextSibling || null);
   }
-  // A new event pops up over the brain with its picture. The first look only learns what is there.
+  // An event BRAM told you about pops up over the brain with its picture. Everything else
+  // only updates Looking at. The first look only learns what is there.
   for (const camera of on) {
     const event = camera.last, key = event && `camera:${event.id}`;
-    if (!event || seen.cameras.has(key)) continue;
+    if (!event || seen.cameras.has(key) || !(event.told || !seen.camerasReady)) continue;
     const first = !seen.camerasReady;
     seen.cameras.add(key);
     if (first || Date.now() / 1000 - event.start > 300) continue;
@@ -378,8 +421,9 @@ function showLooking(view, on) {
     for (const win of [...$("hud-alerts").querySelectorAll('[data-key^="camera:"]')]) win.remove();
     popUp(key, event.label === "person" ? "warn" : "good", `Camera · ${pretty(camera.name)}`, `${what} at ${pretty(camera.name)}`,
       [event.zones.join(", ").replaceAll("_", " "), new Date(event.start * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })].filter(Boolean).join(" · "),
-      { href: "#cameras", label: "Cameras" },
-      camera.shot ? `/api/camera-picture?camera=${encodeURIComponent(camera.name)}&e=${encodeURIComponent(event.id)}` : "");
+      null,
+      camera.shot ? `/api/camera-picture?camera=${encodeURIComponent(camera.name)}&e=${encodeURIComponent(event.id)}` : "",
+      notNews(camera, event, key));
   }
   seen.camerasReady = true;
 }

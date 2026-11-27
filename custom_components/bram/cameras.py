@@ -34,6 +34,21 @@ def names(raw: object) -> list[str] | None:
     return list(dict.fromkeys(raw))
 
 
+def patterns(raw: object) -> list[tuple[str, str, tuple[str, ...]]] | None:
+    """What the owner said is not news: a camera, a kind of thing, and its zones."""
+    if not isinstance(raw, list) or len(raw) > 50:
+        return None
+    found = []
+    for item in raw:
+        if (not isinstance(item, dict) or item.keys() != {"camera", "label", "zones"}
+                or not isinstance(item["camera"], str) or not NAME.fullmatch(item["camera"])
+                or _text(item["label"], 32) is None or not isinstance(item["zones"], list)
+                or not all(isinstance(z, str) and len(z) <= 64 for z in item["zones"])):
+            return None
+        found.append((item["camera"], item["label"], tuple(sorted(item["zones"]))))
+    return found
+
+
 def zones(raw: object) -> dict[str, list[str]] | None:
     """Each camera's zone names from Frigate, only for the settings page."""
     if not isinstance(raw, dict) or len(raw) > MAX_CAMERAS:

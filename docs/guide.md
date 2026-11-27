@@ -72,7 +72,8 @@ BRAM watches cameras through [Frigate](https://frigate.video). Only BRAM's serve
 1. On BRAM's page, **Settings > Cameras**: enter Frigate's address, such as `http://HOST:5000`, or its login port `https://HOST:8971` with a Frigate user that can only view. Select **Connect**.
 2. Under **Which cameras BRAM watches**, turn on **Watch** for each camera. Their latest events show in **Looking at** on Home, and new ones open a window over the brain.
 3. In Home Assistant, **Configure > Watching > Cameras > What to tell me**: turn on the messages you want.
-4. **Configure > Watching > Cameras > Set up one camera**, for each camera that needs it: the doors and locks it looks at, which of Frigate's zones count, such as **driveway** or **porch**, and which messages it sends. Choose zones for a camera that sees the street, so passing people and cars are left out.
+4. **Configure > Watching > Cameras > Set up one camera**, for each camera that needs it: the doors and locks it looks at, which of Frigate's zones count, such as **driveway** or **porch**, and which messages it sends. Choose zones for a camera that sees the street or the neighbors, so passing people and cars are left out. Draw the zones in Frigate first; see [Your own driveway](cameras.md#your-own-driveway-not-the-neighbors).
+5. When a camera window on Home is about something that is not news, select **Not news** and say what it is.
 
 To have your own model describe what happened, turn on **Describe** for a camera under **Settings > Cameras**; see [Descriptions](cameras.md#descriptions-from-your-model). Then you can also ask it in chat, such as "Is anyone on the porch?", and add the [BRAM camera card](cameras.md#the-bram-camera-card) to a dashboard.
 

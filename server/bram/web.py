@@ -62,6 +62,7 @@ FACTOR_WINDOW = 600
 CAMERAS_IN_HOME = (0, 39)  # Home Assistant shows cameras from this version
 CAMERA_ZONES = (0, 41)  # and offers Frigate's zones in its settings from this one
 CAMERA_WORDS = (0, 42)  # and the model's description of an event from this one
+CAMERA_QUIET = (0, 44)  # and what the owner said is not news from this one
 DESCRIBE_PICTURE = (
     "You describe one picture from a home security camera. Say what is visible in one or two "
     "short, plain sentences: people, vehicles, animals, packages, and what they are doing. "
@@ -159,6 +160,8 @@ class ConfigPage:
             web.post("/api/camera", self._private(self._choose_camera)),
             web.post("/api/camera-home", self._private(self._camera_home)),
             web.post("/api/camera-describe", self._confirmed(self._camera_describe)),
+            web.post("/api/camera-quiet", self._private(self._camera_quiet)),
+            web.post("/api/camera-allow", self._private(self._camera_allow)),
             web.get("/api/camera-picture", self._private(self._camera_picture)),
             web.get("/api/monitors", self._private(self._list_monitors)),
             web.post("/api/monitors", self._private(self._add_monitor)),
@@ -943,6 +946,10 @@ class ConfigPage:
                 await self._send_house(house_id, {"type": "cameras", "names": names, "last": {
                     n: for_home(e, self.cameras.description(e) if words else None)
                     for n in names if (e := self.cameras.last(n))}})
+                if not _older(self._worlds()[house_id].version, CAMERA_QUIET):
+                    await self._send_house(house_id, {"type": "camera_quiet", "patterns": [
+                        {"camera": q["camera"], "label": q["label"], "zones": q["zones"]}
+                        for q in self.cameras.quiet() if q["camera"] in names]})
                 if not _older(self._worlds()[house_id].version, CAMERA_ZONES):
                     await self._send_house(house_id, {"type": "camera_zones", "zones": {
                         n: self.cameras.zones.get(n, []) for n in names}})
@@ -967,7 +974,28 @@ class ConfigPage:
                            str(body["camera"]), "ok", approver="owner")
         return _json(self.cameras.view())
 
-    async def _describe_picture(self, picture: bytes, camera: str) -> str | None:
+    async def _camera_quiet(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        try:
+            self.cameras.keep_quiet(body.get("camera"), body.get("id"), body.get("note", ""))
+        except FrigateError as err:
+            return _json({"error": str(err)}, 400)
+        self._audit.record("server", "config page", "camera not news", str(body["camera"]),
+                           "ok", approver="owner")
+        await self.tell_cameras()
+        return _json(self.cameras.view())
+
+    async def _camera_allow(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        try:
+            self.cameras.allow(body.get("index"))
+        except FrigateError as err:
+            return _json({"error": str(err)}, 400)
+        await self.tell_cameras()
+        return _json(self.cameras.view())
+
+    async def _describe_picture(self, picture: bytes, camera: str,
+                                notes: list[str] | None = None) -> str | None:
         """The owner's own model, on their network, puts one event's picture into words. Its
         words are data: they describe, and never decide what is told (C6)."""
         saved = self._settings.all()
@@ -977,7 +1005,8 @@ class ConfigPage:
                                  max_output=120)
         try:
             reply = await model.chat([
-                Message("system", DESCRIBE_PICTURE),
+                Message("system", DESCRIBE_PICTURE + ("\nThe owner's notes about this "
+                        "camera: " + "; ".join(notes) if notes else "")),
                 Message("user", f"A picture from the {camera} camera.",
                         images=(Image(picture),))])
         finally:

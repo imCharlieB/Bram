@@ -263,7 +263,7 @@ async def test_only_cameras_chosen_for_it_go_to_the_model(env):
 
     seen = []
 
-    async def describer(picture, camera):
+    async def describer(picture, camera, notes):
         seen.append((picture, camera))
         return "A person in a blue coat stands at the door.\n"
 
@@ -283,7 +283,7 @@ async def test_only_cameras_chosen_for_it_go_to_the_model(env):
     assert "description" not in yard["last"]
     assert ("1.1-a", False) in env.told  # passed on again, with the words
 
-    async def broken(picture, camera):
+    async def broken(picture, camera, notes):
         raise ModelError("it cannot see pictures")
 
     env.cameras.describer = broken
@@ -311,3 +311,37 @@ async def test_asking_a_camera(env):
     assert env.cameras.asked_about("Is the kitchen light on?", None) is None
     assert env.cameras.asked_about("Is anyone on the porch?", "another home") is None
     assert await env.cameras.look("Is anyone on the porch?") == ("front door", LATEST)
+
+
+async def test_not_news_and_what_it_is(env):
+    notes = []
+
+    async def describer(picture, camera, said):
+        notes.append(said)
+        return "Two people stand in a driveway."
+
+    env.cameras.describer = describer
+    await env.cameras.connect(env.url)
+    env.cameras.choose("front_door", True)
+    env.now = 1010.0
+    await env.cameras.tick()
+    (door, _) = env.cameras.view()["cameras"]
+    assert not door["last"]["told"]  # Home Assistant has not told anyone
+    env.cameras.mark_told("front_door")
+    assert env.cameras.view()["cameras"][0]["last"]["told"]  # now Home opens a window
+    with pytest.raises(FrigateError):
+        env.cameras.keep_quiet("front_door", "gone", "")
+    env.cameras.keep_quiet("front_door", "1.1-a", "  the neighbor's   porch ")
+    assert env.cameras.quiet() == [{"camera": "front_door", "label": "person",
+                                    "zones": ["porch"], "note": "the neighbor's porch"}]
+    last = env.cameras.view()["cameras"][0]["last"]
+    assert last["quiet"] == "the neighbor's porch" and not last["told"]
+    assert env.cameras.notes("front_door") == ["person in porch: the neighbor's porch"]
+    env.cameras.set_describe("front_door", True)
+    env.frigate.events[0]["id"] = "1.4-d"
+    await env.cameras.tick()
+    import asyncio
+    await asyncio.sleep(0.05)
+    assert notes[-1] == ["person in porch: the neighbor's porch"]  # the model is told too
+    env.cameras.allow(0)
+    assert env.cameras.quiet() == []

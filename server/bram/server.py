@@ -222,6 +222,13 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                             request.app[FINDINGS].from_home(house_id, data)
                         except ValueError:
                             pass  # confirmed below, or it would come back forever
+                    # A camera message told or held: Home on BRAM's page shows that event.
+                    key = data.get("key")
+                    if (data.get("source") == "cameras" and data.get("what") in ("sent", "held")
+                            and isinstance(key, str) and request.app.get(CONFIG) is not None
+                            and request.app[CONFIG].cameras.house() == house_id):
+                        request.app[CONFIG].cameras.mark_told(key.split(":")[1:2][0]
+                                                              if ":" in key else "")
                     if isinstance(uid, str):
                         await ws.send_json({"type": "noted", "id": uid[:32]})
                 elif kind == "heartbeat" and ready:
