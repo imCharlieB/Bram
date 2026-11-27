@@ -50,7 +50,10 @@ def zones(raw: object) -> dict[str, list[str]] | None:
 
 def event(raw: object) -> dict[str, Any] | None:
     """One Frigate event as the server summed it up, or None if anything is off."""
-    if not isinstance(raw, dict) or raw.keys() != EVENT_KEYS:
+    if not isinstance(raw, dict) or raw.keys() not in (EVENT_KEYS, EVENT_KEYS | {"description"}):
+        return None
+    words = raw.get("description")
+    if words is not None and (_text(words, 300) is None or not _text(words, 300)):
         return None
     found = {"id": _text(raw["id"], 80), "label": _text(raw["label"], 32),
              "who": _text(raw["who"], 64), "summary": _text(raw["summary"], 200),
@@ -62,7 +65,8 @@ def event(raw: object) -> dict[str, Any] | None:
             or not isinstance(raw["picture"], bool)
             or (raw["end"] is not None and _time(raw["end"]) is None)):
         return None
-    return {**found, "zones": [" ".join(z.split()) for z in zones],
+    return {**found, "description": _text(words, 300) if words is not None else None,
+            "zones": [" ".join(z.split()) for z in zones],
             "end": _time(raw["end"]) if raw["end"] is not None else None,
             "picture": raw["picture"]}
 

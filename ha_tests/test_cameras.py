@@ -62,3 +62,13 @@ def test_camera_names_are_checked():
     assert cameras.names(["../x"]) is None
     assert cameras.names("front_door") is None
 
+
+
+def test_words_from_the_model_are_checked():
+    base = {"id": "e", "label": "person", "who": "", "zones": [], "start": 1.0, "end": None,
+            "picture": True, "summary": "x"}
+    assert cameras.event({**base, "description": "A man at the door."})["description"] == (
+        "A man at the door.")
+    assert cameras.event(base)["description"] is None
+    assert cameras.event({**base, "description": "x" * 301}) is None
+    assert cameras.event({**base, "description": ""}) is None

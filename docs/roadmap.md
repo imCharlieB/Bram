@@ -226,7 +226,8 @@ Optional, for the installation and per person.
 |---|---|
 | Connect Frigate, with its login port and a pinned certificate; choose cameras | ✅ 0.38, [Cameras](cameras.md) |
 | Frigate events: people, vehicles, pets, packages | 🟡 latest event and picture on BRAM's page |
-| Ask what a camera sees; a vision model describes it | ⬜ |
+| A vision model describes each event, for the cameras you choose | ✅ 0.42 |
+| Ask what a camera sees | ⬜ |
 | Person while away, at night, or not known to Frigate; packages | ✅ 0.40, [Cameras](cameras.md) |
 | Person at an open or unlocked door; a car that stays in a zone; zones and messages for each camera | ✅ 0.41 |
 | Motion with no camera activity | ⬜ |

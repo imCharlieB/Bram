@@ -69,10 +69,11 @@ Quiet hours here affect only Home Assistant's messages.
 | Settings > Voice | Hearing, speaking, voice name | Off |
 | Settings > Cameras | Frigate address, and a Frigate username and password for its login port | None |
 | | Watch, for each camera | Off |
+| | Describe, for each watched camera: its event pictures go to your own model | Off |
 | Profile | Look: Command or Classic, and the Command color, in this browser | Command, cyan |
 | | Username, password, signed-in devices | |
 
-These ask for your password again: homes, model, Telegram, ntfy, voice, connecting or disconnecting Frigate, username, and password.
+These ask for your password again: homes, model, Telegram, ntfy, voice, connecting or disconnecting Frigate, turning Describe on or off, username, and password.
 
 ## Limits that cannot be changed
 

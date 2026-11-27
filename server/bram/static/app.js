@@ -290,6 +290,7 @@ function showCameras(view) {
   $("frigate-state").textContent = !view.url ? "Not connected" : view.connected ? "Connected" : "Not answering";
   $("frigate-state").className = !view.url ? "note" : view.connected ? "good" : "bad";
   if (view.reason) say("frigate-message", view.reason);
+  if (view.model_problem) say("camera-message", view.model_problem, "bad");
   $("camera-card").hidden = !view.cameras.length;
   $("camera-home-box").hidden = world.houses.length < 2;
   $("camera-home").replaceChildren(...[{ id: "", name: "Choose..." }, ...world.houses].map((house) => {
@@ -308,8 +309,23 @@ function showCameras(view) {
       return input.checked ? "Watching" : "Not watching. Its events and picture were dropped.";
     }));
     if (camera.on) left.append(element("span", cameraLine(camera)[0], "note sub"));
+    if (camera.last?.description) left.append(element("span", camera.last.description, "note sub"));
     box.append(input, " Watch");
-    row.append(left, box);
+    const side = element("span");
+    side.append(box);
+    if (camera.on) {
+      const words = element("label", undefined, "check"), say = element("input");
+      say.type = "checkbox";
+      say.checked = camera.describe;
+      say.addEventListener("change", () => busy(say, "camera-message", async () => {
+        const confirm = await askPassword(say.checked ? `Pictures from ${cameraName(camera.name)} will go to your own model to be described.` : `Stop describing ${cameraName(camera.name)}?`);
+        showCameras(await api("camera-describe", { camera: camera.name, on: say.checked, confirm }));
+        return say.checked ? "Your model describes this camera's events" : "Not described";
+      }));
+      words.append(say, " Describe");
+      side.append(words);
+    }
+    row.append(left, side);
     return row;
   }));
   const on = view.cameras.filter((camera) => camera.on);
@@ -339,12 +355,17 @@ function showLooking(view, on) {
     const src = `/api/camera-picture?camera=${encodeURIComponent(latest.name)}&e=${encodeURIComponent(latest.last.id)}`;
     if ($("look-img").getAttribute("src") !== src) $("look-img").src = src;
     $("look-img").alt = `${pretty(latest.name)}: ${cameraLine(latest)[0]}`;
-    $("look-caption").textContent = `${pretty(latest.name)} · ${cameraLine(latest)[0]}`;
+    $("look-caption").textContent = `${pretty(latest.name)} · ${cameraLine(latest)[0]}${latest.last.description ? ` · ${latest.last.description}` : ""}`;
   }
   $("hud-cameras").replaceChildren(...on.flatMap((camera) => {
     const [text, good] = cameraLine(camera);
     return row(pretty(camera.name), camera.offline ? "no picture" : camera.last ? camera.last.who || camera.last.label : "quiet", good === false ? "bad" : good ? "" : "off", camera.last ? text : "");
   }));
+  // Words from the model come later; they fill in a window that is still open.
+  for (const camera of on) {
+    const words = camera.last?.description, win = words && $("hud-alerts").querySelector(`[data-key="${CSS.escape(`camera:${camera.last.id}`)}"] .body`);
+    if (win && !win.querySelector(".words")) win.insertBefore(element("p", words, "words"), win.querySelector("small")?.nextSibling || null);
+  }
   // A new event pops up over the brain with its picture. The first look only learns what is there.
   for (const camera of on) {
     const event = camera.last, key = event && `camera:${event.id}`;

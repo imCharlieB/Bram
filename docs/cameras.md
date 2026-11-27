@@ -1,6 +1,6 @@
 # Cameras
 
-> **Being built.** Connecting Frigate, each camera's latest event on BRAM's page, and the first camera messages work now. Descriptions from your model and more rules are coming; [the order](#the-order-it-will-be-built) shows what is done.
+> **Being built.** Connecting Frigate, each camera's latest event on BRAM's page, and the first camera messages work now. Asking a camera in chat and a dashboard card are coming; [the order](#the-order-it-will-be-built) shows what is done.
 
 **Who talks to Frigate:** only BRAM's server. It reads Frigate's events, names, and pictures, and decides what matters. Home Assistant is told only what BRAM needs for its phone messages.
 
@@ -61,6 +61,17 @@ A camera you have not set up sends every message you turned on, for its whole pi
 ## The message
 
 The camera, who Frigate recognized, what is true in the rest of the home, and the zones, such as "Someone at front door, and it's night. In porch." With the [Frigate integration](https://docs.frigate.video/integrations/home-assistant) installed in Home Assistant, it shows Frigate's picture of the event: its snapshot, or its smaller thumbnail when snapshots are off for that camera in Frigate. Turn snapshots on in Frigate for a better picture. Tap it to open the finding on BRAM's page. Coming: your model's description, such as "A delivery driver left a box on the porch."
+
+## Descriptions from your model
+
+Your own model can describe each event in a sentence or two, such as "A delivery driver sets a box by the door and walks back to a white van."
+
+1. Choose a model that can read pictures under **Settings > Model** on BRAM's page. Many can; if yours cannot, the cameras page says so.
+2. Under **Settings > Cameras**, turn on **Describe** for each camera you want described, and enter your password. It is off for every camera until you do.
+
+Only the event's picture goes to the model, and only for those cameras. The model must be on your own network; no picture goes to a cloud model. One picture is described at a time, and only for events from the last 5 minutes.
+
+The words appear in the event's window on Home, in **Looking at**, and under **Settings > Cameras**. A phone message includes them only if they are ready when the message goes out: a slow model never holds a message back, and the words never decide whether you are told. Turning **Watch** off for a camera also turns off **Describe** and drops its words.
 
 ## On BRAM's page
 
@@ -123,7 +134,7 @@ On BRAM's page, **Settings > Cameras**:
 | Each camera | Watch events | Off |
 | In Home Assistant, Configure > Watching > Cameras > What to tell me | Each rule above, and **Not again on the same camera for** | Off; 30 minutes |
 | In Home Assistant, Configure > Watching > Cameras > Set up one camera | Its doors and locks, the Frigate zones that count, and its messages | None; whole picture; all |
-| Describe with the model | Per camera; sends the event's picture and a few frames to your model | Off |
+| Describe | For each watched camera: the event's picture goes to your own model to be put into words | Off |
 | Cloud model may see pictures | Only if you also use a cloud model | Off |
 | Keep pictures | The latest event per camera, or the last 7 days | Latest only |
 
@@ -141,6 +152,6 @@ On BRAM's page, **Settings > Cameras**:
 | 1. Connect Frigate | The address and cameras on BRAM's page; each camera's switch | ✅ 0.38 |
 | 2. Events | Each camera's latest event and picture on BRAM's page; Home Assistant told of each event, for messages | ✅ 0.39 |
 | 3. Rules and messages | Person while away, at an open or unlocked door, at night, or unknown; packages; cars that stay in a zone; with Frigate's picture, same-thing-once, one message across cameras, and settings for each camera | ✅ 0.41 |
-| 4. Descriptions | The model describes events, per camera | ⬜ |
+| 4. Descriptions | Your own model describes events, for the cameras you choose | ✅ 0.42 |
 | 5. Ask a camera | Chat questions and scheduled checks about what a camera sees | ⬜ |
 | 6. Camera card | A dashboard card with Frigate's picture and BRAM's description | ⬜ |

@@ -171,3 +171,9 @@ async def test_each_camera_its_own_messages(env):
     await env.see("porch", event(2, "package"))
     await env.see("yard", event(3))  # every message for a camera not set up
     assert env.texts() == ["A package at porch.", "A person Frigate does not know at yard."]
+
+
+async def test_the_models_words_when_ready(env):
+    await env.start(camera_package=True)
+    await env.see("porch", {**event(1, "package"), "description": "A brown box by the mat."})
+    assert env.texts() == ["A package at porch. A brown box by the mat."]

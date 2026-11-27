@@ -287,11 +287,13 @@ async def _local(text: str) -> str:
         raise FrigateError(str(err).replace("HOST:11434", "HOST:5000")) from None
 
 
-def for_home(event: dict[str, Any]) -> dict[str, Any]:
-    """What Home Assistant is told about an event. Checked again there."""
-    return {"id": event["id"], "label": event["label"], "who": event["who"],
+def for_home(event: dict[str, Any], description: str | None = None) -> dict[str, Any]:
+    """What Home Assistant is told about an event. Checked again there. The model's words
+    go only to a Home Assistant that knows them (0.42 or later)."""
+    told = {"id": event["id"], "label": event["label"], "who": event["who"],
             "zones": event["zones"], "start": event["start"], "end": event["end"],
             "picture": event["picture"], "summary": describe(event)}
+    return told if description is None else {**told, "description": description}
 
 
 class Cameras:
@@ -311,6 +313,13 @@ class Cameras:
         self.zones: dict[str, list[str]] = {}
         self._looked = 0.0
         self.on_event: Callable[[dict[str, Any], bool], Any] | None = None
+        # The owner's own model describes events, only for cameras chosen for it (E2).
+        self.describer: Callable[[bytes, str], Any] | None = None
+        self.descriptions: dict[str, str] = {}  # event id: the model's words
+        self.model_problem = ""
+        self._describing: set[str] = set()
+        self._tasks: set[asyncio.Task] = set()
+        self._model_lock = asyncio.Lock()
 
     def saved(self) -> dict[str, Any]:
         return self._settings.channel(CHANNEL)
@@ -338,6 +347,18 @@ class Cameras:
     def last(self, camera: str) -> dict[str, Any] | None:
         return (self.events.get(camera) or [None])[0]
 
+    def described(self) -> list[str]:
+        return [c for c in self.saved().get("describe", []) if c in self.chosen()]
+
+    def set_describe(self, camera: object, on: object) -> None:
+        if not isinstance(camera, str) or camera not in self.chosen() or not isinstance(on, bool):
+            raise FrigateError("Turn on Watch for that camera first")
+        chosen = [c for c in self.saved().get("describe", []) if c != camera]
+        self._settings.update_channel(CHANNEL, {"describe": [*chosen, camera] if on else chosen})
+
+    def description(self, event: dict[str, Any] | None) -> str | None:
+        return self.descriptions.get(event["id"]) if event else None
+
     def view(self) -> dict[str, Any]:
         """For the page. Never the password."""
         saved = self.saved()
@@ -346,8 +367,10 @@ class Cameras:
             "url": saved.get("url", ""), "user": saved.get("user", ""), "house": self.house(),
             "connected": bool(saved.get("url")) and not self.reason and bool(self.found),
             "reason": self.reason, "pinned": bool(saved.get("pin")),
+            "model_problem": self.model_problem,
             "cameras": [{"name": c, "on": c in on, "offline": c in self.offline,
-                         "last": (self.events.get(c) or [None])[0],
+                         "describe": c in saved.get("describe", []),
+                         "last": self._with_words(self.last(c)),
                          "shot": c in self.pictures} for c in self.found],
         }
 
@@ -413,7 +436,11 @@ class Cameras:
             raise FrigateError("Choose a camera Frigate has")
         chosen = [c for c in self.saved().get("on", []) if c != camera]
         self._settings.update_channel(CHANNEL, {"on": [*chosen, camera] if on else chosen})
-        if not on:  # a camera turned off keeps nothing (E2)
+        if not on:  # a camera turned off keeps nothing (E2), and is not described
+            for event in self.events.get(camera, []):
+                self.descriptions.pop(event["id"], None)
+            self._settings.update_channel(CHANNEL, {"describe": [
+                c for c in self.saved().get("describe", []) if c != camera]})
             self.events.pop(camera, None)
             self.pictures.pop(camera, None)
             self.offline.discard(camera)
@@ -460,8 +487,48 @@ class Cameras:
             found = await frigate.picture(event)
             if found:
                 self.pictures[camera] = (mark, found)
+                self._describe_later(event, found)
         if self.on_event is not None:
             result = self.on_event(event, old is None)
+            if asyncio.iscoroutine(result):
+                await result
+
+    def _with_words(self, event: dict[str, Any] | None) -> dict[str, Any] | None:
+        words = self.description(event)
+        return {**event, "description": words} if event and words else event
+
+    def _describe_later(self, event: dict[str, Any], picture: bytes) -> None:
+        """On the side: a slow model never holds anything back (C6). One at a time."""
+        if (self.describer is None or event["camera"] not in self.described()
+                or event["id"] in self.descriptions or event["id"] in self._describing
+                or self._clock() - event["start"] > RECENT or len(self._describing) >= 3):
+            return
+        self._describing.add(event["id"])
+        task = asyncio.create_task(self._describe(event, picture))
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
+
+    async def _describe(self, event: dict[str, Any], picture: bytes) -> None:
+        try:
+            async with self._model_lock, asyncio.timeout(90):
+                words = await self.describer(picture, place(event["camera"]))
+            self.model_problem = ""
+        except (ModelError, TimeoutError) as err:
+            words = None
+            self.model_problem = (f"Your model could not describe a picture: {err}"
+                                  if str(err) else "Your model took too long to describe a "
+                                  "picture")
+        finally:
+            self._describing.discard(event["id"])
+        if not words or event["camera"] not in self.described():
+            return
+        self.descriptions[event["id"]] = words
+        while len(self.descriptions) > 200:
+            self.descriptions.pop(next(iter(self.descriptions)))
+        latest = next((e for e in self.events.get(event["camera"], [])
+                       if e["id"] == event["id"]), event)
+        if self.on_event is not None:
+            result = self.on_event(latest, False)
             if asyncio.iscoroutine(result):
                 await result
 
@@ -479,4 +546,6 @@ class Cameras:
             await asyncio.sleep(EVERY)
 
     async def close(self) -> None:
+        for task in self._tasks:
+            task.cancel()
         await self._drop()

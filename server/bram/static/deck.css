@@ -196,6 +196,7 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 #hud-alerts .body { position: relative; display: grid; gap: 7px; }
 #hud-alerts .body b { color: var(--hud-text); font-size: 1rem; letter-spacing: .02em; text-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); }
 #hud-alerts .body small { color: color-mix(in srgb, var(--c) 75%, var(--hud-text)); font: .7rem var(--mono); letter-spacing: .08em; }
+#hud-alerts .words { margin: 0; color: var(--hud-text); font-size: .86rem; line-height: 1.4; border-left: 2px solid var(--c); padding-left: 8px; }
 #hud-alerts .shot { position: relative; padding: 4px; border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); background: rgb(0 6 16 / .7); }
 #hud-alerts .shot img { display: block; width: 100%; max-height: 200px; object-fit: cover; filter: saturate(.85) contrast(1.05); }
 #hud-alerts .shot::before { content: "LIVE"; position: absolute; z-index: 1; top: 8px; left: 8px; padding: 1px 6px; font: 700 .6rem var(--mono); letter-spacing: .2em; color: #02131a; background: var(--c); }

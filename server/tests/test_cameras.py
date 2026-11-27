@@ -253,3 +253,44 @@ async def test_without_snapshots_a_thumbnail_or_the_camera_now(env):
     env.frigate.events[0]["has_snapshot"] = True  # Frigate saved one after all
     await env.cameras.tick()
     assert env.cameras.picture("front_door") == JPEG
+
+
+@pytest.mark.rule("E2")
+async def test_only_cameras_chosen_for_it_go_to_the_model(env):
+    import asyncio
+
+    from bram.models.base import ModelError
+
+    seen = []
+
+    async def describer(picture, camera):
+        seen.append((picture, camera))
+        return "A person in a blue coat stands at the door.\n"
+
+    env.cameras.describer = describer
+    await env.cameras.connect(env.url)
+    env.cameras.choose("front_door", True)
+    env.cameras.choose("yard", True)
+    with pytest.raises(FrigateError):
+        env.cameras.set_describe("porch", True)  # not a watched camera
+    env.cameras.set_describe("front_door", True)
+    env.now = 1010.0  # the events are recent
+    await env.cameras.tick()
+    await asyncio.sleep(0.05)
+    assert seen == [(JPEG, "front door")]  # the yard is watched, but not described
+    (door, yard) = env.cameras.view()["cameras"]
+    assert door["describe"] and door["last"]["description"].startswith("A person in a blue")
+    assert "description" not in yard["last"]
+    assert ("1.1-a", False) in env.told  # passed on again, with the words
+
+    async def broken(picture, camera):
+        raise ModelError("it cannot see pictures")
+
+    env.cameras.describer = broken
+    env.frigate.events[0]["id"] = "1.3-c"
+    await env.cameras.tick()
+    await asyncio.sleep(0.05)
+    assert "cannot see pictures" in env.cameras.view()["model_problem"]
+
+    env.cameras.choose("front_door", False)  # off: not described, and nothing kept
+    assert not env.cameras.saved()["describe"] and env.cameras.descriptions == {}

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.42.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Cameras, part 4: your own model can describe each event in a sentence or two. Turn on **Describe** for a camera under **Settings > Cameras**; it is off for every camera until you do, and pictures go only to a model on your own network. The words show in the event's window on Home, in **Looking at**, and in a phone message when they are ready in time. A slow model never holds a message back. See [Descriptions](docs/cameras.md#descriptions-from-your-model).
+
 ## 0.41.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

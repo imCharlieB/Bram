@@ -171,6 +171,8 @@ class CameraWatch:
             return
         if event["zones"]:
             text += f" In {', '.join(z.replace('_', ' ') for z in event['zones'])}."
+        if event.get("description"):  # the model's words, if ready; it never holds this (C6)
+            text += f" {event['description']}"
         actions = [{"action": MUTE + key, "title": "Stop these"},
                    *([] if rule in URGENT else self._teller.actions(f"camera:{key}"))]
         self._note(f"cameras:{key}", "open", text, "cameras",
