@@ -54,7 +54,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     feed.rules = HouseRules(hass, entry, feed.note, feed.teller, feed.send_watching)
     entry.async_on_unload(await feed.rules.start())
     feed.camera_watch = CameraWatch(hass, entry, feed.rules.everyone_away, feed.rules.is_night,
-                                    feed.note, feed.teller, lambda c: feed.camera_events.get(c))
+                                    feed.note, feed.teller, lambda c: feed.camera_events.get(c),
+                                    feed.camera_not_news)
     entry.async_on_unload(await feed.camera_watch.start())
     feed.problems = ProblemWatch(hass, entry, feed.rules.is_night, feed.note,
                                  feed.teller)

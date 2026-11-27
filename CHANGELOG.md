@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.45.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Camera messages on your phone have **Not news**, beside **Stop these**. It keeps BRAM quiet about the same kind of thing on that camera in the same Frigate zones, as on Home, and is listed under **Settings > Cameras > Not news**. **Stop these** still stops that kind of message from that camera altogether.
+
 ## 0.44.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

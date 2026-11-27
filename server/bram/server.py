@@ -18,6 +18,7 @@ from aiohttp import WSCloseCode, WSMsgType, web
 
 from .alerts import Alerts
 from .audit import Audit
+from .cameras import FrigateError
 from .chat import MAX_TEXT, Busy, Chat
 from .findings import Findings
 from .history import History, number
@@ -231,6 +232,18 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                                                               if ":" in key else "")
                     if isinstance(uid, str):
                         await ws.send_json({"type": "noted", "id": uid[:32]})
+                elif kind == "camera_quiet_add" and ready:
+                    # Not news, pressed on a phone. Only for this home's own cameras.
+                    config = request.app.get(CONFIG)
+                    if config is not None and config.cameras.house() == house_id:
+                        try:
+                            config.cameras.keep_quiet(data.get("camera"), data.get("id"), "")
+                        except FrigateError:
+                            pass  # the event is gone; Home Assistant already keeps quiet
+                        else:
+                            audit.record(house_id, "camera", "camera not news", "from a phone",
+                                         "ok")
+                            await config.tell_cameras(house_id)
                 elif kind == "heartbeat" and ready:
                     world.heartbeat()
                 else:

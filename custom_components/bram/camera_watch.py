@@ -35,6 +35,7 @@ STAY = 30  # seconds a car must stay: one driving past is gone sooner
 DAILY = 30
 DAY = 86400
 MUTE = "BRAM_CAMERA_"
+NOT_NEWS = "BRAM_CAMNEWS_"  # this event is not news: keep quiet about the same
 PROXY = "/api/frigate/notifications/{id}/{kind}.jpg"
 
 
@@ -58,7 +59,10 @@ class CameraWatch:
                  away: Callable[[], bool], night: Callable[[], bool],
                  note: Callable[..., None] = lambda *a: None,
                  teller: Teller | None = None,
-                 latest: Callable[[str], dict | None] = lambda camera: None) -> None:
+                 latest: Callable[[str], dict | None] = lambda camera: None,
+                 not_news: Callable[[str, str], bool] = lambda camera, event_id: False) -> None:
+        self._not_news = not_news  # tells the server, which keeps the list (BRAM's page)
+        self._sent_events: dict[str, tuple[str, str, tuple[str, ...]]] = {}
         self._latest = latest  # the camera's newest event, to look again at a car
         self._waiting: list[Callable[[], None]] = []
         self._hass, self._away, self._night, self._note = hass, away, night, note
@@ -93,6 +97,14 @@ class CameraWatch:
     @callback
     def answered(self, event: Event) -> None:
         action = event.data.get("action")
+        if isinstance(action, str) and action.startswith(NOT_NEWS):
+            told = self._sent_events.pop(action[len(NOT_NEWS):], None)
+            if told is not None and told not in self.quiet:
+                self.quiet.append(told)  # at once here; the server keeps it for good
+                self._not_news(told[0], action[len(NOT_NEWS):])
+                self._note(f"cameras:{told[0]}:{told[1]}", "stopped",
+                           "Not news, from a phone", "cameras", "low")
+            return
         if isinstance(action, str) and action.startswith(MUTE):
             key = action[len(MUTE):]
             if key.count(":") == 1 and key not in self._muted:
@@ -181,10 +193,16 @@ class CameraWatch:
                    *([] if rule in URGENT else self._teller.actions(f"camera:{key}"))]
         self._note(f"cameras:{key}", "open", text, "cameras",
                    "medium" if rule in URGENT else "low")
+        # Not news, on the phone too. Not offered on BRAM's page: it has its own.
+        buttons = [*actions, {"action": NOT_NEWS + event["id"], "title": "Not news"}]
         if await notify(self._hass, self._phones, "BRAM camera", text, f"bram_camera_{what}",
-                        safety=False, actions=actions, finding=f"cameras:{key}",
+                        safety=False, actions=buttons, finding=f"cameras:{key}",
                         image=picture(self._hass, event)):
             self._last[key] = self._last[across] = now
+            self._sent_events[event["id"]] = (camera, event["label"],
+                                              tuple(sorted(event["zones"])))
+            while len(self._sent_events) > 100:
+                self._sent_events.pop(next(iter(self._sent_events)))
             self._sent.append(now)
             self._note(f"cameras:{key}", "sent", f"Phone: {text}", "cameras", "low")
             self._teller.offer(f"cameras:{key}", actions, "cameras")
