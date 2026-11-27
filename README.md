@@ -34,7 +34,7 @@ BRAM watches the devices you choose, tells your phone when something matters, re
 | **Findings** | One list of everything it found, with the story of each |
 | **History and trends** | Temperatures, and every heating and cooling run with its settings. Compares each thermostat with the room's own sensor |
 | **Learning** | Suggests better night hours from BRAM's history, and fewer messages about what you keep hiding. Nothing changes until you approve |
-| **Cameras** | Connects to Frigate, read only. Tells you about a person while everyone is away, at night, or not known to Frigate, and packages, with Frigate's picture. Each camera's latest event on BRAM's page |
+| **Cameras** | Connects to Frigate, read only. Tells you about a person while everyone is away, at an open or unlocked door, at night, or not known to Frigate; packages; and cars that stay in your driveway, with Frigate's picture. Zones and doors for each camera |
 | **Chat and voice** | On its page, in Assist, and in Telegram, answering from live state with the facts listed underneath. Hold to talk and spoken answers, with your own Whisper and Piper |
 | **Personality** | Professional, friendly, dry, minimal, unhinged, or your own |
 | **Blueprints** | A yes-or-no check on a schedule, and a house summary, as automations you keep in Home Assistant |
@@ -98,7 +98,7 @@ BRAM has two halves. HACS installs the integration; the server runs in Docker.
 | **Talk** | Chat on its page, in Assist, and in Telegram; voice; personalities; blueprints | Other model providers, speakers in rooms |
 | **Explain** | | Likely causes and what to do |
 | **Control and fix** | Nothing. BRAM cannot control anything | Lights, one-tap repairs, then locks with your approval |
-| **Cameras and people** | Frigate connected, each camera's latest event on BRAM's page | Camera rules and messages, the right message to the right person |
+| **Cameras and people** | Frigate events, camera messages with pictures, zones and doors for each camera | Descriptions from your model, asking a camera, a dashboard card, the right message to the right person |
 
 [The whole plan](https://github.com/imCharlieB/Bram/blob/main/docs/roadmap.md)
 

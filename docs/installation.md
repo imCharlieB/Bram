@@ -57,6 +57,10 @@ Do this right away. Setup closes 15 minutes after the server starts, and until t
 
 Quick setup turns on a few lock and door rules. To choose devices, turn on more watches, and keep history, follow [Using BRAM day to day](guide.md). For every message and button, see [Alerts and messages](messages.md).
 
+## 7. Connect cameras (optional)
+
+With [Frigate](https://frigate.video), on BRAM's page: **Settings > Cameras**, enter Frigate's address, **Connect**, and turn on the cameras to watch. Then turn on camera messages in Home Assistant. Step by step: [Cameras in the guide](guide.md#cameras).
+
 ## Updating
 
 | Part | How |

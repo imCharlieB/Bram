@@ -45,9 +45,10 @@ Leak, smoke, CO, gas, and heat alerts are always on for the safety sensors you s
 | **Home Assistant and security** | Failed integrations, repeating errors, low batteries, offline devices, broken automations, old backups. Also the hourly security check. See [Problems with Home Assistant](problems.md) and [Security check](security-check.md) |
 | **Locks, doors, and windows** | Locks, doors, windows, garage doors, and motion. See below |
 | **Temperature and humidity** | Too hot, too cold, near freezing, and humid, with your own limits in your home's unit. Leave out sensors that are outside, or meant to be hot or cold |
+| **Cameras** | A person while everyone is away, at an open or unlocked door, or at night; a person Frigate does not know; packages; cars that stay in your driveway. See [Cameras](#cameras) below |
 | **3D printers** | Prints finishing, failing, or pausing, and heaters left on. See [3D printers](printers.md) |
 
-<!-- screenshot needed: the Configure > Watching menu in Home Assistant, with its four pages and Back -->
+<!-- screenshot needed: the Configure > Watching menu in Home Assistant, with its five pages and Back -->
 
 The locks and doors page, titled **Locks, doors, windows, and motion**, is in four groups:
 
@@ -56,13 +57,24 @@ The locks and doors page, titled **Locks, doors, windows, and motion**, is in fo
 | **Locks** | **Unlocked at night**, and **A lock or door sensor goes offline** |
 | **Doors and windows** | **Left open**, and how many minutes that means. Which kinds count: doors, windows, garage doors and gates. **Open at night**, and **Open while heating or cooling** |
 | **While everyone is away** | **A lock unlocked, or a door or window open**, and **Motion**. Every door and window counts here. Pets can set off motion |
-| **Night hours** | When night starts and ends, with separate Friday and Saturday hours if you want them |
+| **Night hours** | When night starts and ends, with separate Friday and Saturday hours if you want them. **Also night while any of these is on**: a helper you turn on at bedtime, such as `input_boolean.asleep`, makes it night while it is on |
 
 Turn off **Count windows** if you sleep with windows open.
 
 **3D printers start switched off.** Even with **Watch 3D printers** on, BRAM watches, shows, and mentions only the printers you switch on, one by one, on the same page.
 
 See [How BRAM watches your home](watching.md) for every rule and how long each waits.
+
+### Cameras
+
+BRAM watches cameras through [Frigate](https://frigate.video). Only BRAM's server talks to Frigate, and it only reads.
+
+1. On BRAM's page, **Settings > Cameras**: enter Frigate's address, such as `http://HOST:5000`, or its login port `https://HOST:8971` with a Frigate user that can only view. Select **Connect**.
+2. Under **Which cameras BRAM watches**, turn on **Watch** for each camera. Their latest events show in **Looking at** on Home, and new ones open a window over the brain.
+3. In Home Assistant, **Configure > Watching > Cameras > What to tell me**: turn on the messages you want.
+4. **Configure > Watching > Cameras > Set up one camera**, for each camera that needs it: the doors and locks it looks at, which of Frigate's zones count, such as **driveway** or **porch**, and which messages it sends. Choose zones for a camera that sees the street, so passing people and cars are left out.
+
+For a picture in each phone message, install the [Frigate integration](https://docs.frigate.video/integrations/home-assistant) in Home Assistant. Turn on snapshots in Frigate for a sharper one; without them, the message uses Frigate's thumbnail. See [Cameras](cameras.md) for every rule.
 
 ### Getting back
 
