@@ -232,7 +232,8 @@ class PrinterWatch:
             actions = [{"action": MUTE + item["key"], "title": "Stop these"},
                        *self._teller.actions(f"printer:{item['key']}")]
             if await notify(self._hass, self._phones, "BRAM printer", item["text"],
-                            f"bram_printer_{item['key']}", safety=False, actions=actions):
+                            f"bram_printer_{item['key']}", safety=False, actions=actions,
+                            finding=f"printers:{item['key']}"):
                 self._sent.append(now)
                 self._teller.told(f"printer:{item['key']}", item["text"])
                 self._teller.offer(f"printers:{item['key']}", actions, "printers")

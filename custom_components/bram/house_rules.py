@@ -222,7 +222,8 @@ class HouseRules:
                            ] if len(batch) == 1 else []
                 if await notify(self._hass, self._phones, "BRAM watch",
                                 "\n".join(text for _, _, text in batch), f"bram_{key}",
-                                safety=False, actions=actions):
+                                safety=False, actions=actions,
+                                finding=f"rules:{key}" if len(batch) == 1 else None):
                     self._told.update(k for _, k, _ in batch)
                     if actions:
                         self._teller.offer(f"rules:{key}", actions, "rules")

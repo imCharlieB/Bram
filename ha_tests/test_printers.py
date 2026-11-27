@@ -311,3 +311,16 @@ async def test_a_failing_integration_says_so_and_an_ignored_one_is_not_there(has
     assert read(hass, printer)["state"] == "failing"
     object.__setattr__(env.entry, "source", "ignore")
     assert find(hass) == []
+
+
+async def test_a_tap_opens_that_message_on_brams_page(hass, freezer):
+    from custom_components.bram.notifier import set_page
+    set_page(hass, "bram.local", 8765)
+    env = Env(hass, freezer)
+    stop = await env.watch.start()
+    await env.run(status="printing", progress=50, file="a")
+    await env.run(status="complete")
+    data = env.calls[0].data["data"]
+    assert data["url"] == data["clickAction"]
+    assert data["url"].startswith("https://bram.local:8765/#finding=printers%3Afinished%3A")
+    stop()

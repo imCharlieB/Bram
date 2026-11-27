@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.34.1
+
+Update both: BRAM in HACS and the server in Portainer.
+
+- Tapping a BRAM phone message opens it on BRAM's page, under Findings, with its story and buttons, instead of Home Assistant's home page.
+
 ## 0.34.0
 
 Update both: BRAM in HACS and the server in Portainer.

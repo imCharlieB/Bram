@@ -156,3 +156,4 @@ dialog::backdrop { background: rgb(0 0 0 / .65); }
 .card.start button { font-size: 1.05rem; padding: 14px 22px; }
 label.check { display: flex; align-items: center; gap: 10px; font-size: 1.05rem; }
 label.check input[type=checkbox] { width: 22px; height: 22px; margin: 0; }
+#findings li.picked { outline: 2px solid var(--cyan); }

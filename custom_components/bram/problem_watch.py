@@ -155,7 +155,7 @@ class ProblemWatch:
         actions = [] if key is None else [{"action": MUTE + mark(key), "title": "Stop these"},
                                           *self._teller.actions(f"problem:{key}")]
         if not await notify(self._hass, self._phones, "BRAM", text, tag, safety=False,
-                            actions=actions):
+                            actions=actions, finding=None if key is None else f"problems:{key}"):
             return False
         self._sent.append(now)
         if key is not None:

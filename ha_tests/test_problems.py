@@ -1,4 +1,5 @@
 import datetime
+import shutil
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -12,6 +13,15 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 
 from custom_components.bram.problem_watch import DAILY, STARTING, ProblemWatch
 from custom_components.bram.problems import Finder, Problem
+
+
+@pytest.fixture(autouse=True)
+def roomy_disk():
+    """The disk check must not depend on the machine running the tests."""
+    roomy = shutil._ntuple_diskusage(10**12, 10**11, 9 * 10**11)
+    with patch("shutil.disk_usage", return_value=roomy):
+        yield
+
 
 pytestmark = pytest.mark.usefixtures("custom")
 

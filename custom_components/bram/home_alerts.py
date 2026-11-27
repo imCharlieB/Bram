@@ -232,7 +232,8 @@ class HomeAlerts:
             title = f"BRAM alert, reminder {alert['sends']}" if alert["sends"] else "BRAM alert"
             sent = await notify(
                 self._hass, self._safety_phones, title, text, f"bram_{alert['id']}", safety=True,
-                actions=[{"action": ACK + alert["id"], "title": "Acknowledge"}])
+                actions=[{"action": ACK + alert["id"], "title": "Acknowledge"}],
+                finding=f"safety:{entity_id}")
             if sent or alert["sends"] == 0:
                 self._feed.note(f"safety:{entity_id}", "sent" if sent else "not sent",
                                 f"Phone: {text}", "safety", "high")
@@ -282,7 +283,9 @@ class HomeAlerts:
                        ] if len(batch) == 1 and first["mutable"] else []
             if await notify(self._hass, self._phones, "BRAM",
                             "\n".join(item["text"] for item in batch),
-                            f"bram_{first['key']}", safety=False, actions=actions):
+                            f"bram_{first['key']}", safety=False, actions=actions,
+                            finding=f"silent:{first['entity_id']}" if len(batch) == 1
+                            and first["key"].endswith(" silent") else None):
                 self._sent_notices.append(now)
                 if actions and first["key"].endswith(" silent"):
                     self._feed.offer(f"silent:{first['entity_id']}", actions, "silent")

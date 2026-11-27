@@ -4,10 +4,25 @@ It takes no input from the server or a model.
 """
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant
 
 PREFIX = "mobile_app_"
+PAGE = "bram_page"  # BRAM's page, from the address the owner entered at setup
+
+
+def set_page(hass: HomeAssistant, host: str, port: int) -> None:
+    hass.data[PAGE] = f"https://{host}:{port}/"
+
+
+def link(hass: HomeAssistant, finding: str | None) -> str | None:
+    """Where a tap goes: that finding on BRAM's page, or Findings."""
+    page = hass.data.get(PAGE)
+    if page is None:
+        return None
+    return page + ("#finding=" + quote(finding, safe="") if finding else "#findings")
 
 
 def phones(hass: HomeAssistant) -> list[str]:
@@ -16,9 +31,11 @@ def phones(hass: HomeAssistant) -> list[str]:
 
 
 async def notify(hass: HomeAssistant, targets: list[str], title: str, text: str, tag: str, *,
-                 safety: bool, actions: list[dict[str, str]]) -> bool:
+                 safety: bool, actions: list[dict[str, str]], finding: str | None = None) -> bool:
     """Send to every chosen phone. True if at least one accepted it."""
     data: dict = {"tag": tag, "actions": actions}
+    if (url := link(hass, finding)) is not None:
+        data |= {"url": url, "clickAction": url}  # iPhone, Android
     if safety:
         data |= {"ttl": 0, "priority": "high", "channel": "BRAM safety", "importance": "max",
                  "push": {"interruption-level": "critical",

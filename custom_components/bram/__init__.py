@@ -15,6 +15,7 @@ from .feed import Feed
 from .home_alerts import HomeAlerts
 from .house_rules import HouseRules
 from .learning import Learner
+from .notifier import set_page
 from .outbox import Outbox
 from .printer_watch import PrinterWatch
 from .problem_watch import ProblemWatch
@@ -37,6 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     for item in er.async_entries_for_config_entry(registry, entry.entry_id):
         if item.unique_id not in wanted:
             registry.async_remove(item.entity_id)
+    set_page(hass, entry.data["host"], entry.data["port"])
     feed.outbox = Outbox(hass, entry, feed.send, feed.takes_notes)
     entry.async_on_unload(await feed.outbox.start())
     feed.teller = Teller(hass, entry, feed.note, feed.offer)

@@ -1227,6 +1227,7 @@ function findingRow(item) {
     await api("finding-ignore", { id: item.id, on: !item.ignored });
     return loadFindings();
   }));
+  row.dataset.key = item.key || "";
   side.append(story, ...pressButtons(item, loadFindings), hide);
   head.append(element("b", item.text), side);
   row.append(head, element("span", `${FROM[item.source] || item.source}${item.home ? ", " + item.home : ""}: ${item.times === 1 ? "once" : item.times + " times"}, first ${ago(item.first)}, last ${ago(item.last)}, ${told}${item.acked ? ", acknowledged" : ""}${item.stopped ? ", messages stopped" : ""}${over}`, "note"), list);
@@ -1242,6 +1243,25 @@ async function loadFindings(more = false) {
   if (findings.length) lastFinding = findings.at(-1).last;
   $("findings-older").hidden = findings.length < 50;
   return $("findings").children.length ? "" : show === "open" ? "Nothing open that BRAM checks for." : "Nothing here.";
+}
+
+function safeDecode(text) {
+  try { return decodeURIComponent(text); } catch { return ""; }
+}
+
+// Tapped from a phone message: that finding, with its story open.
+async function showFinding(key) {
+  const find = () => [...$("findings").children].find((row) => row.dataset.key === key);
+  let row = find();
+  if (!row && $("findings-show").value !== "closed") {
+    $("findings-show").value = "closed";
+    await loadFindings();
+    row = find();
+  }
+  if (!row) return say("findings-message", "That message is no longer listed.");
+  row.classList.add("picked");
+  row.querySelector("button")?.click();
+  row.scrollIntoView({ block: "center" });
 }
 
 // --- pages ---
@@ -1260,7 +1280,8 @@ const MESSAGES = {
 
 async function openPage() {
   if (!signedIn) return;
-  const wanted = location.hash.slice(1), page = PLACES[wanted] || (PAGES.includes(wanted) ? wanted : "overview");
+  const wanted = location.hash.slice(1), target = wanted.startsWith("finding=") ? safeDecode(wanted.slice(8)) : null;
+  const page = target !== null ? "findings" : PLACES[wanted] || (PAGES.includes(wanted) ? wanted : "overview");
   for (const section of document.querySelectorAll("[data-page]")) section.hidden = section.dataset.page !== page;
   for (const link of document.querySelectorAll("nav a:not(.brand)")) {
     if (link.hash === "#" + page) link.setAttribute("aria-current", "page");
@@ -1280,6 +1301,7 @@ async function openPage() {
   try {
     await LOADERS[page]();
     if (PLACES[wanted]) $("at-" + wanted).scrollIntoView();
+    if (target !== null) await showFinding(target);
   } catch (error) {
     say(MESSAGES[page], error.message, "bad");
   }

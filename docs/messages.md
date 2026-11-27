@@ -24,6 +24,8 @@ Home Assistant and each of Telegram and ntfy send at most 10 routine messages a 
 
 Safety alerts have **Acknowledge**. Silent-sensor messages have **Stop these**.
 
+Tap a message to open it on BRAM's page, under Findings, with its story and buttons. The phone opens the address you entered when adding BRAM to Home Assistant, so it must be able to reach the server there. The first time, the phone's browser may warn about BRAM's own certificate. A grouped message, the daily summary, and the security check open Findings.
+
 **Fallback (off by default):** a leak or smoke alert nobody answers for 5 minutes can also go to Telegram and ntfy. It needs the BRAM Server to be connected.
 
 ## Who gets what

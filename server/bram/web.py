@@ -579,7 +579,8 @@ class ConfigPage:
         names = dict(self._pairing.houses())
         rows = self.findings.list(which, before) if self.findings is not None else []
         return _json({"findings": [
-            {k: r[k] for k in ("id", "source", "severity", "text", "is_open", "ignored", "first",
+            {k: r[k] for k in ("id", "key", "source", "severity", "text", "is_open", "ignored",
+                               "first",
                                "last", "times", "told", "acked", "stopped", "closed")}
             | {"home": names.get(r["house_id"], ""), "buttons": json.loads(r["buttons"])}
             for r in rows]})
