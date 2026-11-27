@@ -384,3 +384,14 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
   #dock { width: auto; transform: none; flex-wrap: wrap; justify-content: center; clip-path: none; }
   #slot-chat { order: -1; flex-basis: 100%; max-width: none; margin: 0 0 6px; }
 }
+/* 0.50.2: the three icons the same size, evenly spaced, clear of the cut corner. */
+#slot-chat { padding: 0 12px 0 0; }
+#slot-chat form { gap: 6px; }
+#hud #chat-send, #hud #talk, #slot-chat #aloud-box { width: 36px; height: 36px; margin: 0; border: 0; border-radius: 50%; line-height: 0; }
+#slot-chat #aloud-box { margin-left: 6px; }
+#slot-chat #aloud-box:has(:checked) { border: 0; background: color-mix(in srgb, var(--hud) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hud) 70%, transparent); }
+#slot-chat .icon { width: 20px; height: 20px; margin: auto; }
+#hud #chat-send .icon { transform: translateX(-1px); }
+/* A card is never narrower than its room's name on the tab. */
+#hud-events .event { min-width: 230px; }
+#hud-events .event small { max-width: calc(100% - 14px); }

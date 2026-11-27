@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.50.2
+
+Update the BRAM Server (pull the new image).
+
+- The send, talk, and speak icons are the same size and evenly spaced in the chat box.
+- The cards on Home are wide enough for the whole room name on their tab.
+
 ## 0.50.1
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.
