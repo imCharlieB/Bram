@@ -38,7 +38,9 @@ class FakeFrigate:
             if request.path == "/api/version":
                 return web.Response(text="0.16")
             if request.path == "/api/config":
-                return web.json_response({"cameras": {"front_door": {}, "yard": {}}})
+                # A real Frigate's settings are large and arrive in many pieces.
+                return web.json_response({"cameras": {"front_door": {}, "yard": {}},
+                                          "filler": "x" * 3_000_000})
             if request.path == "/api/stats":
                 return web.json_response({"cameras": {
                     c: {"camera_fps": f} for c, f in self.stats.items()}})

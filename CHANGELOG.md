@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.38.2
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- Fixed: connecting Frigate failed with "could not be reached" after the login worked, because only the first part of Frigate's reply was read. Pictures were cut short the same way.
+
 ## 0.38.1
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.

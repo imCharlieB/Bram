@@ -156,7 +156,7 @@ class Frigate:
                 raise FrigateError(f"Frigate's sign-in replied with error {r.status}")
         self._signed_in = True
 
-    async def _get(self, path: str, *, as_json: bool = True, limit: int = 4 * 1024 * 1024) -> Any:
+    async def _get(self, path: str, *, as_json: bool = True, limit: int = 16 * 1024 * 1024) -> Any:
         session = await self._open()
         for attempt in (1, 2):
             try:
@@ -176,9 +176,12 @@ class Frigate:
                                            "Frigate's login port, use https://")
                     if response.status != 200:
                         raise FrigateError(f"Frigate replied with error {response.status}")
-                    body = await response.content.read(limit + 1)
-                    if len(body) > limit:
-                        raise FrigateError("Frigate sent more than expected")
+                    body = bytearray()
+                    while chunk := await response.content.read(65536):  # every piece
+                        body += chunk
+                        if len(body) > limit:
+                            raise FrigateError("Frigate sent more than expected")
+                    body = bytes(body)
                     if not as_json:
                         return body, response.content_type
                     return json.loads(body)
