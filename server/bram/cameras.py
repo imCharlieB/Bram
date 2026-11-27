@@ -118,6 +118,7 @@ class Frigate:
         self._session = session
         self._own = session is None
         self._signed_in = False
+        self.zones: dict[str, list[str]] = {}  # each camera's zones in Frigate's settings
 
     async def _open(self) -> aiohttp.ClientSession:
         if self._session is None:
@@ -205,7 +206,14 @@ class Frigate:
         found = config.get("cameras") if isinstance(config, dict) else None
         if not isinstance(found, dict):
             raise FrigateError("That does not look like Frigate")
-        return sorted(name for name in (_text(n) for n in found) if name)[:64]
+        names = sorted(name for name in (_text(n) for n in found) if name)[:64]
+        self.zones = {}
+        for name in names:
+            setup = found.get(name)
+            zones = setup.get("zones") if isinstance(setup, dict) else None
+            if isinstance(zones, dict):
+                self.zones[name] = sorted(z for z in (_text(k) for k in zones) if z)[:20]
+        return names
 
     async def events(self, cameras: list[str], after: float) -> list[dict[str, Any]]:
         names = ",".join(quote(c, safe="") for c in cameras)
@@ -300,6 +308,7 @@ class Cameras:
         self.pictures: dict[str, tuple[str, bytes]] = {}  # camera -> (event id, jpeg)
         self._checked = 0.0
         self._failures = 0
+        self.zones: dict[str, list[str]] = {}
         self._looked = 0.0
         self.on_event: Callable[[dict[str, Any], bool], Any] | None = None
 
@@ -373,6 +382,7 @@ class Cameras:
             try:
                 pin = await trial.trust()
                 found = await trial.cameras()
+                zones = trial.zones
                 break
             except FrigateError as err:
                 first = first or err
@@ -388,6 +398,7 @@ class Cameras:
         self._settings.update_channel(CHANNEL, {"url": clean, "user": user, "password": password,
                                                 "pin": pin, "on": keep})
         self.found, self.reason, self._checked = found, "", self._clock()
+        self.zones = zones
         self.offline = set()
 
     async def disconnect(self) -> None:
@@ -415,6 +426,7 @@ class Cameras:
         try:
             if not self.found or now - self._checked >= CONFIG_EVERY:
                 self.found, self._checked = await frigate.cameras(), now
+                self.zones = frigate.zones
             chosen = self.chosen()
             if chosen:
                 self.offline = await frigate.offline(chosen)

@@ -60,6 +60,7 @@ FILES = {"": "index.html", "app.js": "app.js", "style.css": "style.css", "icon.p
 wall = time.time
 FACTOR_WINDOW = 600
 CAMERAS_IN_HOME = (0, 39)  # Home Assistant shows cameras from this version
+CAMERA_ZONES = (0, 41)  # and offers Frigate's zones in its settings from this one
 
 
 class ConfigPage:
@@ -932,6 +933,9 @@ class ConfigPage:
                 names = self.cameras.names_for(house_id)
                 await self._send_house(house_id, {"type": "cameras", "names": names, "last": {
                     n: for_home(e) for n in names if (e := self.cameras.last(n))}})
+                if not _older(self._worlds()[house_id].version, CAMERA_ZONES):
+                    await self._send_house(house_id, {"type": "camera_zones", "zones": {
+                        n: self.cameras.zones.get(n, []) for n in names}})
 
     async def _camera_event(self, event: dict, new: bool) -> None:
         house_id = self.cameras.house()

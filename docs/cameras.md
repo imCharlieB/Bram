@@ -24,19 +24,31 @@ The decision is code, not the model. The model's words only describe; they never
 
 ## What it tells you
 
-Turn these on in Home Assistant: **Settings > Devices & services > BRAM > Configure > Watching > Cameras**. They cover the cameras you turned on under **Settings > Cameras** on BRAM's page.
+Turn these on in Home Assistant: **Settings > Devices & services > BRAM > Configure > Watching > Cameras > What to tell me**. They cover the cameras you turned on under **Settings > Cameras** on BRAM's page.
 
 | Rule | When | Default |
 |---|---|---|
 | A person while everyone is away | Frigate sees a person, and everyone BRAM can see is away. Ignores quiet hours | Off |
-| A person at night | A person in your night hours, set under **Locks, doors, and windows**. Ignores quiet hours | Off |
+| A person at a door that is open or unlocked | A person on a camera, while a door or lock linked to that camera is open or unlocked. Ignores quiet hours | Off |
+| A person at night | A person in your night hours, set under **Locks, doors, and windows**, or while your asleep helper is on. Ignores quiet hours | Off |
 | A person Frigate does not know | A person Frigate did not name. Only useful with face recognition on in Frigate; without it, every person is unknown | Off |
 | A package | Frigate sees a package | Off |
+| A car | A car that stays at least 30 seconds, in the zones you choose for that camera, such as the driveway. A car driving past is never told | Off |
 | Camera offline | Frigate or a camera stops reporting | In the [security check](security-check.md), and on BRAM's page |
 
 A person Frigate knows is named in the message, such as "Alex at front door, and everyone I track is away."
 
-Coming: a person at a door that is open or unlocked, with each camera linked to its doors; a car arriving in a zone you choose; and choosing rules and zones for each camera.
+### Set up one camera
+
+**Configure > Watching > Cameras > Set up one camera**, then choose the camera:
+
+| Setting | Does |
+|---|---|
+| Doors and locks this camera looks at | For a person at a door that is open or unlocked. A door or lock that is unavailable never counts as open |
+| Frigate zones that count | Picked from the zones in Frigate's settings for that camera, such as porch or driveway. With zones chosen, a person or car outside them is left out, so a person on the sidewalk is not at your door and a car on the street is not in your driveway. Empty: the whole picture counts |
+| Messages from this camera | Which of the messages you turned on this camera sends. All, unless you choose |
+
+A camera you have not set up sends every message you turned on, for its whole picture.
 
 ## Fewer messages
 
@@ -109,8 +121,8 @@ On BRAM's page, **Settings > Cameras**:
 |---|---|---|
 | Frigate address | Such as `http://HOST:5000`, or the login port `https://HOST:8971` with a Frigate user that can only view | None |
 | Each camera | Watch events | Off |
-| In Home Assistant, Configure > Watching > Cameras | Each rule above, and **Not again on the same camera for** | Off; 30 minutes |
-| Each camera, coming | Which rules; which zones count; which doors it looks at | Off |
+| In Home Assistant, Configure > Watching > Cameras > What to tell me | Each rule above, and **Not again on the same camera for** | Off; 30 minutes |
+| In Home Assistant, Configure > Watching > Cameras > Set up one camera | Its doors and locks, the Frigate zones that count, and its messages | None; whole picture; all |
 | Describe with the model | Per camera; sends the event's picture and a few frames to your model | Off |
 | Cloud model may see pictures | Only if you also use a cloud model | Off |
 | Keep pictures | The latest event per camera, or the last 7 days | Latest only |
@@ -128,7 +140,7 @@ On BRAM's page, **Settings > Cameras**:
 |---|---|---|
 | 1. Connect Frigate | The address and cameras on BRAM's page; each camera's switch | ✅ 0.38 |
 | 2. Events | Each camera's latest event and picture on BRAM's page; Home Assistant told of each event, for messages | ✅ 0.39 |
-| 3. Rules and messages | Person while away, at night, or unknown, and packages, with Frigate's picture, same-thing-once, and one message across cameras ✅. Doors, cars, and rules for each camera ⬜ | 🟡 0.40 |
+| 3. Rules and messages | Person while away, at an open or unlocked door, at night, or unknown; packages; cars that stay in a zone; with Frigate's picture, same-thing-once, one message across cameras, and settings for each camera | ✅ 0.41 |
 | 4. Descriptions | The model describes events, per camera | ⬜ |
 | 5. Ask a camera | Chat questions and scheduled checks about what a camera sees | ⬜ |
 | 6. Camera card | A dashboard card with Frigate's picture and BRAM's description | ⬜ |

@@ -34,6 +34,20 @@ def names(raw: object) -> list[str] | None:
     return list(dict.fromkeys(raw))
 
 
+def zones(raw: object) -> dict[str, list[str]] | None:
+    """Each camera's zone names from Frigate, only for the settings page."""
+    if not isinstance(raw, dict) or len(raw) > MAX_CAMERAS:
+        return None
+    found = {}
+    for name, items in raw.items():
+        if (not isinstance(name, str) or not NAME.fullmatch(name) or not isinstance(items, list)
+                or len(items) > 20
+                or not all(isinstance(z, str) and 0 < len(z) <= 64 for z in items)):
+            return None
+        found[name] = [" ".join(z.split()) for z in items]
+    return found
+
+
 def event(raw: object) -> dict[str, Any] | None:
     """One Frigate event as the server summed it up, or None if anything is off."""
     if not isinstance(raw, dict) or raw.keys() != EVENT_KEYS:

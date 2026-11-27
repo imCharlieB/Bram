@@ -131,3 +131,43 @@ async def test_stop_these(hass, env):
     env.watch.allow_all()
     await env.see("porch", event(3, "package", at=env.now))
     assert len(env.calls) == 2
+
+
+async def test_person_at_an_open_or_unlocked_door(hass, env):
+    hass.states.async_set("lock.front", "locked", {"friendly_name": "Front lock"})
+    await env.start(camera_door=True, camera_setup={"front_door": {"doors": ["lock.front"]}})
+    await env.see("front_door", event(1))
+    assert env.calls == []
+    hass.states.async_set("lock.front", "unlocked", {"friendly_name": "Front lock"})
+    await env.see("front_door", event(2))
+    await env.see("yard", event(3))  # not linked to that lock
+    assert env.texts() == ["Someone at front door, and Front lock is unlocked."]
+    hass.states.async_set("lock.front", "unavailable")
+    env.now += datetime.timedelta(hours=1)
+    await env.see("front_door", event(4, at=env.now))  # unknown is never open (B2)
+    assert len(env.calls) == 1
+
+
+async def test_a_car_must_stay_in_its_zone(hass, env):
+    await env.start(camera_car=True, camera_setup={"driveway": {"zones": ["driveway"]}})
+    passing = {**event(1, "car", zones=["street"]), "end": (START.timestamp() + 60)}
+    await env.see("driveway", passing)  # outside the zones that count
+    quick = {**event(2, "car", zones=["driveway"]), "end": START.timestamp() + 5}
+    await env.see("driveway", quick)  # gone in 5 seconds: drove past
+    assert env.calls == []
+    stays = event(3, "car", zones=["driveway"])
+    await env.see("driveway", stays)  # just arrived: not yet, but looked at again later
+    assert env.calls == [] and len(env.watch._waiting) == 1
+    env.watch.stop()
+    env.now += datetime.timedelta(seconds=40)
+    await env.see("driveway", stays)  # the second look: it stayed
+    assert env.texts() == ["A car at driveway. In driveway."]
+
+
+async def test_each_camera_its_own_messages(env):
+    await env.start(camera_package=True, camera_stranger=True,
+                    camera_setup={"porch": {"rules": ["camera_package"]}})
+    await env.see("porch", event(1))  # strangers are not for this camera
+    await env.see("porch", event(2, "package"))
+    await env.see("yard", event(3))  # every message for a camera not set up
+    assert env.texts() == ["A package at porch.", "A person Frigate does not know at yard."]

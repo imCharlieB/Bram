@@ -17,7 +17,7 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from . import printers
-from .camera_watch import DEFAULT_REPEAT
+from .camera_watch import DEFAULT_REPEAT, place
 from .camera_watch import RULES as CAMERA_RULES
 from .client import CannotConnect, InvalidCode, pair
 from .const import (
@@ -370,11 +370,61 @@ class BramOptionsFlow(OptionsFlowWithReload):
 
     async def async_step_cameras(self, user_input: dict[str, Any] | None = None,
                                  ) -> ConfigFlowResult:
+        return self.async_show_menu(step_id="cameras",
+                                    menu_options=["camera_rules", "camera_pick", "watching"])
+
+    async def async_step_camera_pick(self, user_input: dict[str, Any] | None = None,
+                                     ) -> ConfigFlowResult:
+        """Choose a camera to set up: its doors, its zones, and its rules."""
+        names = list(getattr(self.config_entry, "runtime_data", None) and
+                     self.config_entry.runtime_data.camera_names or [])
+        names += [n for n in self.config_entry.options.get("camera_setup", {}) if n not in names]
+        if not names:
+            return self.async_abort(reason="no_cameras")
+        if user_input is not None and user_input.get("camera") in names:
+            self._camera = user_input["camera"]
+            return await self.async_step_camera_one()
+        return self.async_show_form(step_id="camera_pick", data_schema=vol.Schema({
+            vol.Required("camera"): selector.SelectSelector(selector.SelectSelectorConfig(
+                options=[selector.SelectOptionDict(value=n, label=place(n).capitalize())
+                         for n in names])),
+        }))
+
+    async def async_step_camera_one(self, user_input: dict[str, Any] | None = None,
+                                    ) -> ConfigFlowResult:
+        options = dict(self.config_entry.options)
+        setups = dict(options.get("camera_setup", {}))
+        now = setups.get(self._camera, {})
+        if user_input is not None and "rules" in user_input:
+            setups[self._camera] = {
+                "doors": list(user_input.get("doors", [])),
+                "zones": [z.strip() for z in user_input.get("zones", []) if z.strip()][:20],
+                "rules": [r for r in user_input["rules"] if r in CAMERA_RULES]}
+            return self.async_create_entry(data={**options, "camera_setup": setups})
+        return self.async_show_form(step_id="camera_one", data_schema=vol.Schema({
+            vol.Optional("doors", description={"suggested_value": now.get("doors", [])}):
+                selector.EntitySelector(selector.EntitySelectorConfig(
+                    domain=["lock", "binary_sensor", "cover"], multiple=True)),
+            vol.Optional("zones", description={"suggested_value": now.get("zones", [])}):
+                selector.SelectSelector(selector.SelectSelectorConfig(
+                    options=sorted({*self._zones(), *now.get("zones", [])}), multiple=True,
+                    custom_value=True)),
+            vol.Required("rules", default=now.get("rules") or list(CAMERA_RULES)):
+                selector.SelectSelector(selector.SelectSelectorConfig(
+                    options=list(CAMERA_RULES), multiple=True, translation_key="camera_rules")),
+        }), description_placeholders={"camera": place(self._camera)})
+
+    def _zones(self) -> list[str]:
+        feed = getattr(self.config_entry, "runtime_data", None)
+        return list(feed.camera_zones.get(self._camera, [])) if feed is not None else []
+
+    async def async_step_camera_rules(self, user_input: dict[str, Any] | None = None,
+                                      ) -> ConfigFlowResult:
         """Camera messages, for the cameras chosen on BRAM's page. Each off until turned on."""
         options = dict(self.config_entry.options)
         if user_input is not None:
             return self.async_create_entry(data={**options, **user_input})
-        return self.async_show_form(step_id="cameras", data_schema=vol.Schema({
+        return self.async_show_form(step_id="camera_rules", data_schema=vol.Schema({
             **{vol.Required(rule, default=options.get(rule, False)): bool
                for rule in CAMERA_RULES},
             vol.Required("camera_repeat", default=options.get(

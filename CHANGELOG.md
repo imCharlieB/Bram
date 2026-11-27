@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.41.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Cameras: a person at a door that is open or unlocked, and a car. A car is told only if it stays at least 30 seconds in the zones you choose, such as the driveway, so one driving past is left out.
+- Set up each camera under **Configure > Watching > Cameras > Set up one camera**: the doors and locks it looks at, which Frigate zones count, picked from Frigate's own zones, and which messages it sends. With zones, a person on the sidewalk is not at your door.
+- **Configure > Watching > Cameras** is now a small menu: **What to tell me** and **Set up one camera**.
+
 ## 0.40.5
 
 Update the BRAM Server (pull the new image).

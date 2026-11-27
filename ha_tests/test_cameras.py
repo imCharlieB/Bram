@@ -21,9 +21,11 @@ async def test_only_turned_on_cameras_reach_home_assistant(hass, server):  # noq
     page._settings.update_channel("cameras", {"url": "http://127.0.0.1:5000",
                                               "on": ["front_door"]})
     page.cameras.found = ["front_door", "yard"]
+    page.cameras.zones = {"front_door": ["porch"], "yard": ["lawn"]}
     entry = await start(hass, server)
     feed = entry.runtime_data
     await until(lambda: feed.camera_names == ["front_door"])
+    await until(lambda: feed.camera_zones == {"front_door": ["porch"]})  # not the yard's
 
     event = event_from(RAW)
     page.cameras.events["front_door"] = [event]

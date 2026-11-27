@@ -117,6 +117,7 @@ class Feed:
         # Cameras the server watches for this home, and each one's latest event (E2).
         self.camera_names: list[str] = []
         self.camera_events: dict[str, dict] = {}
+        self.camera_zones: dict[str, list[str]] = {}  # from Frigate, for the settings
 
     @property
     def entities(self) -> list[str]:
@@ -290,6 +291,12 @@ class Feed:
                 events = {n: cameras.event(e) for n, e in data["last"].items() if n in found}
                 self.camera_events = {n: e for n, e in events.items() if e is not None}
                 self._notify()
+                return
+        if (isinstance(data, dict) and data.keys() == {"type", "zones"}
+                and data["type"] == "camera_zones"):
+            found = cameras.zones(data["zones"])
+            if found is not None:
+                self.camera_zones = found
                 return
         if (isinstance(data, dict) and data.keys() == {"type", "camera", "event"}
                 and data["type"] == "camera" and data["camera"] in self.camera_names):

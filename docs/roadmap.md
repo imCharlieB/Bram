@@ -228,7 +228,8 @@ Optional, for the installation and per person.
 | Frigate events: people, vehicles, pets, packages | 🟡 latest event and picture on BRAM's page |
 | Ask what a camera sees; a vision model describes it | ⬜ |
 | Person while away, at night, or not known to Frigate; packages | ✅ 0.40, [Cameras](cameras.md) |
-| Person near an open or unlocked door; car arriving; motion with no camera activity | ⬜ |
+| Person at an open or unlocked door; a car that stays in a zone; zones and messages for each camera | ✅ 0.41 |
+| Motion with no camera activity | ⬜ |
 | Picture in the message, from the Frigate integration; repeats on a camera and across cameras combined | ✅ 0.40 |
 | Camera stale, offline, or disabled | 🟡 offline in the security check; no picture in Frigate on BRAM's page |
 | Unknown person, through Frigate's face recognition | ⬜ |

@@ -18,15 +18,20 @@ from homeassistant.util import dt as dt_util
 
 from .const import CONF_PHONES, CONF_QUIET_FROM, CONF_QUIET_TO, DOMAIN
 from .home_alerts import within
+from .names import name_of
 from .notifier import notify
 from .teller import EACH_TIME, Teller
 
-RULES = ("camera_away", "camera_night", "camera_package", "camera_stranger")
-# A person while everyone is away or at night does not wait for quiet hours.
-URGENT = ("camera_away", "camera_night")
+RULES = ("camera_away", "camera_door", "camera_night", "camera_stranger", "camera_package",
+         "camera_car")
+# A person while everyone is away, at an open or unlocked door, or at night does not wait.
+URGENT = ("camera_away", "camera_door", "camera_night")
+OPEN = {"on": "open", "open": "open", "opening": "opening", "unlocked": "unlocked",
+        "unlocking": "unlocking"}
 DEFAULT_REPEAT = 30  # minutes before the same thing on the same camera is news again
 ACROSS = 120  # seconds: one person walking past several cameras is one message
 TOO_OLD = 600  # an event this old when BRAM first hears of it is not news
+STAY = 30  # seconds a car must stay: one driving past is gone sooner
 DAILY = 30
 DAY = 86400
 MUTE = "BRAM_CAMERA_"
@@ -52,11 +57,16 @@ class CameraWatch:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry,
                  away: Callable[[], bool], night: Callable[[], bool],
                  note: Callable[..., None] = lambda *a: None,
-                 teller: Teller | None = None) -> None:
+                 teller: Teller | None = None,
+                 latest: Callable[[str], dict | None] = lambda camera: None) -> None:
+        self._latest = latest  # the camera's newest event, to look again at a car
+        self._waiting: list[Callable[[], None]] = []
         self._hass, self._away, self._night, self._note = hass, away, night, note
         self._teller = teller or Teller(hass, entry)
         options = entry.options
         self._on = {r for r in RULES if options.get(r)}
+        # For each camera: the doors it looks at, the Frigate zones that count, and its rules.
+        self._setup: dict[str, dict] = dict(options.get("camera_setup", {}))
         self._repeat = int(options.get("camera_repeat", DEFAULT_REPEAT)) * 60
         self._phones: list[str] = options.get(CONF_PHONES, [])
         self._quiet = (options.get(CONF_QUIET_FROM), options.get(CONF_QUIET_TO))
@@ -70,7 +80,13 @@ class CameraWatch:
         saved = await self._store.async_load() or {}
         self._muted = saved.get("muted", [])
         self._last = saved.get("last", {})
-        return self._hass.bus.async_listen("mobile_app_notification_action", self.answered)
+        stop = self._hass.bus.async_listen("mobile_app_notification_action", self.answered)
+
+        @callback
+        def stop_all() -> None:
+            stop()
+            self.stop()
+        return stop_all
 
     @callback
     def answered(self, event: Event) -> None:
@@ -87,19 +103,37 @@ class CameraWatch:
         self._muted = []
         self._save()
 
+    def _open_door(self, doors: list[str]) -> str | None:
+        """The first linked door or lock that is open or unlocked, in words. Unknown is never
+        open (B2): it is not a reason to say a door is open."""
+        for entity_id in doors:
+            state = self._hass.states.get(entity_id)
+            if state is not None and state.state in OPEN:
+                return f"{name_of(self._hass, entity_id)} is {OPEN[state.state]}"
+        return None
+
     def _rule(self, event: dict) -> tuple[str, str] | None:
         """Which rule this event meets, and what to say. The most urgent first."""
+        setup = self._setup.get(event["camera"], {})
+        on = self._on & set(setup.get("rules") or RULES)
+        zones = set(setup.get("zones") or [])
+        if zones and not zones & set(event["zones"]):
+            return None  # not in a zone that counts, such as the sidewalk
         camera, label, who = place(event["camera"]), event["label"], event["who"]
         if label == "person":
             someone = who or "Someone"
-            if "camera_away" in self._on and self._away():
+            if "camera_away" in on and self._away():
                 return "camera_away", f"{someone} at {camera}, and everyone I track is away."
-            if "camera_night" in self._on and self._night():
+            if "camera_door" in on and (door := self._open_door(setup.get("doors", []))):
+                return "camera_door", f"{someone} at {camera}, and {door}."
+            if "camera_night" in on and self._night():
                 return "camera_night", f"{someone} at {camera}, and it's night."
-            if "camera_stranger" in self._on and not who:
+            if "camera_stranger" in on and not who:
                 return "camera_stranger", f"A person Frigate does not know at {camera}."
-        if label == "package" and "camera_package" in self._on:
+        if label == "package" and "camera_package" in on:
             return "camera_package", f"A package at {camera}."
+        if label == "car" and "camera_car" in on:
+            return "camera_car", f"A car at {camera}."
         return None
 
     async def weigh(self, camera: str, event: dict) -> None:
@@ -111,6 +145,12 @@ class CameraWatch:
         found = self._rule({**event, "camera": camera})
         if found is None:
             return  # not yet: Frigate may still name the person or add a zone
+        if found[0] == "camera_car":
+            lasted = (event["end"] or now) - event["start"]
+            if lasted < STAY:
+                if event["end"] is None:  # still there: look again once it has stayed
+                    self._later(camera, event["id"], STAY - lasted)
+                return  # gone already: it drove past
         self._seen[event["id"]] = now
         rule, text = found
         what = "person" if event["label"] == "person" else event["label"]
@@ -148,6 +188,23 @@ class CameraWatch:
         else:
             self._note(f"cameras:{key}", "not sent", "No phone accepted it", "cameras", "low")
         self._note(f"cameras:{key}", "closed", "Over", "cameras", "low")
+
+    @callback
+    def _later(self, camera: str, event_id: str, wait: float) -> None:
+        @callback
+        def again() -> None:
+            latest = self._latest(camera)
+            if latest is not None and latest["id"] == event_id:
+                self._hass.async_create_task(self.weigh(camera, latest), "bram camera")
+
+        # A plain timer on the event loop; nothing here can call a service (A1).
+        self._waiting.append(self._hass.loop.call_later(wait + 1, again).cancel)
+
+    @callback
+    def stop(self) -> None:
+        for cancel in self._waiting:
+            cancel()
+        self._waiting.clear()
 
     @callback
     def _save(self) -> None:

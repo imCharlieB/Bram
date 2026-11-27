@@ -40,6 +40,16 @@
         "climate": "Thermostats, temperature, humidity, and weather",
         "appliances": "Water heaters, valves, and appliances"
       }
+    },
+    "camera_rules": {
+      "options": {
+        "camera_away": "A person while everyone is away",
+        "camera_door": "A person at an open or unlocked door",
+        "camera_night": "A person at night",
+        "camera_stranger": "A person Frigate does not know",
+        "camera_package": "A package",
+        "camera_car": "A car"
+      }
     }
   },
   "options": {
@@ -49,7 +59,8 @@
     "abort": {
       "no_people": "Share a person with BRAM first.",
       "nothing_to_suggest": "BRAM has no suggestions. It can see the important things.",
-      "no_printers": "BRAM did not find any 3D printers in Home Assistant."
+      "no_printers": "BRAM did not find any 3D printers in Home Assistant.",
+      "no_cameras": "No cameras yet. Connect Frigate and turn on cameras under Settings, Cameras on BRAM's page, then come back."
     },
     "step": {
       "init": {
@@ -307,7 +318,7 @@
           "comfort_skip": "Outdoor sensors, freezers, attics, and others that are meant to be hot or cold."
         }
       },
-      "cameras": {
+      "camera_rules": {
         "title": "Cameras",
         "description": "For the cameras you turn on under Settings, Cameras on BRAM's page, which reads Frigate. The Frigate integration {frigate} installed here; with it, each message shows Frigate's picture.",
         "data": {
@@ -315,13 +326,51 @@
           "camera_night": "A person at night",
           "camera_stranger": "A person Frigate does not know",
           "camera_package": "A package",
-          "camera_repeat": "Not again on the same camera for"
+          "camera_repeat": "Not again on the same camera for",
+          "camera_door": "A person at a door that is open or unlocked",
+          "camera_car": "A car"
         },
         "data_description": {
           "camera_away": "Away counts only the people BRAM can see. Ignores quiet hours.",
           "camera_night": "Uses your night hours under Locks, doors, and windows. Ignores quiet hours.",
           "camera_stranger": "Only useful with face recognition on in Frigate; without it, every person is unknown.",
-          "camera_repeat": "One person walking past several cameras is also one message."
+          "camera_repeat": "One person walking past several cameras is also one message.",
+          "camera_door": "Link each camera to its doors under Set up one camera. Ignores quiet hours.",
+          "camera_car": "Only a car that stays at least 30 seconds, so one driving past is left out. Choose its zones, such as the driveway, under Set up one camera."
+        }
+      },
+      "cameras": {
+        "title": "Cameras",
+        "description": "BRAM's server reads Frigate for the cameras you turn on under Settings, Cameras on BRAM's page. Choose what to be told about, then set up each camera.",
+        "menu_options": {
+          "camera_rules": "What to tell me",
+          "camera_pick": "Set up one camera",
+          "watching": "Back"
+        },
+        "menu_option_descriptions": {
+          "camera_rules": "A person while everyone is away, at an open or unlocked door, or at night; a stranger; a package; a car.",
+          "camera_pick": "The doors a camera looks at, the Frigate zones that count, and which messages it sends.",
+          "watching": "To the other things BRAM watches."
+        }
+      },
+      "camera_pick": {
+        "title": "Set up one camera",
+        "data": {
+          "camera": "Camera"
+        }
+      },
+      "camera_one": {
+        "title": "Camera: {camera}",
+        "description": "Each message also has to be turned on under What to tell me.",
+        "data": {
+          "doors": "Doors and locks this camera looks at",
+          "zones": "Frigate zones that count",
+          "rules": "Messages from this camera"
+        },
+        "data_description": {
+          "doors": "For a person at a door that is open or unlocked.",
+          "zones": "Frigate's zones for this camera, such as porch or driveway. Empty: the whole picture counts. With zones, a person or car outside them is left out.",
+          "rules": "Leave all chosen to use every message you turned on."
         }
       }
     }
