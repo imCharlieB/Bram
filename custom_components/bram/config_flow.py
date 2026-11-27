@@ -11,6 +11,7 @@ from homeassistant.config_entries import (
     OptionsFlowWithReload,
 )
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -301,24 +302,37 @@ class BramOptionsFlow(OptionsFlowWithReload):
             description_placeholders={"nights": str(len(learner.data["nights"]))})
 
     async def async_step_watch(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Grouped so each switch sits with what it needs. Saved flat, as before."""
         options = dict(self.config_entry.options)
         if user_input is not None:
             options.pop(CONF_WEEKEND_FROM, None)
             options.pop(CONF_WEEKEND_TO, None)
-            return self.async_create_entry(data={**options, **user_input})
+            flat = {k: v for part in user_input.values() if isinstance(part, dict)
+                    for k, v in part.items()}
+            return self.async_create_entry(data={**options, **flat})
+
+        def switch(rule: str, on: bool = False) -> dict:
+            return {vol.Required(rule, default=options.get(rule, on)): bool}
+
         return self.async_show_form(step_id="watch", data_schema=vol.Schema({
-            **{vol.Required(rule, default=options.get(rule, False)): bool
-               for rule in ("night", "away", "left_open", "offline", "open_night",
-                            "open_climate", "motion_away")},
-            **{vol.Required(kind, default=options.get(kind, True)): bool for kind in OPEN_TYPES},
-            vol.Required("night_from", default=options.get("night_from", DEFAULT_NIGHT_FROM)):
-                selector.TimeSelector(),
-            vol.Required("night_to", default=options.get("night_to", DEFAULT_NIGHT_TO)):
-                selector.TimeSelector(),
-            **{vol.Optional(key, description={"suggested_value": options.get(key)}):
-               selector.TimeSelector() for key in (CONF_WEEKEND_FROM, CONF_WEEKEND_TO)},
-            vol.Required("open_minutes", default=options.get(
-                "open_minutes", DEFAULT_OPEN_MINUTES)): vol.All(int, vol.Range(1, 1440)),
+            vol.Required("locks"): section(vol.Schema({
+                **switch("night"), **switch("offline")}), {"collapsed": False}),
+            vol.Required("doors"): section(vol.Schema({
+                **switch("left_open"),
+                vol.Required("open_minutes", default=options.get(
+                    "open_minutes", DEFAULT_OPEN_MINUTES)): vol.All(int, vol.Range(1, 1440)),
+                **{k: v for kind in OPEN_TYPES for k, v in switch(kind, True).items()},
+                **switch("open_night"), **switch("open_climate")}), {"collapsed": False}),
+            vol.Required("away"): section(vol.Schema({
+                **switch("away"), **switch("motion_away")}), {"collapsed": False}),
+            vol.Required("hours"): section(vol.Schema({
+                vol.Required("night_from", default=options.get(
+                    "night_from", DEFAULT_NIGHT_FROM)): selector.TimeSelector(),
+                vol.Required("night_to", default=options.get(
+                    "night_to", DEFAULT_NIGHT_TO)): selector.TimeSelector(),
+                **{vol.Optional(key, description={"suggested_value": options.get(key)}):
+                   selector.TimeSelector() for key in (CONF_WEEKEND_FROM, CONF_WEEKEND_TO)},
+            }), {"collapsed": False}),
         }))
 
     async def async_step_comfort(self, user_input: dict[str, Any] | None = None,

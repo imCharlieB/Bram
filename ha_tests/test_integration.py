@@ -448,10 +448,14 @@ async def test_choose_room_sensor(hass, server):
 
 async def test_watch_page(hass, server):
     entry = await start(hass, server)
-    watch = {"night": True, "away": False, "left_open": True, "offline": False,
-             "night_from": "23:00:00", "night_to": "05:00:00", "open_minutes": 15}
+    watch = {"locks": {"night": True, "offline": False},
+             "doors": {"left_open": True, "open_minutes": 15},
+             "away": {"away": False},
+             "hours": {"night_from": "23:00:00", "night_to": "05:00:00"}}
     await options(hass, entry, "watch", watch)
-    assert watch.items() <= entry.options.items() and entry.options["entities"] == []
+    flat = {k: v for part in watch.values() for k, v in part.items()}
+    assert flat.items() <= entry.options.items() and entry.options["entities"] == []
+    assert "locks" not in entry.options and entry.options["open_windows"] is True
     assert entry.runtime_data.rules._on == {"night", "left_open"}
     await hass.services.async_call(
         "button", "press", {"entity_id": "button.bram_allow_stopped_messages"}, blocking=True)

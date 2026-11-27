@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.35.2
+
+Update both: BRAM in HACS (then restart Home Assistant) and the server in Portainer.
+
+- **Locks, doors, windows, and motion** settings are grouped: Locks, Doors and windows, While everyone is away, and Night hours. Your choices are kept.
+- Home: **Story** under Needs you opens that finding with its story, not just the Findings list.
+
 ## 0.35.1
 
 Update BRAM in HACS and restart Home Assistant. Update the server in Portainer too to keep the versions together.

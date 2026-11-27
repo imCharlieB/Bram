@@ -178,30 +178,58 @@
       },
       "watch": {
         "title": "Locks, doors, windows, and motion",
-        "description": "Covers the locks, doors, windows, and garage doors BRAM can see. Night and away messages ignore quiet hours. Away counts only the people BRAM can see, so share everyone who lives here.",
-        "data": {
-          "night": "Unlocked at night",
-          "away": "Open or unlocked while everyone is away",
-          "left_open": "Left open",
-          "open_doors": "Left open: doors",
-          "open_windows": "Left open: windows",
-          "open_garages": "Left open: garage doors and gates",
-          "offline": "A lock or door sensor goes offline",
-          "night_from": "Night starts",
-          "night_to": "Night ends",
-          "weekend_night_from": "Friday and Saturday night starts (empty: same)",
-          "weekend_night_to": "Friday and Saturday night ends (empty: same)",
-          "open_minutes": "Left open means this many minutes",
-          "open_night": "Open at night",
-          "open_climate": "Open while heating or cooling",
-          "motion_away": "Motion while everyone is away"
-        },
-        "data_description": {
-          "left_open": "On: told when something stays open longer than the minutes below. Choose doors, windows, and garage doors separately.",
-          "open_windows": "Turn off if you sleep with windows open. Open while everyone is away still covers windows.",
-          "open_night": "Doors, windows, and garage doors you chose under Left open, open at night. Ignores quiet hours.",
-          "open_climate": "Open longer than the left-open minutes while a thermostat BRAM can see is heating or cooling.",
-          "motion_away": "Told once per sensor until someone is home again. Pets can set this off. Ignores quiet hours."
+        "description": "For the locks, doors, windows, garage doors, and motion sensors BRAM can see. Each is off until you turn it on.",
+        "sections": {
+          "locks": {
+            "name": "Locks",
+            "data": {
+              "night": "Unlocked at night",
+              "offline": "A lock or door sensor goes offline"
+            },
+            "data_description": {
+              "night": "Uses your night hours below. Ignores quiet hours."
+            }
+          },
+          "doors": {
+            "name": "Doors and windows",
+            "description": "Choose which kinds count, then what to be told about them.",
+            "data": {
+              "left_open": "Left open",
+              "open_minutes": "Left open means this many minutes",
+              "open_doors": "Count doors",
+              "open_windows": "Count windows",
+              "open_garages": "Count garage doors and gates",
+              "open_night": "Open at night",
+              "open_climate": "Open while heating or cooling"
+            },
+            "data_description": {
+              "left_open": "Told when one stays open longer than the minutes below.",
+              "open_windows": "Turn off if you sleep with windows open.",
+              "open_night": "Told when one is open in your night hours. Ignores quiet hours.",
+              "open_climate": "Told when one stays open longer than the minutes above while a thermostat is heating or cooling."
+            }
+          },
+          "away": {
+            "name": "While everyone is away",
+            "description": "Away counts only the people BRAM can see, so share everyone who lives here. These ignore quiet hours.",
+            "data": {
+              "away": "A lock unlocked, or a door or window open",
+              "motion_away": "Motion"
+            },
+            "data_description": {
+              "away": "Every door and window counts here, whatever you chose above.",
+              "motion_away": "Told once per sensor until someone is home again. Pets can set this off."
+            }
+          },
+          "hours": {
+            "name": "Night hours",
+            "data": {
+              "night_from": "Night starts",
+              "night_to": "Night ends",
+              "weekend_night_from": "Friday and Saturday night starts (empty: same)",
+              "weekend_night_to": "Friday and Saturday night ends (empty: same)"
+            }
+          }
         }
       },
       "alerts": {

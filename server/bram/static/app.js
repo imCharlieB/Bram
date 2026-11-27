@@ -813,7 +813,7 @@ function showDid(brain) {
 // What you can do about a finding from Home: read its story, or hide it from the list.
 function needActs(need) {
   const box = element("div", undefined, "acts"), story = element("a", "Story"), hide = element("button", "Hide");
-  story.href = "#findings";
+  story.href = need.key ? `#finding=${encodeURIComponent(need.key)}` : "#findings";
   hide.type = "button";
   hide.title = "Takes it off this list. It does not change what is sent to your phone.";
   hide.addEventListener("click", async () => {
