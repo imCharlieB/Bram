@@ -220,13 +220,17 @@ class Feed:
         return self.send({"type": "camera_learn", "camera": camera, "id": event_id[:80],
                           "matters": matters})
 
-    async def ask(self, text: str, conversation: str) -> str:
-        """Ask the server. The answer is only ever words to say."""
+    async def ask(self, text: str, conversation: str, person: str = "") -> str:
+        """Ask the server. The answer is only ever words to say. Who asked lets memory say
+        who told it something (servers from 0.50 on)."""
         key = secrets.token_hex(8)
         waiting = self._asked[key] = self._hass.loop.create_future()
+        message = {"type": "ask", "id": key, "text": text[:2000],
+                   "conversation": conversation[:64]}
+        if person and self.server_version is not None and _key(self.server_version) >= (0, 50):
+            message["person"] = person[:64]
         try:
-            if not self.send({"type": "ask", "id": key, "text": text[:2000],
-                              "conversation": conversation[:64]}):
+            if not self.send(message):
                 return "I can't reach the BRAM Server right now."
             async with asyncio.timeout(ANSWER_TIMEOUT):
                 return await waiting

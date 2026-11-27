@@ -2,13 +2,13 @@
 const $ = (id) => document.getElementById(id);
 const PAGES = ["overview", "messages", "settings", "findings", "history", "log", "profile"];
 // Places inside a page.
-const PLACES = { homes: "settings", model: "settings", personality: "settings", voice: "settings", cameras: "settings", router: "settings", monitors: "messages" };
+const PLACES = { homes: "settings", model: "settings", personality: "settings", voice: "settings", cameras: "settings", router: "settings", memory: "settings", monitors: "messages" };
 const STORY = {
   connected: "Home Assistant connected", disconnected: "Home Assistant disconnected", paired: "A home was paired",
   unpaired: "A home was removed", "signed in": "You signed in", "login refused": "Someone entered a wrong login",
   "setup refused": "A setup attempt was refused", "settings saved": "Settings changed", "login created": "Your login was created",
   "code created": "A pairing code was made", "password changed": "Your password changed", "history saved": "History settings changed", "history cleaned": "History was cleaned up", "history deleted": "History was deleted", "database damaged": "The database failed its check", "second factor on": "Second factor turned on", "second factor off": "Second factor turned off", "username changed": "Your username changed",
-  "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "frigate connected": "Frigate was connected", "frigate removed": "Frigate was disconnected", "camera on": "A camera was turned on", "router connected": "Your router was connected", "router removed": "Your router was disconnected", "camera off": "A camera was turned off", "monitor removed": "A monitor was removed",
+  "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "frigate connected": "Frigate was connected", "frigate removed": "Frigate was disconnected", "camera on": "A camera was turned on", "router connected": "Your router was connected", "memory on": "Memory was turned on", "memory off": "Memory was turned off", "memory forgotten": "Everything remembered was forgotten", "router removed": "Your router was disconnected", "camera off": "A camera was turned off", "monitor removed": "A monitor was removed",
 };
 const ALARMING = new Set(["login refused", "setup refused", "disconnected", "alert", "send failed"]);
 let paired = false, modelSaved = false, signedIn = false, oldest = null;
@@ -461,6 +461,48 @@ function showLooking(view, on) {
       notNews(camera, event, key));
   }
   seen.camerasReady = true;
+}
+
+// Memory: everything shown here can be changed or deleted (E7).
+function showMemory(view) {
+  world.memoryOn = view.on;
+  $("memory-state").textContent = view.on ? "On" : "Off";
+  $("memory-state").className = view.on ? "good" : "note";
+  $("memory-toggle").textContent = view.on ? "Turn off" : "Turn on";
+  $("memory-forget").hidden = !view.items.length;
+  $("memory-card").hidden = !view.on && !view.items.length;
+  $("memory-list").replaceChildren(...(view.items.length ? view.items.map((item) => {
+    const row = element("li"), left = element("span", item.text);
+    left.append(element("span", `${item.person} · ${item.source} · ${new Date(item.at * 1000).toLocaleDateString()}`, "note sub"));
+    const side = element("span"), change = element("button", "Change", "quiet small"), remove = element("button", "Delete", "quiet small");
+    change.addEventListener("click", () => {
+      const form = element("form", undefined, "row"), input = element("input"), save = element("button", "Save", "small");
+      input.value = item.text;
+      input.maxLength = 300;
+      input.setAttribute("aria-label", "What to remember");
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        busy(save, "memory-list-message", async () => {
+          showMemory(await api("memory-edit", { id: item.id, text: input.value }));
+          return "Changed";
+        });
+      });
+      form.append(input, save);
+      row.replaceChildren(form);
+      input.focus();
+    });
+    remove.addEventListener("click", () => busy(remove, "memory-list-message", async () => {
+      showMemory(await api("memory-delete", { id: item.id }));
+      return "Deleted";
+    }));
+    side.append(change, remove);
+    row.append(left, side);
+    return row;
+  }) : [element("li", view.on ? "Nothing yet. Say \"Remember that...\" in chat." : "Nothing.")]));
+}
+
+async function loadMemory() {
+  showMemory(await api("memory"));
 }
 
 function showRouter(view) {
@@ -1589,7 +1631,7 @@ async function showFinding(key) {
 
 const LOADERS = {
   overview: () => Promise.all([loadChat(), loadVoice(), loadHome()]),
-  settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice(), loadCameras(), loadRouter()]),
+  settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice(), loadCameras(), loadRouter(), loadMemory()]),
   messages: () => Promise.all([loadMonitors(), loadMessages()]),
   findings: async () => say("findings-message", await loadFindings()), history: loadHistory,
   log: async () => say("log-message", await loadLog()), profile: loadProfile,
@@ -1786,6 +1828,27 @@ onClick("save-model", "model-message", async () => {
   return "Saved";
 });
 
+onClick("memory-toggle", "memory-message", async () => {
+  if (world.memoryOn) {
+    const confirm = await askPassword("Turn memory off? BRAM stops keeping anything new.");
+    const forget = window.confirm("Also forget everything BRAM remembers? Cancel keeps it, off and unused, until you turn memory on again.");
+    showMemory(await api("memory-on", { confirm, on: false, forget }));
+    return forget ? "Off, and everything is forgotten" : "Off. What was remembered is kept but not used";
+  }
+  const confirm = await askPassword("Turn memory on? BRAM keeps what you ask it to remember, and your conversation, on this server.");
+  showMemory(await api("memory-on", { confirm, on: true }));
+  return "On";
+});
+onClick("memory-forget", "memory-message", async () => {
+  const confirm = await askPassword("Forget everything BRAM remembers, and your conversation? This cannot be undone.");
+  showMemory(await api("memory-forget-all", { confirm }));
+  return "Everything is forgotten";
+});
+onSubmit("memory-form", "memory-add", "memory-list-message", async () => {
+  showMemory(await api("memory-add", { text: $("memory-text").value }));
+  $("memory-text").value = "";
+  return "Remembered";
+});
 onSubmit("router-form", "router-save", "router-message", async () => {
   const confirm = await askPassword("BRAM will read your router's device list and firmware status. It never changes the router.");
   showRouter(await api("router", { confirm, url: $("router-url").value, key: $("router-key").value, secret: $("router-secret").value }));

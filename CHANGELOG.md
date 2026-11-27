@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.50.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Memory, off until you turn it on under **Settings > Memory**. Say "Remember that...", "Forget about...", or "What do you remember?" in chat, Assist, or Telegram. What fits each question goes to your model as information, never as orders. Your conversation carries over between the page, Assist, and Telegram, and after a restart. See, change, or delete every memory on the page; turning memory off offers to forget everything. See [Memory](docs/chat.md#memory).
+
 ## 0.49.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

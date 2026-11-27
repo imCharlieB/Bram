@@ -13,6 +13,7 @@ One SQLite file, plus a key and certificate, in the data folder.
 | Paired homes | Recognize your Home Assistant | Tokens are hashed |
 | Settings, monitors | | |
 | Telegram token and account number | Send messages | **Plain**; protect the folder |
+| With [memory](chat.md#memory) on: what people asked BRAM to remember, with who and when, and each person's last 12 messages | Remember; carry a conversation over | Until deleted under Settings > Memory, or a week untouched for a conversation. Nothing with memory off |
 | Router address, API key and secret, and certificate fingerprint | Read the router | **Plain**; protect the folder. Use a key whose user can only read |
 | The router's device list and firmware status | Show them; tell Home Assistant's security check | In memory only; read again every 5 minutes |
 | Frigate address, username, password, and certificate fingerprint; which cameras are watched | Read cameras | **Plain**; protect the folder. Use a Frigate user that can only view |
@@ -38,7 +39,7 @@ The connection token, BRAM's options, open alerts, stopped messages, which devic
 |---|---|
 | Live device state | The connection drops or the server restarts |
 | Pictures of people and media | Restart, or 60 newer ones |
-| Conversations | Cleared, 30 idle minutes, sign-out, or restart |
+| Conversations, with memory off | Cleared, 30 idle minutes, sign-out, or restart |
 | Recordings | Turned into text |
 | Sessions | Sign-out, expiry, or restart |
 

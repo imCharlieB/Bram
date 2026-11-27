@@ -93,7 +93,7 @@ BRAM has two halves. HACS installs the integration; the server runs in Docker.
 |---|---|---|
 | **Watch and tell** | Safety alerts, silent sensors, locks, doors, windows, motion while away, temperature and humidity, phone messages with buttons, quiet hours, daily summary, Telegram, ntfy, monitors | Severity for every finding, safety acknowledge from BRAM's page |
 | **Find problems** | Home Assistant health, 3D printers, the security check | Power and energy, network devices, poor air, appliances left on |
-| **Remember** | Findings with their stories, history and trends, heating and cooling runs, prints | Memory of you and your corrections |
+| **Remember** | Findings with their stories, history and trends, heating and cooling runs, prints; memory of what you ask it to remember, and your conversation, if you turn it on | Preferences and corrections it notices |
 | **Learn** | Suggested night hours and left-open time, approved on a review page | Usual routines, suggested rules and automations |
 | **Talk** | Chat on its page, in Assist, and in Telegram; voice; personalities; blueprints | Other model providers, speakers in rooms |
 | **Explain** | | Likely causes and what to do |

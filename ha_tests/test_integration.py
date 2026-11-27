@@ -199,7 +199,7 @@ async def test_assist(hass, server, monkeypatch):
     entry = await start(hass, server)
     asked = []
 
-    async def ask(key, text, *, house):
+    async def ask(key, text, *, house, person=""):
         asked.append((key, text, house))
         return Reply("The door is locked.", [])
 

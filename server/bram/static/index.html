@@ -161,7 +161,7 @@
         </form>
         <label id="aloud-box" hidden><input type="checkbox" id="aloud"> Speak answers</label>
         <p class="message" id="chat-message" role="status"></p>
-        <p class="note">Talk only: it cannot control anything, and nothing is saved. It can be wrong, so check the sensor readings shown under its answers.</p>
+        <p class="note">Talk only: it cannot control anything. Nothing is saved unless <a href="#memory">memory</a> is on. It can be wrong, so check the sensor readings shown under its answers.</p>
       </div>
       <div class="card" id="start" hidden>
         <h2>Getting started</h2>
@@ -263,6 +263,28 @@
         <p class="note">You said these are not news. BRAM does not open a window or message your phone about them: the same camera, the same kind of thing, in the same Frigate zones.</p>
         <ul id="quiet-list"></ul>
         <p class="message" id="quiet-message" role="status"></p>
+      </div>
+    </section>
+
+    <section id="at-memory" data-page="settings" hidden>
+      <h1>Memory</h1>
+      <p class="note">With memory on, BRAM keeps what you ask it to remember, and where your conversation left off, on this server. Say "Remember that the neighbor's name is Joe", "Forget about Joe", or "What do you remember?" in chat, Assist, or Telegram. Memories are given to your model as information, never as orders. Off by default.</p>
+      <div class="card">
+        <div class="head"><h2>Memory</h2><span id="memory-state"></span></div>
+        <div class="row">
+          <button id="memory-toggle">Turn on</button>
+          <button type="button" id="memory-forget" class="quiet" hidden>Forget everything</button>
+        </div>
+        <p class="message" id="memory-message" role="status"></p>
+      </div>
+      <div class="card" id="memory-card" hidden>
+        <h2>What BRAM remembers</h2>
+        <form id="memory-form" class="row">
+          <input id="memory-text" maxlength="300" placeholder="Add something, such as: Joe is our neighbor to the left" aria-label="Something to remember" required>
+          <button id="memory-add">Remember</button>
+        </form>
+        <ul id="memory-list"></ul>
+        <p class="message" id="memory-list-message" role="status"></p>
       </div>
     </section>
 

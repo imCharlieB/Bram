@@ -28,6 +28,7 @@ from .cleanup import Cleanup, Plan
 from .findings import Findings
 from .history import History
 from .local_model import check_local, local_models, open_model
+from .memory import Memory
 from .models.base import Image, Message, ModelError
 from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing
@@ -85,7 +86,10 @@ class ConfigPage:
                  printers: dict[str, list[dict]] | None = None,
                  watching: dict[str, list[dict]] | None = None,
                  send_house: Callable[[str, dict], Awaitable[bool]] | None = None,
-                 cameras: Cameras | None = None) -> None:
+                 cameras: Cameras | None = None, memory: Memory | None = None) -> None:
+        # Off until the owner turns it on (E10).
+        self.memory = memory if memory is not None else Memory(
+            ":memory:", lambda: bool(settings.channel("memory").get("on")))
         self.cameras = cameras if cameras is not None else Cameras(
             settings, houses=lambda: [h for h, _ in pairing.houses()])
         self.cameras.on_event = self._camera_event
@@ -111,7 +115,8 @@ class ConfigPage:
         self._worlds = worlds or dict
         self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors,
                          look_up=look_up, past=history, findings=findings,
-                         cleanup=self.cleanup, printers=self.printers, look=self.cameras.look)
+                         cleanup=self.cleanup, printers=self.printers, look=self.cameras.look,
+                         memory=self.memory)
         self.telegram = Telegram(settings, self._answer, talk=self._telegram_talk,
                                  hear=self.speech.hear)
         self._sessions: dict[str, tuple[float, float, str]] = {}
@@ -158,6 +163,12 @@ class ConfigPage:
             web.get("/api/chat", self._private(self._chat_history)),
             web.post("/api/chat", self._private(self._chat_ask)),
             web.post("/api/chat-clear", self._private(self._chat_clear)),
+            web.get("/api/memory", self._private(self._get_memory)),
+            web.post("/api/memory-on", self._confirmed(self._memory_on)),
+            web.post("/api/memory-add", self._private(self._memory_add)),
+            web.post("/api/memory-edit", self._private(self._memory_edit)),
+            web.post("/api/memory-delete", self._private(self._memory_delete)),
+            web.post("/api/memory-forget-all", self._confirmed(self._memory_forget_all)),
             web.get("/api/router", self._private(self._get_router)),
             web.post("/api/router", self._confirmed(self._connect_router)),
             web.post("/api/router-off", self._confirmed(self._disconnect_router)),
@@ -200,7 +211,7 @@ class ConfigPage:
         return self._alerts.answer(action, by) if self._alerts else "That is no longer active."
 
     async def _telegram_talk(self, text: str) -> str:
-        return (await self.chat.ask("telegram", text)).text
+        return (await self.chat.ask("telegram", text, person=self._owner())).text
 
     # --- access ---
 
@@ -873,7 +884,7 @@ class ConfigPage:
         return f"web:{_key(request.cookies.get(COOKIE, ''))}"
 
     async def _chat_history(self, request: web.Request) -> web.Response:
-        return _json({"messages": self.chat.history(self._chat_key(request))})
+        return _json({"messages": self.chat.history(self._chat_key(request), self._owner())})
 
     async def _chat_ask(self, request: web.Request) -> web.Response:
         body = await _body(request)
@@ -885,7 +896,7 @@ class ConfigPage:
                 self._settings.update({"timezone": zone})
         key = self._chat_key(request)
         try:
-            reply = await self.chat.ask(key, text)
+            reply = await self.chat.ask(key, text, person=self._owner())
         except Busy:
             return _json({"error": "I'm still thinking about something else."}, 409)
         except ModelError as err:
@@ -897,8 +908,58 @@ class ConfigPage:
         return _json({"text": reply.text, "facts": reply.facts})
 
     async def _chat_clear(self, request: web.Request) -> web.Response:
-        self.chat.clear(self._chat_key(request))
+        self.chat.clear(self._chat_key(request), self._owner())
         return _json({"ok": True})
+
+    def _owner(self) -> str:
+        record = self._settings.login_record()
+        return owner_name(record) if record else "owner"
+
+    # --- memory: optional, off by default, seen and deleted here (E7, E10) ---
+
+    def _memory_view(self) -> dict:
+        return {"on": self.memory.on, "items": [
+            {"id": m["id"], "text": m["text"], "person": m["person"], "source": m["source"],
+             "at": m["at"]} for m in self.memory.all()]}
+
+    async def _get_memory(self, request: web.Request) -> web.Response:
+        return _json(self._memory_view())
+
+    async def _memory_on(self, body: dict) -> web.Response:
+        on = body.get("on")
+        if not isinstance(on, bool):
+            return _json({"error": "Choose on or off"}, 400)
+        self._settings.update_channel("memory", {"on": on})
+        if not on and body.get("forget") is True:  # turning off offers to delete (E10)
+            self.memory.forget_everything()
+        self.chat.clear_others("", "person:")
+        self._audit.record("server", "config page", "memory on" if on else "memory off",
+                           "and forgotten" if body.get("forget") is True else "by owner", "ok",
+                           approver="owner")
+        return _json(self._memory_view())
+
+    async def _memory_add(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        if self.memory.add(self._owner(), body.get("text"), "added on BRAM's page") is None:
+            return _json({"error": "Turn memory on, and write something to remember"}, 400)
+        return _json(self._memory_view())
+
+    async def _memory_edit(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        if self.memory.correct(body.get("id"), body.get("text")) is None:
+            return _json({"error": "That is no longer remembered"}, 400)
+        return _json(self._memory_view())
+
+    async def _memory_delete(self, request: web.Request) -> web.Response:
+        self.memory.delete((await _body(request)).get("id"))
+        return _json(self._memory_view())
+
+    async def _memory_forget_all(self, body: dict) -> web.Response:
+        self.memory.forget_everything()
+        self.chat.clear_others("", "person:")
+        self._audit.record("server", "config page", "memory forgotten", "everything", "ok",
+                           approver="owner")
+        return _json(self._memory_view())
 
     async def _get_router(self, request: web.Request) -> web.Response:
         return _json(self.router.view())

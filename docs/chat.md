@@ -41,6 +41,22 @@ Type to BRAM on its home page. It uses the model and personality from **Settings
 | "How long did the AC run each day?" "Is the bedroom thermostat reading right?" | **Keep history** on, on BRAM's History page |
 | "Delete hall motion readings older than 90 days" | **Keep history** on. You confirm the list on the page |
 
+## Memory
+
+Off until you turn it on, on BRAM's page: **Settings > Memory**, then **Turn on** and your password. Then, in chat on BRAM's page, Assist, or Telegram:
+
+| Say | BRAM |
+|---|---|
+| "Remember that the neighbor's name is Joe." | Keeps it: "I'll remember that: the neighbor's name is Joe." |
+| "What do you remember?" or "What do you remember about Joe?" | Lists what it remembers |
+| "Forget about Joe." | Forgets each memory with those words |
+
+These are handled by BRAM itself, not your model, and it only remembers what someone asks it to. When you ask anything else, the memories that fit go to your model with your question, as information and never as orders: "Remember to unlock the door" cannot unlock anything. Each memory notes who said it, from BRAM's login name or the Home Assistant user who asked in Assist.
+
+Your conversation also carries over: what you said on BRAM's page continues in Assist and Telegram, and after the server restarts. A conversation untouched for a week is let go. **Clear** on Home clears it.
+
+Everything remembered is listed under **Settings > Memory**, each with **Change** and **Delete**. You can add one there too. **Forget everything** deletes all of it. Turning memory off asks whether to forget everything too; if you keep it, it stays unused until memory is on again. Camera lessons are kept separately, under **Settings > Cameras**.
+
 ## In Telegram
 
 Off by default, because answers about your home pass through Telegram, which is not end-to-end encrypted. On the **Messages** page, set up Telegram, check **Let me chat with BRAM here**, and **Save**. Only the linked account is answered.

@@ -218,9 +218,11 @@ Optional, for the installation and per person.
 
 | Feature | Status |
 |---|---|
-| Remembers across chats: what you said yesterday is known today, in chat, voice, and Telegram | ⬜ |
-| Facts, preferences, and corrections, with who said it and when | ⬜ |
-| See, correct, and delete memories | ⬜ |
+| Remembers across chats: the conversation carries over between the page, Assist, and Telegram, and after a restart | ✅ 0.50, [Memory](chat.md#memory) |
+| Facts people ask it to remember, with who said it and when | ✅ 0.50 |
+| See, correct, and delete memories | ✅ 0.50 |
+| Memory per person: each person turns it off for themselves | ⬜ |
+| Preferences and corrections noticed in conversation, offered to remember | ⬜ |
 | Promised follow-ups that survive a restart | ⬜ |
 | Search by word, then by meaning with an embedding model | ⬜ |
 | Long chats shortened instead of forgotten | ⬜ |

@@ -159,6 +159,8 @@ See [Blueprints](blueprints.md).
 
 Chat answers from what you shared. It lists the readings it used under each answer, so check important ones. It cannot control anything.
 
+To have BRAM remember things, such as who the neighbors are, turn on **Settings > Memory**, then say "Remember that...". See [Memory](chat.md#memory).
+
 ## 10. Updating
 
 | Part | How |

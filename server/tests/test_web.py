@@ -78,6 +78,8 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("POST", "camera-quiet"), ("POST", "camera-allow"),
            ("POST", "camera-scene"), ("POST", "camera-learn"), ("POST", "camera-forget"),
            ("GET", "camera-live"), ("GET", "router"), ("POST", "router"), ("POST", "router-off"),
+           ("GET", "memory"), ("POST", "memory-on"), ("POST", "memory-add"),
+           ("POST", "memory-edit"), ("POST", "memory-delete"), ("POST", "memory-forget-all"),
            ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
            ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),
            ("POST", "unmute"), ("GET", "profile"), ("POST", "factor-start"),
@@ -665,3 +667,24 @@ async def test_page_buttons_go_to_home_assistant_only_as_offered(page):
         assert await ws.receive_json(timeout=3) == {"type": "press", "key": "rules:k",
                                                      "action": stop["action"]}
         assert (await page.post("press", press)).status == 400  # once
+
+
+@pytest.mark.rule("E10")
+async def test_memory_page(page):
+    page.settings.create_login("Owner", PASSWORD)
+    await page.login()
+    view = await (await page.get("/api/memory")).json()
+    assert view == {"on": False, "items": []}  # off out of the box
+    assert (await page.post("memory-add", {"text": "x"})).status == 400
+    assert (await page.post("memory-on", {"on": True, "confirm": "wrong"})).status != 200
+    assert (await page.post("memory-on", {"on": True, "confirm": PASSWORD})).status == 200
+    view = await (await page.post("memory-add", {"text": "Joe is the neighbor"})).json()
+    (item,) = view["items"]
+    assert item["person"] == "Owner" and item["text"] == "Joe is the neighbor"
+    edit = {"id": item["id"], "text": "Joe lives left"}
+    view = await (await page.post("memory-edit", edit)).json()
+    assert view["items"][0]["text"] == "Joe lives left"
+    # Off, and forget: turning it off offers to delete what exists.
+    view = await (await page.post("memory-on", {"on": False, "forget": True,
+                                                "confirm": PASSWORD})).json()
+    assert view == {"on": False, "items": []}

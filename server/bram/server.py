@@ -22,6 +22,7 @@ from .cameras import FrigateError
 from .chat import MAX_TEXT, Busy, Chat
 from .findings import Findings
 from .history import History, number
+from .memory import Memory
 from .models.base import ModelError
 from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing, ensure_certificate
@@ -413,7 +414,9 @@ async def _answer(app: web.Application, ws: web.WebSocketResponse, house_id: str
         reply = "Chat is not available."
     else:
         try:
-            reply = (await app[CHAT].ask(f"ha:{house_id}:{talk}", text, house=house_id)).text
+            person = data.get("person") if isinstance(data.get("person"), str) else ""
+            reply = (await app[CHAT].ask(f"ha:{house_id}:{talk}", text, house=house_id,
+                                         person=person[:64])).text
         except Busy:
             reply = "I'm still thinking about something else. Try again in a moment."
         except ModelError:
@@ -494,7 +497,8 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
              fingerprint: str = "", alerts: Alerts | None = None,
              clock: Callable[[], float] = time.monotonic,
              history: History | None = None,
-             findings: Findings | None = None) -> web.Application:
+             findings: Findings | None = None,
+             memory: Memory | None = None) -> web.Application:
     app = web.Application(client_max_size=4096)
     app[PAIRING], app[AUDIT], app[HOUSES], app[SOCKETS] = pairing, audit, {}, {}
     app[ASKED], app[PRINTERS], app[WATCHING] = {}, {}, {}
@@ -518,7 +522,7 @@ def make_app(pairing: Pairing, audit: Audit, settings: Settings | None = None,
                           lambda: {k: v[0] for k, v in app[HOUSES].items()}, clock,
                           lambda *a: ask_house(app, *a), lambda: _tell_mood(app), history,
                           findings, app[PRINTERS], app[WATCHING],
-                          lambda *a: send_house(app, *a))
+                          lambda *a: send_house(app, *a), memory=memory)
         app[SETTINGS] = settings
         if alerts is not None:
             app[ALERTS], app[TASKS] = alerts, []
@@ -542,9 +546,12 @@ async def _serve(host: str, port: int, data: Path) -> None:
     if not history.healthy:
         audit.record("server", "database", "database damaged", "quick check failed", "problem")
         print("The database failed its check. Restore a backup.", file=sys.stderr)
+    # Memory is off until the owner turns it on; with it off nothing is written (E10).
+    memory = Memory(database, lambda: bool(settings.channel("memory").get("on")))
     app = make_app(Pairing(database), audit, settings, fingerprint, alerts, history=history,
                    findings=Findings(
-                       database, keep_prints=lambda: settings.all()["keep_history"]))
+                       database, keep_prints=lambda: settings.all()["keep_history"]),
+                   memory=memory)
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, host, port, ssl_context=context).start()
