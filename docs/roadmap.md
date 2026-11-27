@@ -144,7 +144,8 @@ BRAM looks by itself. Plain rules decide what is a problem. One finding per prob
 | New Zigbee, Z-Wave, Matter, Thread, or HomeKit device; Z-Wave locks without S2 | ✅ 0.48 |
 | Z-Wave joining open; coordinator updates; Bluetooth trackers | ⬜ |
 | New device on the network, from Home Assistant's network discovery and any router integration; urgent while everyone is away | ✅ 0.48 |
-| Connect an OPNsense router directly, with a read-only key: every device, firmware | ⬜ next |
+| Connect an OPNsense router directly, with a read-only key: every device on every network and VLAN, firmware | ✅ 0.49 |
+| Other routers directly: pfSense, UniFi, OpenWrt | ⬜ |
 | Router update waiting, guest Wi-Fi left on | ✅ 0.48 |
 | Changed public address, new port opened, router protection off, unusual data use | ⬜ |
 | Z-Wave locks without S2 security; Bluetooth trackers that follow you home | ⬜ |

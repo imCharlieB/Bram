@@ -24,8 +24,9 @@ class SecurityWatch:
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry,
                  note: Callable[..., None] = lambda *a: None,
-                 away: Callable[[], bool] = lambda: False) -> None:
-        self._away = away
+                 away: Callable[[], bool] = lambda: False,
+                 router: Callable[[], tuple] = lambda: (None, {})) -> None:
+        self._away, self._router = away, router
         self._note = note
         self._hass = hass
         self._on: bool = entry.options.get(CONF_SECURITY_WATCH, False)
@@ -46,7 +47,7 @@ class SecurityWatch:
         await self.run()
 
     async def run(self) -> None:
-        result = await check(self._hass, self._known, self._away())
+        result = await check(self._hass, self._known, self._away(), self._router())
         first = self._known is None
         new = [f for f in result["findings"] if f["key"] not in self._told]
         current = {f["key"] for f in result["findings"]}

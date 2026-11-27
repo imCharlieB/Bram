@@ -50,7 +50,8 @@ def _zwave_security(hass: HomeAssistant, device_id: str) -> str | None:
 
 
 async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None,
-                away: bool = False) -> dict[str, Any]:
+                away: bool = False, own: tuple[dict[str, str] | None, dict] | None = None,
+                ) -> dict[str, Any]:
     """Findings, most serious first. Each check that fails is listed as not run."""
     found: list[dict[str, str]] = []
     missed = list(NOT_CHECKED)
@@ -186,6 +187,9 @@ async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None,
         for state in hass.states.async_all("device_tracker"):
             if state.attributes.get("source_type") == "router" or owner(state.entity_id) in ROUTERS:
                 seen[state.entity_id] = state.name
+        # The router itself, connected on BRAM's page: every network and VLAN.
+        if own is not None and own[0]:
+            seen.update(own[0])
         # Home Assistant's DHCP discovery keeps what it has seen under its own name.
         addresses = getattr(hass.data.get("dhcp"), "address_data", None) or {}
         for mac, data in list(addresses.items()):
@@ -193,8 +197,8 @@ async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None,
             where = data.get("ip") or "an unknown address"
             seen[f"dhcp:{mac.lower()}"] = name or f"a device at {where}"
         if not seen:
-            missed.append("Devices on your network: Home Assistant's network discovery has seen "
-                          "none yet")
+            missed.append("Devices on your network: none seen yet. Connect your router on "
+                          "BRAM's page to see every network")
             return
         ids["network"] = sorted(seen)
         if known is None or "network" not in known:
@@ -248,6 +252,8 @@ async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None,
         """The router's own firmware, and guest Wi-Fi left on."""
         waiting = [s.name for s in hass.states.async_all("update")
                    if s.state == "on" and owner(s.entity_id) in ROUTERS]
+        if own is not None and own[1].get("update"):
+            waiting.append(f"OPNsense {own[1].get('version', '')}".strip())
         if waiting:
             found.append(_finding("router_update", "medium",
                                   f"Router update waiting: {', '.join(waiting[:3])}"))

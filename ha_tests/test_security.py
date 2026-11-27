@@ -162,3 +162,21 @@ async def test_router_update_guest_wifi_and_weak_zwave_locks(hass):
     with patch("custom_components.bram.security._zwave_security",
                return_value="S2_ACCESS_CONTROL"):
         assert "S2" not in " | ".join(texts(await check(hass)))
+
+
+async def test_the_routers_devices_join_the_check(hass):
+    from custom_components.bram.feed import network
+
+    assert network([{"key": "router:x", "name": "tv", "where": "IOT", "extra": 1}]) is None
+    assert network([{"key": "x", "name": "tv", "where": ""}]) is None  # only router keys
+    found = network([{"key": "router:aa", "name": "tv", "where": "IOT"},
+                     {"key": "router:bb", "name": "a device at 10.0.20.9", "where": ""}])
+    assert found == {"router:aa": "tv on IOT", "router:bb": "a device at 10.0.20.9"}
+    first = await check(hass, {}, own=(found, {"update": False}))
+    assert not any(n.startswith("Devices on your network") for n in first["not_checked"])
+    known = first["ids"]
+    later = await check(hass, known, own=({**found, "router:cc": "camera on IOT"},
+                                             {"update": True, "version": "25.7.3"}))
+    said = " | ".join(texts(later))
+    assert "A new device joined your network: camera on IOT" in said
+    assert "Router update waiting: OPNsense 25.7.3" in said

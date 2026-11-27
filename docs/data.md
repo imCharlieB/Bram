@@ -13,6 +13,8 @@ One SQLite file, plus a key and certificate, in the data folder.
 | Paired homes | Recognize your Home Assistant | Tokens are hashed |
 | Settings, monitors | | |
 | Telegram token and account number | Send messages | **Plain**; protect the folder |
+| Router address, API key and secret, and certificate fingerprint | Read the router | **Plain**; protect the folder. Use a key whose user can only read |
+| The router's device list and firmware status | Show them; tell Home Assistant's security check | In memory only; read again every 5 minutes |
 | Frigate address, username, password, and certificate fingerprint; which cameras are watched | Read cameras | **Plain**; protect the folder. Use a Frigate user that can only view |
 | What each camera sees, in your words, and your last 200 answers to Does it matter? | Teach your model | Until you forget them under Settings > Cameras |
 | Each watched camera's last 20 events and latest picture, and your model's words for the last 200 events | Show them | In memory only; gone on restart, or when the camera is turned off |

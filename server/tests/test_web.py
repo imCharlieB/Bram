@@ -77,7 +77,7 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("GET", "camera-picture"), ("POST", "camera-describe"), ("POST", "camera-home"),
            ("POST", "camera-quiet"), ("POST", "camera-allow"),
            ("POST", "camera-scene"), ("POST", "camera-learn"), ("POST", "camera-forget"),
-           ("GET", "camera-live"),
+           ("GET", "camera-live"), ("GET", "router"), ("POST", "router"), ("POST", "router-off"),
            ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
            ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),
            ("POST", "unmute"), ("GET", "profile"), ("POST", "factor-start"),

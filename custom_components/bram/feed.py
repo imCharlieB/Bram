@@ -66,6 +66,22 @@ def kind_of(entity_id: str, device_class: str | None) -> str | None:
     return None
 
 
+def network(raw: object) -> dict[str, str] | None:
+    """The router's devices from the server: a key and a name each. Data, nothing more."""
+    if not isinstance(raw, list) or len(raw) > 2000:
+        return None
+    found = {}
+    for item in raw:
+        if (not isinstance(item, dict) or item.keys() != {"key", "name", "where"}
+                or not all(isinstance(v, str) and len(v) <= 80 for v in item.values())
+                or not item["key"].startswith("router:")):
+            return None
+        name = " ".join("".join(c if c.isprintable() else " " for c in item["name"]).split())
+        where = " ".join(item["where"].split())
+        found[item["key"]] = f"{name} on {where}" if where else name
+    return found
+
+
 def _key(version: str) -> tuple[int, ...]:
     return tuple(int(n) for n in re.findall(r"\d+", version))
 
@@ -119,6 +135,9 @@ class Feed:
         self.camera_events: dict[str, dict] = {}
         self.camera_history: dict[str, list[dict]] = {}  # newest first, for the camera card
         self.camera_zones: dict[str, list[str]] = {}  # from Frigate, for the settings
+        # Every device the router sees, read by the server, for the security check.
+        self.network: dict[str, str] | None = None
+        self.router: dict[str, Any] = {"update": False, "version": ""}
 
     @property
     def entities(self) -> list[str]:
@@ -312,6 +331,15 @@ class Feed:
             found = cameras.patterns(data["patterns"])
             if found is not None:
                 self.camera_watch.quiet = found
+                return
+        if (isinstance(data, dict) and data.keys() == {"type", "devices", "update", "version"}
+                and data["type"] == "network"):
+            found = network(data["devices"])
+            if (found is not None and isinstance(data["update"], bool)
+                    and isinstance(data["version"], str) and len(data["version"]) <= 32):
+                self.network = found or None
+                self.router = {"update": data["update"], "version": " ".join(
+                    data["version"].split())}
                 return
         if (isinstance(data, dict) and data.keys() == {"type", "zones"}
                 and data["type"] == "camera_zones"):

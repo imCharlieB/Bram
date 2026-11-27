@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.49.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Connect your router: on BRAM's page, **Settings > Router**, with a read-only API key. BRAM then sees every device on every network and VLAN, which Home Assistant alone cannot, and the router's firmware updates, for the security check. OPNsense for now. BRAM only reads, and the router's certificate is pinned. See [Connect your router](docs/security-check.md#connect-your-router).
+- The docs say plainly that Home Assistant only sees its own network.
+
 ## 0.48.0
 
 Update BRAM in HACS, then restart Home Assistant. The server has no change; updating it too keeps the versions the same.

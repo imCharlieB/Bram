@@ -2,13 +2,13 @@
 const $ = (id) => document.getElementById(id);
 const PAGES = ["overview", "messages", "settings", "findings", "history", "log", "profile"];
 // Places inside a page.
-const PLACES = { homes: "settings", model: "settings", personality: "settings", voice: "settings", cameras: "settings", monitors: "messages" };
+const PLACES = { homes: "settings", model: "settings", personality: "settings", voice: "settings", cameras: "settings", router: "settings", monitors: "messages" };
 const STORY = {
   connected: "Home Assistant connected", disconnected: "Home Assistant disconnected", paired: "A home was paired",
   unpaired: "A home was removed", "signed in": "You signed in", "login refused": "Someone entered a wrong login",
   "setup refused": "A setup attempt was refused", "settings saved": "Settings changed", "login created": "Your login was created",
   "code created": "A pairing code was made", "password changed": "Your password changed", "history saved": "History settings changed", "history cleaned": "History was cleaned up", "history deleted": "History was deleted", "database damaged": "The database failed its check", "second factor on": "Second factor turned on", "second factor off": "Second factor turned off", "username changed": "Your username changed",
-  "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "frigate connected": "Frigate was connected", "frigate removed": "Frigate was disconnected", "camera on": "A camera was turned on", "camera off": "A camera was turned off", "monitor removed": "A monitor was removed",
+  "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "frigate connected": "Frigate was connected", "frigate removed": "Frigate was disconnected", "camera on": "A camera was turned on", "router connected": "Your router was connected", "router removed": "Your router was disconnected", "camera off": "A camera was turned off", "monitor removed": "A monitor was removed",
 };
 const ALARMING = new Set(["login refused", "setup refused", "disconnected", "alert", "send failed"]);
 let paired = false, modelSaved = false, signedIn = false, oldest = null;
@@ -461,6 +461,35 @@ function showLooking(view, on) {
       notNews(camera, event, key));
   }
   seen.camerasReady = true;
+}
+
+function showRouter(view) {
+  $("router-url").value = view.url;
+  $("router-secret").value = "";
+  $("router-secret").placeholder = view.url ? "Saved; leave empty to keep it" : "";
+  $("router-off").hidden = !view.url;
+  $("router-state").textContent = !view.url ? "Not connected" : view.connected ? `Connected${view.version ? ` · OPNsense ${view.version}` : ""}${view.update ? " · update waiting" : ""}` : "Not answering";
+  $("router-state").className = !view.url ? "note" : view.connected ? "good" : "bad";
+  if (view.reason) say("router-message", view.reason, "bad");
+  $("router-card").hidden = !view.devices;
+  $("router-count").textContent = `${view.devices} device${view.devices === 1 ? "" : "s"} on your networks`;
+  let where = null;
+  $("router-list").replaceChildren(...view.list.flatMap((item) => {
+    const rows = [];
+    if (item.where !== where) {
+      where = item.where;
+      rows.push(element("li", where || "Network", "note"));
+    }
+    const row = element("li"), left = element("span", item.name || "No name");
+    left.append(element("span", `${item.ip} · ${item.mac}`, "note sub"));
+    row.append(left);
+    rows.push(row);
+    return rows;
+  }));
+}
+
+async function loadRouter() {
+  showRouter(await api("router"));
 }
 
 async function loadCameras() {
@@ -1560,7 +1589,7 @@ async function showFinding(key) {
 
 const LOADERS = {
   overview: () => Promise.all([loadChat(), loadVoice(), loadHome()]),
-  settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice(), loadCameras()]),
+  settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice(), loadCameras(), loadRouter()]),
   messages: () => Promise.all([loadMonitors(), loadMessages()]),
   findings: async () => say("findings-message", await loadFindings()), history: loadHistory,
   log: async () => say("log-message", await loadLog()), profile: loadProfile,
@@ -1757,6 +1786,17 @@ onClick("save-model", "model-message", async () => {
   return "Saved";
 });
 
+onSubmit("router-form", "router-save", "router-message", async () => {
+  const confirm = await askPassword("BRAM will read your router's device list and firmware status. It never changes the router.");
+  showRouter(await api("router", { confirm, url: $("router-url").value, key: $("router-key").value, secret: $("router-secret").value }));
+  $("router-key").value = "";
+  return "Connected. The security check now sees every network.";
+});
+onClick("router-off", "router-message", async () => {
+  const confirm = await askPassword("Disconnect the router? BRAM forgets its address and key.");
+  showRouter(await api("router-off", { confirm }));
+  return "Disconnected";
+});
 onSubmit("frigate-form", "frigate-save", "frigate-message", async () => {
   const confirm = await askPassword("BRAM will read Frigate's cameras and events. It never changes Frigate.");
   showCameras(await api("cameras", {

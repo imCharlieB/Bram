@@ -182,6 +182,7 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                     ready = True
                     if request.app.get(CONFIG) is not None:
                         await request.app[CONFIG].tell_cameras(house_id)
+                        await request.app[CONFIG].tell_router(house_id)
                     if request.app.get(ALERTS) is not None:
                         request.app[ALERTS].house_up(house_id, _name(request.app, house_id))
                 elif kind == "state" and ready:
@@ -446,6 +447,7 @@ async def _start(app: web.Application) -> None:
     app[TASKS].append(asyncio.create_task(app[ALERTS].run()))
     app[TASKS].append(asyncio.create_task(app[MONITORS].run()))
     app[TASKS].append(asyncio.create_task(app[CONFIG].cameras.run()))
+    app[TASKS].append(asyncio.create_task(app[CONFIG].router.run()))
     if app.get(HISTORY) is not None:
         app[TASKS].append(asyncio.create_task(_keep(app)))
 
@@ -455,6 +457,7 @@ async def _stop(app: web.Application) -> None:
         task.cancel()
     await asyncio.gather(*app[TASKS], return_exceptions=True)
     await app[CONFIG].cameras.close()
+    await app[CONFIG].router.close()
 
 
 async def _belief(ws: web.WebSocketResponse, world: World, event: Event) -> None:

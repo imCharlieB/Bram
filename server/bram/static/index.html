@@ -266,6 +266,34 @@
       </div>
     </section>
 
+    <section id="at-router" data-page="settings" hidden>
+      <h1>Router</h1>
+      <p class="note">Home Assistant only sees the network it is on. Connected to your router, BRAM sees every device on every network and VLAN, and the router's firmware, for the <a href="#settings">security check</a>. BRAM only reads; it never changes the router. OPNsense for now.</p>
+      <div class="card">
+        <div class="head"><h2>OPNsense</h2><span id="router-state"></span></div>
+        <form id="router-form">
+          <label for="router-url">Router address</label>
+          <input id="router-url" placeholder="https://192.168.1.1" required>
+          <label for="router-key">API key</label>
+          <input id="router-key" autocomplete="off" maxlength="200" required>
+          <label for="router-secret">API secret</label>
+          <input id="router-secret" type="password" autocomplete="new-password" maxlength="200">
+          <p class="note">In OPNsense: System, Access, Users, add a user for BRAM with only these privileges: Diagnostics: ARP Table, Status: DHCP leases, and System: Firmware. Then create an API key for that user. Its certificate is trusted the first time and checked every time after.</p>
+          <div class="row">
+            <button id="router-save">Connect</button>
+            <button type="button" id="router-off" class="quiet" hidden>Disconnect</button>
+          </div>
+        </form>
+        <p class="message" id="router-message" role="status"></p>
+      </div>
+      <div class="card" id="router-card" hidden>
+        <details>
+          <summary id="router-count"></summary>
+          <ul id="router-list"></ul>
+        </details>
+      </div>
+    </section>
+
     <section id="at-monitors" data-page="messages" hidden>
       <h1>Monitors</h1>
       <p class="note">Things outside Home Assistant, on your own network. Checked every minute; you are told after three failures in a row.</p>

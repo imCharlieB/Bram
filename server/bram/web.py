@@ -32,6 +32,7 @@ from .models.base import Image, Message, ModelError
 from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing
 from .personality import CUSTOM_LIMIT, MODES, messages
+from .router import Router, RouterError
 from .settings import Settings, login_matches, owner_name
 from .speech import MAX_AUDIO, MAX_SPEAK, Speech, SpeechError, describe, find
 from .world import World
@@ -62,6 +63,7 @@ FACTOR_WINDOW = 600
 CAMERAS_IN_HOME = (0, 39)  # Home Assistant shows cameras from this version
 CAMERA_ZONES = (0, 41)  # and offers Frigate's zones in its settings from this one
 CAMERA_WORDS = (0, 42)  # and the model's description of an event from this one
+ROUTER_IN_HOME = (0, 49)  # Home Assistant takes the router's device list from this one
 CAMERA_QUIET = (0, 44)  # and what the owner said is not news from this one
 DESCRIBE_PICTURE = (
     "You describe one picture from a home security camera. Say what is visible in one or two "
@@ -87,6 +89,8 @@ class ConfigPage:
         self.cameras = cameras if cameras is not None else Cameras(
             settings, houses=lambda: [h for h, _ in pairing.houses()])
         self.cameras.on_event = self._camera_event
+        self.router = Router(settings, houses=lambda: [h for h, _ in pairing.houses()])
+        self.router.on_change = self.tell_router
         self.cameras.describer = self._describe_picture
         self._send_house = send_house
         self.printers = printers if printers is not None else {}
@@ -154,6 +158,9 @@ class ConfigPage:
             web.get("/api/chat", self._private(self._chat_history)),
             web.post("/api/chat", self._private(self._chat_ask)),
             web.post("/api/chat-clear", self._private(self._chat_clear)),
+            web.get("/api/router", self._private(self._get_router)),
+            web.post("/api/router", self._confirmed(self._connect_router)),
+            web.post("/api/router-off", self._confirmed(self._disconnect_router)),
             web.get("/api/cameras", self._private(self._list_cameras)),
             web.post("/api/cameras", self._confirmed(self._connect_cameras)),
             web.post("/api/cameras-off", self._confirmed(self._disconnect_cameras)),
@@ -892,6 +899,36 @@ class ConfigPage:
     async def _chat_clear(self, request: web.Request) -> web.Response:
         self.chat.clear(self._chat_key(request))
         return _json({"ok": True})
+
+    async def _get_router(self, request: web.Request) -> web.Response:
+        return _json(self.router.view())
+
+    async def _connect_router(self, body: dict) -> web.Response:
+        try:
+            await self.router.connect(body.get("url"), body.get("key"), body.get("secret", ""))
+        except RouterError as err:
+            return _json({"error": str(err)}, 400)
+        self._audit.record("server", "config page", "router connected", "OPNsense", "ok",
+                           approver="owner")
+        await self.tell_router()
+        return _json(self.router.view())
+
+    async def _disconnect_router(self, body: dict) -> web.Response:
+        await self.router.disconnect()
+        self._audit.record("server", "config page", "router removed", "by owner", "ok",
+                           approver="owner")
+        await self.tell_router()
+        return _json(self.router.view())
+
+    async def tell_router(self, only: str | None = None) -> None:
+        """Every device the router sees, for that home's security check. No other home."""
+        for house_id, _ in self._pairing.houses():
+            world = self._worlds().get(house_id)
+            if ((only is None or house_id == only) and self._send_house is not None
+                    and world is not None and not _older(world.version, ROUTER_IN_HOME)):
+                found = self.router.for_home() if house_id == self.router.house() else {
+                    "type": "network", "devices": [], "update": False, "version": ""}
+                await self._send_house(house_id, found)
 
     async def _list_cameras(self, request: web.Request) -> web.Response:
         return _json(self.cameras.view())

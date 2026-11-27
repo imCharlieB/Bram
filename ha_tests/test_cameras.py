@@ -86,3 +86,14 @@ def test_not_news_patterns_are_checked():
     assert cameras.patterns([{**good[0], "extra": 1}]) is None
     assert cameras.patterns([{**good[0], "camera": "../x"}]) is None
     assert cameras.patterns("yard") is None
+
+
+async def test_the_routers_devices_reach_home_assistant(hass, server):  # noqa: F811
+    page = server[0][CONFIG]
+    page.router.devices = {"aa:bb:cc:00:00:02": {"ip": "10.0.20.7", "name": "thermostat",
+                                                 "where": "IOT"}}
+    page.router.firmware = {"update": True, "version": "25.7.3"}
+    entry = await start(hass, server)
+    feed = entry.runtime_data
+    await until(lambda: feed.network == {"router:aa:bb:cc:00:00:02": "thermostat on IOT"})
+    assert feed.router == {"update": True, "version": "25.7.3"}
