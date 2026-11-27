@@ -16,6 +16,7 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 .command nav a[aria-current] { opacity: 1; color: var(--hud); background: var(--hud-fill); box-shadow: inset 0 -2px var(--hud); }
 .command nav .brand { margin: 0 10px 0 0; opacity: 1; color: var(--hud); box-shadow: none; }
 .command nav .brand img { width: 30px; height: 30px; }
+#nav-version { margin-left: 6px; font: .62rem var(--mono); letter-spacing: .1em; opacity: .7; }
 .command #nav-profile { margin: 0 0 0 auto; }
 .command .avatar { color: #02131a; background: var(--hud); }
 .on-deck.command #pages { flex: 1; max-width: none; min-height: 0; padding: 0; }

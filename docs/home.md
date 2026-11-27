@@ -4,7 +4,7 @@ Home is your look into what BRAM sees and what it is doing. It is not a dashboar
 
 In the middle is BRAM's brain, a knot of light threads. Your home's systems orbit it: Home Assistant, people, security, safety, climate, lights, printers, messages, and learning, each with a short reading. When something happens in one of them, it flashes and a pulse runs into the brain. A card saying what happened, with its room on a tab, appears in one of four places around the brain, stays a few seconds, and goes.
 
-The title at the top shows what is running: the BRAM Server's version, and BRAM's in each connected Home Assistant. It turns amber when they differ in features, such as 0.40 and 0.41; update both. A fix on one side only, such as 0.40.3 and 0.40.4, is fine.
+The version also shows next to BRAM's name at the top of every page. The title on Home shows what is running: the BRAM Server's version, and BRAM's in each connected Home Assistant. It turns amber when they differ in features, such as 0.40 and 0.41; update both. A fix on one side only, such as 0.40.3 and 0.40.4, is fine.
 
 ## Alerts over the brain
 
@@ -16,7 +16,7 @@ When something needs you, a window opens over the brain, like a screen in a comm
 | Amber | Another alert or finding that needs you, or a person on a camera | After 30 seconds |
 | Cyan | A camera event, or a monitor answering again | After 15 seconds |
 
-A finding's window has the same **Story**, **Stop these**, **Less often**, and **Hide** as under **Needs you**. A camera's window shows Frigate's picture. Windows open only for what is new while the page is open; what was already there is listed under **Needs you**. At most three are open at once.
+A finding's window has the same **Story**, **Stop these**, **Less often**, and **Hide** as under **Needs you**. A camera's window shows Frigate's picture. Windows open only for what is new while the page is open; what was already there is listed under **Needs you**. At most three are open at once. Cameras share one window: a new camera event replaces the last one, so several cameras at once never pile up.
 
 While something needs you, rings keep going out from the brain: red and often for safety and the most important findings, amber now and then for the rest. While BRAM is thinking about a chat answer, arcs sweep around the brain.
 

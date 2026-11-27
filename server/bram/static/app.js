@@ -114,6 +114,7 @@ const release = (text) => text.split(".").slice(0, 2).join(".");
 async function loadStatus() {
   const { houses, version } = await api("status");
   $("version").textContent = `BRAM Server ${version}`;
+  $("nav-version").textContent = `v${version}`;
   // What is running, on Home: the server, and BRAM in each connected Home Assistant.
   const there = houses.filter((house) => house.connected && house.version);
   const apart = there.some((house) => release(house.version) !== release(version));  // fixes may differ
@@ -374,6 +375,7 @@ function showLooking(view, on) {
     seen.cameras.add(key);
     if (first || Date.now() / 1000 - event.start > 300) continue;
     const what = event.who || PEOPLE_AND_THINGS[event.label] || event.label;
+    for (const win of [...$("hud-alerts").querySelectorAll('[data-key^="camera:"]')]) win.remove();
     popUp(key, event.label === "person" ? "warn" : "good", `Camera · ${pretty(camera.name)}`, `${what} at ${pretty(camera.name)}`,
       [event.zones.join(", ").replaceAll("_", " "), new Date(event.start * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })].filter(Boolean).join(" · "),
       { href: "#cameras", label: "Cameras" },

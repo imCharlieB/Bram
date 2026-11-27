@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.43.1
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- Camera windows on Home no longer pile up: a new camera event replaces the last camera window.
+- The version shows next to BRAM's name at the top of every page.
+
 ## 0.43.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
