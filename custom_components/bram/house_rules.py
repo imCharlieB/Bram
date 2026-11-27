@@ -29,6 +29,7 @@ from .const import (
 )
 from .feed import kind_of
 from .home_alerts import GROUP_MAX, GROUP_MIN, within
+from .names import name_of
 from .notifier import notify
 from .shared import shared
 from .teller import EACH_TIME, Teller
@@ -359,9 +360,7 @@ class HouseRules:
             self._last_report = items
 
     def _name(self, entity_id: str) -> str:
-        state = self._hass.states.get(entity_id)
-        name = state.name if state is not None else entity_id
-        return " ".join("".join(c if c.isprintable() else " " for c in name).split())[:60]
+        return name_of(self._hass, entity_id)
 
     @callback
     def _save(self) -> None:

@@ -11,7 +11,8 @@ pytestmark = pytest.mark.usefixtures("custom")
 
 @pytest.mark.parametrize(("name", "made"), [
     ("H2D_0947AJ612800457", True), ("HLK-LD2410_CAA1B2", True), ("Acesensor1 LD2410 3f9a2c", True),
-    ("aa:bb:cc:dd", True), ("Neptune4", False), ("Kitchen Motion", False), ("LD2410", False),
+    ("aa:bb:cc:dd", True), ("HLK-LD2410 65B2 Motion", True), ("Bed2", False), ("Cafe1", False),
+    ("Room 2B", False), ("Neptune4", False), ("Kitchen Motion", False), ("LD2410", False),
     ("Living room AC", False), ("Galaxy Watch Ultra2", False), ("OctoPrint", False)])
 def test_machine_made(name, made):
     assert machine_made(name) is made

@@ -26,7 +26,8 @@ class Env:
         self.stop = await self.rules.start()
 
     async def set(self, entity, value):
-        attrs = {"friendly_name": {LOCK: "Front lock", DOOR: "Back door"}.get(entity, entity)}
+        attrs = {"friendly_name": {LOCK: "Front lock", DOOR: "Back door",
+                                   MOTION: "Hall motion"}.get(entity, entity)}
         if entity == DOOR:
             attrs["device_class"] = "door"
         if entity == MOTION:
@@ -271,7 +272,7 @@ async def test_motion_while_away_once_until_someone_is_home(env):
     for value in ("on", "off", "on", "off"):
         await env.set(MOTION, value)
         await env.wait(1)
-    assert env.texts() == [f"Motion at {MOTION} while everyone I track is away."]
+    assert env.texts() == ["Motion at Hall motion while everyone I track is away."]
     await env.set(SAM, "home")
     await env.wait(1)
     await env.set(SAM, "not_home")

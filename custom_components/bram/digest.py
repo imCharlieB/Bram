@@ -11,6 +11,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import CONF_DIGEST, CONF_PHONES, SAFETY
 from .feed import Feed, kind_of
+from .names import entity_name, name_of
 from .notifier import notify
 from .queries import _low
 from .shared import shared
@@ -43,7 +44,7 @@ class Digest:
         batteries = []
         for entity_id in self._entities:
             state = self._hass.states.get(entity_id)
-            name = state.name if state is not None else entity_id
+            name = name_of(self._hass, entity_id)
             value = state.state if state is not None else "unavailable"
             # The feed remembers the type if the sensor has lost it for now.
             kind = self._feed.kind(entity_id) or kind_of(
@@ -60,7 +61,7 @@ class Digest:
                 (home if value == "home" else away).append(name)
         for state in self._hass.states.async_all("sensor"):
             if _low(state):
-                batteries.append(f"{state.name} {state.state}%")
+                batteries.append(f"{entity_name(self._hass, state)} {state.state}%")
         lines = [f"{label}: {_names(names)}" for label, names in (
             ("SAFETY ALERT", trouble), ("Open", opened), ("Not locked", unlocked),
             ("Can't see", unseen), ("Home", home), ("Away", away),

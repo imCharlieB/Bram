@@ -17,6 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import CONF_ENTITIES, DOMAIN, SAFETY
 from .feed import kind_of
+from .names import entity_name
 from .queries import clean
 from .security import PRINTERS
 
@@ -150,6 +151,10 @@ class Finder:
                                  "Look in Settings > System > Repairs"))
         return found
 
+    def _shown(self, state: State) -> str:
+        """The name people use, never a serial number (see names.py)."""
+        return _name(entity_name(self._hass, state))
+
     def _platform(self, entity_id: str) -> tuple[str, str | None]:
         entry = er.async_get(self._hass).async_get(entity_id)
         return (entry.platform, entry.device_id) if entry is not None else ("", None)
@@ -165,7 +170,7 @@ class Finder:
             if state.entity_id.startswith("binary_sensor."):
                 if state.state == "on":
                     found.append(Problem(f"battery:{state.entity_id}", "low",
-                                         f"{_name(state.name)} is low"))
+                                         f"{self._shown(state)} is low"))
                 continue
             try:
                 level = float(state.state)
@@ -174,17 +179,17 @@ class Finder:
                 if state.entity_id in self._low:
                     low.add(state.entity_id)
                     found.append(Problem(f"battery:{state.entity_id}", "low",
-                                         f"{_name(state.name)} is low"))
+                                         f"{self._shown(state)} is low"))
                 continue
             if platform == "mobile_app":
                 if night and level < PHONE_LOW and not self._charging(device):
                     found.append(Problem(f"battery:{state.entity_id}", "low",
-                                         f"{_name(state.name)} is low and not charging"))
+                                         f"{self._shown(state)} is low and not charging"))
                 continue
             if level < (LOW_OVER if state.entity_id in self._low else LOW):
                 low.add(state.entity_id)
                 found.append(Problem(f"battery:{state.entity_id}", "low",
-                                     f"{_name(state.name)} is low"))
+                                     f"{self._shown(state)} is low"))
         self._low = low
         return found
 
@@ -256,7 +261,7 @@ class Finder:
             except ValueError:
                 continue
             found.append(Problem(f"stuck:{state.entity_id}", "low",
-                                 f"{_name(state.name)} has said {state.state} for more than 2 days"
+                                 f"{self._shown(state)} has said {state.state} for more than 2 days"
                                  ". The sensor may be stuck"))
         return found
 
@@ -270,7 +275,7 @@ class Finder:
                 continue
             if state.state == "unavailable":
                 found.append(Problem(f"automation:{item.entity_id}", "medium",
-                                     f"Automation {_name(state.name)} could not be loaded"))
+                                     f"Automation {self._shown(state)} could not be loaded"))
                 continue
             if state.state != "on":
                 continue
@@ -279,7 +284,7 @@ class Finder:
                              and "." in e and not e.startswith(("scene.", "input_")))
             if missing:
                 found.append(Problem(f"missing:{item.entity_id}", "low",
-                                     f"Automation {_name(state.name)} uses {missing[0]}"
+                                     f"Automation {self._shown(state)} uses {missing[0]}"
                                      + (f" and {len(missing) - 1} more" if missing[1:] else "")
                                      + ", which does not exist"))
         return found

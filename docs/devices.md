@@ -20,7 +20,7 @@ An entity you disable in Home Assistant is no longer watched or shown, even if i
 
 ## Names
 
-BRAM uses the names you see in Home Assistant. A name a device gave itself with a serial number in it, such as `H2D_0947AJ612800457`, is shown as its model, or its room and type, instead: **H2D**, **Master Bedroom presence**. To choose a name, rename the device or entity in Home Assistant.
+BRAM uses the names you see in Home Assistant, everywhere: messages, the daily summary, BRAM's page, its settings lists, and its device page. A name a device gave itself with a serial number or part of a hardware address in it, such as `H2D_0947AJ612800457` or `HLK-LD2410 65B2 Motion`, is shown as its model, or its room and type, instead: **H2D**, **Master Bedroom motion**. To choose a name, rename the device or entity in Home Assistant; a name you give is always used.
 
 ## Devices > Suggestions
 

@@ -11,6 +11,7 @@ from homeassistant.helpers.start import async_at_started
 from .const import ICON, MEANING, READINGS
 from .entity import BramEntity
 from .feed import say
+from .names import entity_name
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
@@ -30,7 +31,8 @@ class Belief(BramEntity, SensorEntity):
         self._source = source
         state = hass.states.get(source)
         known = er.async_get(hass).async_get(source)
-        name = state.name if state else known and (known.name or known.original_name)
+        name = entity_name(hass, state) if state else known and (
+            known.name or known.original_name)
         self._attr_name = name or source
         self._attr_extra_state_attributes = {"source": source}
 

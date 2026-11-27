@@ -14,7 +14,9 @@ from homeassistant.helpers import entity_registry as er
 # A run of letters and digits mixed, or of hex, long enough to be a serial number or address.
 _SERIAL = re.compile(
     r"(?<![a-z0-9])(?=(?:[a-z]*\d){3})(?=[a-z0-9]*[a-z])[a-z0-9]{8,}|"
-    r"(?<![a-z0-9])(?=[0-9a-f]*\d)[0-9a-f]{6,}(?![a-z0-9])|[0-9a-f]{2}(?::[0-9a-f]{2}){2,}", re.I)
+    r"(?<![a-z0-9])(?=[0-9a-f]*\d)[0-9a-f]{6,}(?![a-z0-9])|[0-9a-f]{2}(?::[0-9a-f]{2}){2,}|"
+    # The end of a hardware address added to a name, as in HLK-LD2410 65B2.
+    r"(?<![a-z0-9])(?=(?:[0-9a-f]*\d){2})(?=[0-9a-f]*[a-f])[0-9a-f]{4,5}(?![a-z0-9])", re.I)
 WORDS = {"motion": "motion", "occupancy": "presence", "presence": "presence", "door": "door",
          "window": "window", "opening": "opening", "garage_door": "garage door",
          "moisture": "leak sensor", "smoke": "smoke alarm", "temperature": "temperature",
@@ -54,6 +56,12 @@ def _tidy(name: str) -> str:
             words = words[size:]
             break
     return " ".join(words)
+
+
+def name_of(hass: HomeAssistant, entity_id: str) -> str:
+    """The name to show for an entity, everywhere BRAM shows one."""
+    state = hass.states.get(entity_id)
+    return entity_name(hass, state)[:60] if state is not None else entity_id
 
 
 def entity_name(hass: HomeAssistant, state: State) -> str:

@@ -22,6 +22,7 @@ from .const import (
     DOMAIN,
 )
 from .feed import Feed, kind_of
+from .names import name_of
 from .notifier import dismiss, notify
 from .shared import shared
 
@@ -129,9 +130,7 @@ class HomeAlerts:
             self._silent.setdefault(entity_id, self._now() + SILENT_AFTER)
 
     def _name(self, entity_id: str, state: State | None) -> str:
-        name = state.name if state is not None else entity_id
-        name = "".join(c if c.isprintable() else " " for c in name)
-        return " ".join(name.split())[:60] or entity_id
+        return name_of(self._hass, entity_id) or entity_id
 
     @callback
     def _heard(self, entity_id: str, now_text: str) -> None:

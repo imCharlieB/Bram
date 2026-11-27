@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.40.1
+
+Update BRAM in HACS, then restart Home Assistant. The server has no change; updating it too keeps the versions the same.
+
+- Names: a device name that ends in part of a hardware address, such as `HLK-LD2410 65B2 Motion`, is shown as its room and type, such as **Master Bedroom motion**. The name people use is now used everywhere: messages, the daily summary, problems, settings lists, and BRAM's device page, not only on BRAM's page.
+
 ## 0.40.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

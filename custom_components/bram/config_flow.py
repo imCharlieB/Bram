@@ -53,6 +53,7 @@ from .details import room_sensors
 from .discover import find, picked_as, suggest
 from .feed import kind_of
 from .house_rules import limits
+from .names import name_of
 from .notifier import PREFIX, phones
 
 
@@ -156,7 +157,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
     def _names(self, offered: list[str]) -> str:
         if not offered:
             return "Nothing new to share."
-        names = sorted((s.name if (s := self.hass.states.get(e)) else e) for e in offered)
+        names = sorted(name_of(self.hass, e) for e in offered)
         more = f"\n- and {len(names) - 40} more" if len(names) > 40 else ""
         return "\n".join(f"- {n}" for n in names[:40]) + more
 
@@ -248,8 +249,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
         people = {}
         for entity_id in options.get(CONF_ENTITIES, []):
             if entity_id.startswith("person."):
-                state = self.hass.states.get(entity_id)
-                people[state.name if state is not None else entity_id] = entity_id
+                people[name_of(self.hass, entity_id)] = entity_id
         if not people:
             return self.async_abort(reason="no_people")
         saved = options.get(CONF_ROOMS, {})
