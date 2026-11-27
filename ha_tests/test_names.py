@@ -48,6 +48,14 @@ async def test_names(hass):
         "friendly_name": "HLK-LD2410_CAA1B2 Bed radar", "device_class": "occupancy"})
     assert entity_name(hass, hass.states.get(made.entity_id)) == "Bed radar"
 
+    # A name the owner gave the device comes before the name Home Assistant shows.
+    sensor = device("HLK-LD2410 65B2", "LD2410", "MasterBedMotion", room.id)
+    motion = entities.async_get_or_create("binary_sensor", "demo", "m", device_id=sensor.id,
+                                          original_name="Motion", has_entity_name=True)
+    hass.states.async_set(motion.entity_id, "off", {
+        "friendly_name": "HLK-LD2410 65B2 Motion", "device_class": "motion"})
+    assert entity_name(hass, hass.states.get(motion.entity_id)) == "MasterBedMotion Motion"
+
 
 
 async def test_names_are_tidied(hass):

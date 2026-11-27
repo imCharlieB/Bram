@@ -65,16 +65,22 @@ def name_of(hass: HomeAssistant, entity_id: str) -> str:
 
 
 def entity_name(hass: HomeAssistant, state: State) -> str:
-    """As Home Assistant shows it, unless that is a machine-made name."""
-    name = _tidy(_plain(state.name))
-    if not machine_made(name):
-        return name[:100]
+    """The name from Home Assistant, in this order: the name the owner gave the entity, the
+    name the owner gave its device, then the name Home Assistant shows. Only when none of
+    those is a real name, just a serial number, BRAM says its room and type instead."""
     entry = er.async_get(hass).async_get(state.entity_id)
-    if entry is not None and entry.name:
-        if not machine_made(entry.name):
-            return _plain(entry.name)[:100]  # the owner named it
+    if entry is not None and entry.name and _plain(entry.name):
+        return _plain(entry.name)[:100]  # the owner named the entity
     device = (dr.async_get(hass).async_get(entry.device_id)
               if entry is not None and entry.device_id else None)
+    if device is not None and device.name_by_user and _plain(device.name_by_user):
+        own = _plain(device.name_by_user)
+        part = _plain(entry.original_name or "") if entry is not None and entry.has_entity_name \
+            else ""
+        return (f"{own} {part}" if part and part.lower() not in own.lower().split() else own)[:100]
+    name = _tidy(_plain(state.name))
+    if name and not machine_made(name):
+        return name[:100]
     area_id = (entry.area_id if entry else None) or (device.area_id if device else None)
     area = ar.async_get(hass).async_get_area(area_id) if area_id else None
     word = WORDS.get(str(state.attributes.get("device_class") or ""), "")

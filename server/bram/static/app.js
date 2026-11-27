@@ -998,8 +998,10 @@ function happenings(devices) {
     for (const [id, device] of now) {
       const before = seen.states.get(id);
       if (!before || before.says === device.says || device.state === "unknown" || before.state === "unknown") continue;
-      // Readings drift all day; those are for the charts, not for cards.
+      // Readings drift all day; those are for the charts, not for cards. Motion ending is
+      // not news either: only motion starting gets a card.
       if (["temperature", "humidity", "other"].includes(device.kind)) continue;
+      if (device.kind === "motion" && /^(no motion|clear|not detected|no presence)/i.test(device.says)) continue;
       const kind = device.state === "alert" ? "bad" : device.state === "warn" ? "warn" : "";
       happen(`${device.name}: ${device.says}`, kind, device.area || "", systemOf(device));
     }

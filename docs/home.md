@@ -2,7 +2,7 @@
 
 Home is your look into what BRAM sees and what it is doing. It is not a dashboard of every device: Home Assistant has those.
 
-In the middle is BRAM's brain, a knot of light threads. Your home's systems orbit it: Home Assistant, people, security, safety, climate, lights, printers, messages, and learning, each with a short reading. When something happens in one of them, it flashes and a pulse runs into the brain. A card saying what happened, with its room on a tab, appears in one of four places around the brain, stays a few seconds, and goes.
+In the middle is BRAM's brain, a knot of light threads. Your home's systems orbit it: Home Assistant, people, security, safety, climate, lights, printers, messages, and learning, each with a short reading. When something happens in one of them, it flashes and a pulse runs into the brain. A card saying what happened, with its room on a tab (not for motion ending), appears in one of four places around the brain, stays a few seconds, and goes.
 
 The version also shows next to BRAM's name at the top of every page. The title on Home shows what is running: the BRAM Server's version, and BRAM's in each connected Home Assistant. It turns amber when they differ in features, such as 0.40 and 0.41; update both. A fix on one side only, such as 0.40.3 and 0.40.4, is fine.
 

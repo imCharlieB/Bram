@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.45.1
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Names come from Home Assistant first: the name you gave the entity, then the name you gave its device, then the name Home Assistant shows. BRAM uses a room and type only when there is no real name at all.
+- Home no longer shows a card when motion ends.
+
 ## 0.45.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
