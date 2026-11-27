@@ -1,0 +1,78 @@
+blueprint:
+  name: BRAM scheduled check
+  description: >-
+    Asks BRAM a yes-or-no question on a schedule, such as "Is any door or window open?",
+    and tells your phone only when the answer is yes. BRAM only reads; this automation
+    only sends a message.
+  domain: automation
+  author: BRAM
+  source_url: https://github.com/imCharlieB/Bram/blob/main/blueprints/automation/bram/scheduled_check.yaml
+  input:
+    question:
+      name: Question
+      description: A question BRAM can answer yes or no.
+      default: Is any door or window open?
+      selector:
+        text:
+    every:
+      name: Every
+      description: How often to ask, in minutes. Counted from midnight.
+      default: 60
+      selector:
+        number:
+          min: 5
+          max: 1440
+          step: 5
+          unit_of_measurement: min
+          mode: box
+    agent:
+      name: BRAM's assistant
+      description: BRAM's conversation agent, usually called BRAM Assist.
+      selector:
+        conversation_agent:
+    notify:
+      name: Phone
+      description: The notify action for your phone, such as notify.mobile_app_my_phone.
+      default: notify.notify
+      selector:
+        text:
+    title:
+      name: Title
+      default: BRAM check
+      selector:
+        text:
+
+mode: single
+
+variables:
+  every: !input every
+  question: !input question
+  notify: !input notify
+  title: !input title
+
+triggers:
+  - trigger: time_pattern
+    minutes: "/5"
+
+conditions:
+  - condition: template
+    value_template: "{{ (now().hour * 60 + now().minute) % (every | int(60)) == 0 }}"
+
+actions:
+  - action: conversation.process
+    data:
+      agent_id: !input agent
+      conversation_id: bram_scheduled_check
+      text: >-
+        {{ question }} Start your answer with yes or no, then say what you found in one
+        short sentence.
+    response_variable: reply
+  - variables:
+      said: "{{ reply.response.speech.plain.speech | default('') | trim }}"
+  - condition: template
+    value_template: >-
+      {{ ((said | lower | regex_replace('[^a-z ]', ' ')).split() + [''])[0] == 'yes' }}
+  - action: "{{ notify }}"
+    data:
+      title: "{{ title }}"
+      message: "{{ said }}"

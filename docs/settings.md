@@ -24,6 +24,13 @@
 | | Left open: doors, windows, garage doors and gates | On, once Left open is on |
 | | Left open | Off |
 | | Offline | Off |
+| | Open at night | Off |
+| | Open while heating or cooling | Off |
+| | Motion while everyone is away | Off |
+| Temperature and humidity | Too hot, too cold, near freezing, humid | Off |
+| | Too hot above, too cold below, near freezing below | 85, 55, 38 °F (29, 13, 3 °C) |
+| | Humid above | 70% |
+| | Leave out these sensors | None |
 | | The security check finds something new | Off |
 | | Night starts, night ends | 10 PM, 6 AM |
 | | Friday and Saturday night starts, ends | Same as other nights |

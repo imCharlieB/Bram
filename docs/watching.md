@@ -27,6 +27,12 @@ A device changes, or a timer runs
 | Unlocked at night | Lock unlocked or open in night hours | 2 min | Unlocked, and it's night | Off |
 | Open or unlocked while away | Lock or door, and everyone shared known away | 2 min | Open, and everyone I track is away | Off |
 | Left open | Door, window, or garage open; each type can be turned off | Your minutes | Open for that long | Off |
+| Open at night | Door, window, or garage open in night hours; the types chosen under Left open | 2 min | Open, and it's night | Off |
+| Open while heating or cooling | Door, window, or garage open while a shared thermostat is heating or cooling | Left open minutes | Open while the thermostat is cooling | Off |
+| Motion while away | Motion, and everyone shared known away. Once per sensor until someone is home | 0 | Motion while everyone I track is away | Off |
+| Too hot, too cold | Temperature sensors and thermostats' own reading, past your limits | 30 min | Above or below your limit | Off |
+| Near freezing | Temperature below your near-freezing limit | 15 min | Near freezing. Pipes may freeze | Off |
+| Humid | Humidity sensor above your limit | 30 min | Humid, above your limit | Off |
 | Offline | Lock or door unreachable | 5 min | I can't see it | Off |
 | Server lost | BRAM Server disconnected | 3 min | Not answering | On |
 
@@ -35,7 +41,7 @@ A device changes, or a timer runs
 | | Safety | Everything else |
 |---|---|---|
 | Repeats | Up to 11 times, until acknowledged | Once each time it happens |
-| Quiet hours | Ignored | Respected, except night and away rules |
+| Quiet hours | Ignored | Respected, except night, away, motion while away, and near freezing |
 | Can be stopped | No, only acknowledged | Yes, with **Stop these** |
 | Daily limit | None | 10 for notices, 20 for lock and door rules |
 | If sending fails | Tried again every minute | Tried again |

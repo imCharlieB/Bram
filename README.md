@@ -26,7 +26,8 @@ BRAM watches the devices you choose, tells your phone when something matters, re
 |---|---|
 | **Safety alerts** | Leak, smoke, CO, gas, and heat. Repeats until someone acknowledges. Runs in Home Assistant, so it works with the server or model down |
 | **Silent sensors** | Tells you when a safety sensor stops reporting. Unknown is never treated as safe |
-| **Locks and doors** | Unlocked at night, open while away, left open, offline |
+| **Locks and doors** | Unlocked at night, open while away, left open, open at night, open while heating or cooling, offline |
+| **Motion and comfort** | Motion while everyone is away. Too hot, too cold, near freezing, humid, with your own limits |
 | **Problems** | Failed integrations, repeating errors, low batteries, offline devices, stuck sensors, broken automations, old backups. Found without being asked |
 | **3D printers** | Found by itself: progress, time left, temperatures. Told when finished, failed, paused, or a heater is left on |
 | **Security check** | New admins and tokens, failed sign-ins, locks exposed to voice assistants, public webhooks, offline cameras, and more |
@@ -36,6 +37,7 @@ BRAM watches the devices you choose, tells your phone when something matters, re
 | **Voice** | Hold to talk and spoken answers, with your own Whisper and Piper |
 | **Personality** | Professional, friendly, dry, minimal, unhinged, or your own |
 | **Learning** | Suggests better night hours from BRAM's history. Needs Keep history. Nothing changes until you approve |
+| **Blueprints** | A yes-or-no check on a schedule, and a house summary, as automations you keep in Home Assistant |
 | **Outside Home Assistant** | Telegram or ntfy if Home Assistant, Ollama, Frigate, or another device goes down |
 
 Everything that shares or stores more is off until you turn it on.
@@ -218,5 +220,6 @@ Update both; BRAM warns you when they differ. [Changes](https://github.com/imCha
 | | [Findings](https://github.com/imCharlieB/Bram/blob/main/docs/findings.md) | |
 | | [History and trends](https://github.com/imCharlieB/Bram/blob/main/docs/history.md) | |
 | | [Learning](https://github.com/imCharlieB/Bram/blob/main/docs/learning.md) | |
+| | [Blueprints](https://github.com/imCharlieB/Bram/blob/main/docs/blueprints.md) | |
 
 MIT licensed. See [LICENSE](https://github.com/imCharlieB/Bram/blob/main/LICENSE).

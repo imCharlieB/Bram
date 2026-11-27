@@ -17,6 +17,7 @@
 - [Chat](chat.md)
 - [Voice](voice.md)
 - [Personality](personality.md)
+- [Blueprints](blueprints.md)
 
 ## How it works
 

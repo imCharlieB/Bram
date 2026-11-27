@@ -1,6 +1,7 @@
 """Getting to an options page through BRAM's menus."""
 PARENT = {"suggest": "devices", "quick": "devices", "see": "devices", "rooms": "devices",
-          "watch_ha": "watching", "watch": "watching", "printers": "watching"}
+          "watch_ha": "watching", "watch": "watching", "printers": "watching",
+          "comfort": "watching"}
 
 
 async def go(hass, flow_id, step):

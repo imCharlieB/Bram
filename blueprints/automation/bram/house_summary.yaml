@@ -1,0 +1,59 @@
+blueprint:
+  name: BRAM house summary
+  description: >-
+    Asks BRAM how the home is doing at the times you choose and sends the answer to your
+    phone. BRAM only reads; this automation only sends a message.
+  domain: automation
+  author: BRAM
+  source_url: https://github.com/imCharlieB/Bram/blob/main/blueprints/automation/bram/house_summary.yaml
+  input:
+    at:
+      name: At
+      description: When to send it.
+      default: "18:00:00"
+      selector:
+        time:
+    question:
+      name: What to ask
+      default: >-
+        How is the home right now? Who is home, what is open or unlocked, the temperatures,
+        and anything that needs me. Keep it short.
+      selector:
+        text:
+          multiline: true
+    agent:
+      name: BRAM's assistant
+      description: BRAM's conversation agent, usually called BRAM Assist.
+      selector:
+        conversation_agent:
+    notify:
+      name: Phone
+      description: The notify action for your phone, such as notify.mobile_app_my_phone.
+      default: notify.notify
+      selector:
+        text:
+
+mode: single
+
+variables:
+  notify: !input notify
+
+triggers:
+  - trigger: time
+    at: !input at
+
+actions:
+  - action: conversation.process
+    data:
+      agent_id: !input agent
+      conversation_id: bram_house_summary
+      text: !input question
+    response_variable: reply
+  - variables:
+      said: "{{ reply.response.speech.plain.speech | default('') | trim }}"
+  - condition: template
+    value_template: "{{ said != '' }}"
+  - action: "{{ notify }}"
+    data:
+      title: BRAM house summary
+      message: "{{ said }}"

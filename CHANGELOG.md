@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.35.0
+
+Update BRAM in HACS and restart Home Assistant. The server is unchanged, but update it in Portainer too to keep the versions together.
+
+- New watches, each off until you turn it on under **Configure > Watching**:
+  - **Locks, doors, windows, and motion**: open at night, open while heating or cooling, and motion while everyone is away.
+  - **Temperature and humidity** (new page): too hot, too cold, near freezing, and humid, with your own limits in your home's unit, and sensors to leave out.
+- Two blueprints: **BRAM scheduled check** asks BRAM a yes-or-no question on a schedule and tells you only on yes; **BRAM house summary** sends how the home is doing at a time you choose. See [Blueprints](docs/blueprints.md).
+- The plan lists more camera features and blueprints.
+
 ## 0.34.1
 
 Update both: BRAM in HACS and the server in Portainer.

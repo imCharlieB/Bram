@@ -177,7 +177,7 @@
         }
       },
       "watch": {
-        "title": "Locks, doors, and windows",
+        "title": "Locks, doors, windows, and motion",
         "description": "Covers the locks, doors, windows, and garage doors BRAM can see. Night and away messages ignore quiet hours. Away counts only the people BRAM can see, so share everyone who lives here.",
         "data": {
           "night": "Unlocked at night",
@@ -191,11 +191,17 @@
           "night_to": "Night ends",
           "weekend_night_from": "Friday and Saturday night starts (empty: same)",
           "weekend_night_to": "Friday and Saturday night ends (empty: same)",
-          "open_minutes": "Left open means this many minutes"
+          "open_minutes": "Left open means this many minutes",
+          "open_night": "Open at night",
+          "open_climate": "Open while heating or cooling",
+          "motion_away": "Motion while everyone is away"
         },
         "data_description": {
           "left_open": "On: told when something stays open longer than the minutes below. Choose doors, windows, and garage doors separately.",
-          "open_windows": "Turn off if you sleep with windows open. Open while everyone is away still covers windows."
+          "open_windows": "Turn off if you sleep with windows open. Open while everyone is away still covers windows.",
+          "open_night": "Doors, windows, and garage doors you chose under Left open, open at night. Ignores quiet hours.",
+          "open_climate": "Open longer than the left-open minutes while a thermostat BRAM can see is heating or cooling.",
+          "motion_away": "Told once per sensor until someone is home again. Pets can set this off. Ignores quiet hours."
         }
       },
       "alerts": {
@@ -242,12 +248,14 @@
         "menu_options": {
           "watch_ha": "Home Assistant and security",
           "watch": "Locks, doors, and windows",
-          "printers": "3D printers"
+          "printers": "3D printers",
+          "comfort": "Temperature and humidity"
         },
         "menu_option_descriptions": {
           "watch_ha": "Failed integrations, errors, batteries, offline devices, backups, and new admins or tokens.",
-          "watch": "Unlocked at night, open while away, left open, and offline, with your night hours.",
-          "printers": "Prints finishing, failing, or pausing, and heaters left on, for each printer you choose."
+          "watch": "Unlocked at night, open while away, left open, open at night, open while heating or cooling, motion while away, and offline, with your night hours.",
+          "printers": "Prints finishing, failing, or pausing, and heaters left on, for each printer you choose.",
+          "comfort": "Too hot, too cold, near freezing, and humid, for the rooms BRAM can see."
         }
       },
       "watch_ha": {
@@ -260,6 +268,24 @@
         "data_description": {
           "problem_watch": "On: you are told about failed integrations, repeating errors, low batteries, offline devices, broken automations, old backups, and a full disk.",
           "security_watch": "On: you are told once about anything new, such as an administrator or access token, a failed sign-in, or a lock exposed to a voice assistant."
+        }
+      },
+      "comfort": {
+        "title": "Temperature and humidity",
+        "description": "Covers the temperature and humidity sensors and thermostats BRAM can see. A room must stay past its limit for 30 minutes, or 15 minutes near freezing. Near freezing ignores quiet hours. Leave out sensors that are outside.",
+        "data": {
+          "too_hot": "Too hot",
+          "too_cold": "Too cold",
+          "freezing": "Near freezing",
+          "humid": "Humid",
+          "hot_above": "Too hot above",
+          "cold_below": "Too cold below",
+          "freeze_below": "Near freezing below",
+          "humid_above": "Humid above",
+          "comfort_skip": "Leave out these sensors"
+        },
+        "data_description": {
+          "comfort_skip": "Outdoor sensors, freezers, attics, and others that are meant to be hot or cold."
         }
       }
     }

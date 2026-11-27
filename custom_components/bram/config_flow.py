@@ -49,6 +49,7 @@ from .const import (
 from .details import room_sensors
 from .discover import find, suggest
 from .feed import kind_of
+from .house_rules import limits
 from .notifier import PREFIX, phones
 
 
@@ -95,7 +96,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
     async def async_step_watching(self, user_input: dict[str, Any] | None = None,
                                   ) -> ConfigFlowResult:
         return self.async_show_menu(step_id="watching",
-                                    menu_options=["watch_ha", "watch", "printers"])
+                                    menu_options=["watch_ha", "watch", "comfort", "printers"])
 
     async def async_step_watch_ha(self, user_input: dict[str, Any] | None = None,
                                   ) -> ConfigFlowResult:
@@ -307,7 +308,8 @@ class BramOptionsFlow(OptionsFlowWithReload):
             return self.async_create_entry(data={**options, **user_input})
         return self.async_show_form(step_id="watch", data_schema=vol.Schema({
             **{vol.Required(rule, default=options.get(rule, False)): bool
-               for rule in ("night", "away", "left_open", "offline")},
+               for rule in ("night", "away", "left_open", "offline", "open_night",
+                            "open_climate", "motion_away")},
             **{vol.Required(kind, default=options.get(kind, True)): bool for kind in OPEN_TYPES},
             vol.Required("night_from", default=options.get("night_from", DEFAULT_NIGHT_FROM)):
                 selector.TimeSelector(),
@@ -317,6 +319,32 @@ class BramOptionsFlow(OptionsFlowWithReload):
                selector.TimeSelector() for key in (CONF_WEEKEND_FROM, CONF_WEEKEND_TO)},
             vol.Required("open_minutes", default=options.get(
                 "open_minutes", DEFAULT_OPEN_MINUTES)): vol.All(int, vol.Range(1, 1440)),
+        }))
+
+    async def async_step_comfort(self, user_input: dict[str, Any] | None = None,
+                                 ) -> ConfigFlowResult:
+        """Too hot, too cold, near freezing, and humid, with the home's own unit."""
+        options = dict(self.config_entry.options)
+        if user_input is not None:
+            options.pop("comfort_skip", None)
+            return self.async_create_entry(data={**options, **user_input})
+        unit = self.hass.config.units.temperature_unit
+        now = limits(unit, options)
+        degrees = selector.NumberSelector(selector.NumberSelectorConfig(
+            min=-40, max=140, step=1, unit_of_measurement=unit,
+            mode=selector.NumberSelectorMode.BOX))
+        return self.async_show_form(step_id="comfort", data_schema=vol.Schema({
+            **{vol.Required(rule, default=options.get(rule, False)): bool
+               for rule in ("too_hot", "too_cold", "freezing", "humid")},
+            vol.Required("hot_above", default=now["hot_above"]): degrees,
+            vol.Required("cold_below", default=now["cold_below"]): degrees,
+            vol.Required("freeze_below", default=now["freeze_below"]): degrees,
+            vol.Required("humid_above", default=now["humid_above"]): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=30, max=100, step=1, unit_of_measurement="%",
+                                              mode=selector.NumberSelectorMode.BOX)),
+            vol.Optional("comfort_skip", description={
+                "suggested_value": options.get("comfort_skip", [])}): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain=["sensor", "climate"], multiple=True)),
         }))
 
     def _kind(self, entity_id: str, kinds: dict[str, str | None]) -> str:

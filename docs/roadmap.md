@@ -122,10 +122,13 @@ BRAM looks by itself. Plain rules decide what is a problem. One finding per prob
 | Finds | Status |
 |---|---|
 | Unlocked at night; open or unlocked while away; left open; offline | ✅ |
-| Motion while away or at night while away | ⬜ |
-| Windows open at night; several things open at once; open while heating or cooling | ⬜ |
+| Motion while away | ✅ 0.35 |
+| Motion at night while away | ⬜ |
+| Open at night; open while heating or cooling | ✅ 0.35 |
+| Several things open at once | ⬜ |
 | Alarm off when everyone left, or not matching who is home | ⬜ |
-| Too hot, too cold, humid, freezing, poor air | ⬜ |
+| Too hot, too cold, humid, near freezing | ✅ 0.35 |
+| Poor air | ⬜ |
 | Appliance left on; power, water, or energy far from usual | ⬜ |
 
 ### Security
@@ -220,6 +223,20 @@ Optional, for the installation and per person.
 | Picture in the message; repeats of the same scene combined | ⬜ |
 | Camera stale, offline, or disabled | 🟡 offline |
 | Unknown person, through Frigate's face recognition | ⬜ |
+| One summary per event: frames while the event lasts, unchanged frames dropped, frames with a person always kept, then the vision model sums it up | ⬜ |
+| Tell only when unusual: the same scene (a parked car, an empty porch) is not told again, the same person not within 30 minutes; a cooldown per camera and across cameras | ⬜ |
+| Recognized people for each camera, as a Home Assistant sensor, with names from Frigate | ⬜ |
+| Last event picture for each camera, as a Home Assistant image, with its summary | ⬜ |
+| Scheduled camera checks, such as "any packages on the porch?" every hour, told only when the answer is yes | ⬜ |
+
+Blueprints keep these in Home Assistant, where you can see and change them:
+
+| Blueprint | Does | Status |
+|---|---|---|
+| BRAM scheduled check | On a schedule, asks BRAM a question, such as "any packages on the porch?", and tells your phone only when the answer is yes | ✅ 0.35, see [Blueprints](blueprints.md) |
+| BRAM house summary | On a schedule, asks BRAM for the state of the home, cameras included, and sends it | ✅ 0.35, cameras when they come |
+| BRAM camera event | When a camera's recognized people or last event changes, sends the picture, the summary, and the names | ⬜ |
+| BRAM finding router | When BRAM finds something, runs a script you choose for that kind of finding. Anything that unlocks, opens, or disarms still needs your approval by a tap (rules A3, A15) | ⬜ |
 
 ## 7. Learning
 

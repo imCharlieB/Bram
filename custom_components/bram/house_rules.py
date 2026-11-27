@@ -1,4 +1,5 @@
-"""Watchdog rules for locks and doors. Fixed text, no model, no server, all off by default."""
+"""Watchdog rules for locks, doors, motion, and comfort. Fixed text, no model, no server, all off
+by default."""
 from __future__ import annotations
 
 import asyncio
@@ -7,10 +8,12 @@ from collections.abc import Callable, Iterator
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfTemperature
 from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
+from homeassistant.util.unit_conversion import TemperatureConverter
 
 from .const import (
     CONF_PHONES,
@@ -36,8 +39,26 @@ DAILY = 20
 DAY = 86400
 MUTE = "BRAM_QUIET_"
 UNKNOWN = ("unavailable", "unknown", "")
+RULES = ("night", "away", "left_open", "offline", "open_night", "open_climate", "motion_away",
+         "too_hot", "too_cold", "freezing", "humid")
 # These matter at night, so they do not wait for quiet hours to end.
-URGENT = ("night", "away")
+URGENT = ("night", "away", "open_night", "motion_away", "freezing")
+COMFORT_WAIT = 1800  # a room must stay too hot or too cold this long
+FREEZE_WAIT = 900
+RUNNING = ("heating", "cooling")
+UNITS = {"°F": UnitOfTemperature.FAHRENHEIT, "°C": UnitOfTemperature.CELSIUS,
+         "F": UnitOfTemperature.FAHRENHEIT, "C": UnitOfTemperature.CELSIUS}
+# Limits in the home's own unit when the owner has not set them.
+LIMITS = {UnitOfTemperature.FAHRENHEIT: {"hot_above": 85, "cold_below": 55, "freeze_below": 38},
+          UnitOfTemperature.CELSIUS: {"hot_above": 29, "cold_below": 13, "freeze_below": 3}}
+HUMID_ABOVE = 70
+
+
+def limits(unit: str, options: dict[str, Any]) -> dict[str, float]:
+    """The comfort limits in the home's unit, with defaults for any not set."""
+    base = LIMITS.get(unit, LIMITS[UnitOfTemperature.CELSIUS])
+    return {**{k: float(options.get(k, v)) for k, v in base.items()},
+            "humid_above": float(options.get("humid_above", HUMID_ABOVE))}
 
 
 class HouseRules:
@@ -53,7 +74,11 @@ class HouseRules:
         self._noted: set[str] = set()
         self._hass = hass
         options = entry.options
-        self._on = {r for r in ("night", "away", "left_open", "offline") if options.get(r)}
+        self._on = {r for r in RULES if options.get(r)}
+        self._unit = hass.config.units.temperature_unit
+        self._limits = limits(self._unit, dict(options))
+        self._skip: set[str] = set(options.get("comfort_skip", []))
+        self._moved: set[str] = set()
         self._entities: list[str] = shared(hass, options)
         self._phones: list[str] = options.get(CONF_PHONES, [])
         self._quiet = (options.get(CONF_QUIET_FROM), options.get(CONF_QUIET_TO))
@@ -145,19 +170,44 @@ class HouseRules:
         return bool(people) and all(
             s is not None and s.state not in (*UNKNOWN, "home") for s in states)
 
+    def _running(self) -> str | None:
+        """A shared thermostat heating or cooling now, as words, or None."""
+        for entity_id in self._entities:
+            state = self._hass.states.get(entity_id)
+            if (entity_id.startswith("climate.") and state is not None
+                    and state.attributes.get("hvac_action") in RUNNING):
+                return f"{self._name(entity_id)} is {state.attributes['hvac_action']}"
+        return None
+
+    def _temperature(self, entity_id: str, state: State) -> float | None:
+        """A room's temperature in the home's unit, or None if it is not known (B2)."""
+        if entity_id.startswith("climate."):
+            value, unit = state.attributes.get("current_temperature"), self._unit
+        else:
+            value, unit = state.state, UNITS.get(
+                str(state.attributes.get("unit_of_measurement", "")), "")
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return None
+        if unit not in (UnitOfTemperature.FAHRENHEIT, UnitOfTemperature.CELSIUS):
+            return None
+        return TemperatureConverter.convert(number, unit, self._unit)
+
     def _facts(self) -> Iterator[tuple[str, str, float, str]]:
         """Rule, entity, seconds it must hold, and what to say."""
         night = self.is_night()
         away = self._everyone_away()
+        running = self._running() if "open_climate" in self._on else None
+        if not away:
+            self._moved.clear()
+        unit = "\u00b0F" if self._unit == UnitOfTemperature.FAHRENHEIT else "\u00b0C"
         for entity_id in self._entities:
             state = self._hass.states.get(entity_id)
             kind = self._kind(entity_id, state)
-            if kind not in ("lock", "opening"):
-                continue
             value = state.state if state is not None else "unavailable"
-            name = state.name if state is not None else entity_id
-            name = " ".join("".join(c if c.isprintable() else " " for c in name).split())[:60]
-            if value in UNKNOWN:
+            name = self._name(entity_id)
+            if kind in ("lock", "opening") and value in UNKNOWN:
                 yield "offline", entity_id, OFFLINE_AFTER, f"I can't see {name}. It is offline."
             elif kind == "lock" and value in ("unlocked", "open"):
                 if night:
@@ -167,12 +217,51 @@ class HouseRules:
                         f"{name} is unlocked, and everyone I track is away.")
             elif kind == "opening" and value in ("on", "open"):
                 minutes = self._open_seconds // 60
-                if self._open_type(state) in self._open_types:
+                chosen = self._open_type(state) in self._open_types
+                if chosen:
                     yield "left_open", entity_id, self._open_seconds, (
                         f"{name} has been open for {minutes} minutes.")
                 if away:
                     yield "away", entity_id, SETTLE, (
                         f"{name} is open, and everyone I track is away.")
+                if night and chosen:
+                    yield "open_night", entity_id, SETTLE, f"{name} is open, and it's night."
+                if running:
+                    yield "open_climate", entity_id, self._open_seconds, (
+                        f"{name} has been open for {minutes} minutes while {running}.")
+            elif kind == "motion":
+                # Once seen while everyone is away, it stays news until someone is home.
+                if away and value == "on":
+                    self._moved.add(entity_id)
+                if entity_id in self._moved:
+                    yield "motion_away", entity_id, 0, (
+                        f"Motion at {name} while everyone I track is away.")
+            elif (kind in ("temperature", "climate") and state is not None
+                  and entity_id not in self._skip):
+                degrees = self._temperature(entity_id, state)
+                if degrees is None:
+                    continue
+                shown = f"{round(degrees)}{unit}"
+                if degrees < self._limits["freeze_below"]:
+                    yield "freezing", entity_id, FREEZE_WAIT, (
+                        f"{name} is {shown}, near freezing. Pipes may freeze.")
+                elif degrees < self._limits["cold_below"]:
+                    yield "too_cold", entity_id, COMFORT_WAIT, (
+                        f"{name} is {shown}, below your "
+                        f"{round(self._limits['cold_below'])}{unit} limit.")
+                elif degrees > self._limits["hot_above"]:
+                    yield "too_hot", entity_id, COMFORT_WAIT, (
+                        f"{name} is {shown}, above your "
+                        f"{round(self._limits['hot_above'])}{unit} limit.")
+            elif kind == "humidity" and state is not None and entity_id not in self._skip:
+                try:
+                    percent = float(value)
+                except ValueError:
+                    continue
+                if percent > self._limits["humid_above"]:
+                    yield "humid", entity_id, COMFORT_WAIT, (
+                        f"{name} is {round(percent)}% humid, above your "
+                        f"{round(self._limits['humid_above'])}% limit.")
 
     # --- telling ---
 
@@ -238,7 +327,10 @@ class HouseRules:
         """What is counting down, for BRAM's page. Holds are written down once, with why."""
         items = []
         names = {"left_open": "open", "night": "unlocked at night",
-                 "away": "open while everyone is away", "offline": "offline"}
+                 "away": "open while everyone is away", "offline": "offline",
+                 "open_night": "open at night", "open_climate": "open while heating or cooling",
+                 "motion_away": "moved while everyone is away", "too_hot": "too hot",
+                 "too_cold": "too cold", "freezing": "near freezing", "humid": "humid"}
         for key, (rule, wait, _text) in facts.items():
             if key in self._muted:
                 continue
