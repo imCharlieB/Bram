@@ -187,16 +187,18 @@ async def test_not_news_is_never_told(env):
     assert env.texts() == ["A person Frigate does not know at yard. In path."]
 
 
-async def test_not_news_from_a_phone(env):
+@pytest.mark.rule("C6")
+async def test_does_it_matter_from_a_phone(env):
     told = []
     await env.start(camera_package=True, camera_repeat=1)
-    env.watch._not_news = lambda camera, event_id: told.append((camera, event_id)) or True
+    env.watch._not_news = lambda *args: told.append(args) or True
     await env.see("porch", event(1, "package", zones=["steps"]))
     buttons = env.calls[0].data["data"]["actions"]
-    assert buttons[-1] == {"action": "BRAM_CAMNEWS_e1", "title": "Not news"}
+    assert buttons[-2:] == [{"action": "BRAM_CAMYES_e1", "title": "It matters"},
+                            {"action": "BRAM_CAMNEWS_e1", "title": "Doesn't matter"}]
     env.watch.answered(Event("mobile_app_notification_action", {"action": "BRAM_CAMNEWS_e1"}))
     env.watch.answered(Event("mobile_app_notification_action", {"action": "BRAM_CAMNEWS_e9"}))
-    assert told == [("porch", "e1")]  # an event it never sent is ignored
+    assert told == [("porch", "e1", False)]  # an event it never sent is ignored
     env.now += datetime.timedelta(hours=1)
     await env.see("porch", event(2, "package", zones=["steps"], at=env.now))
-    assert len(env.calls) == 1  # the same is now not news
+    assert len(env.calls) == 2  # it teaches the model; it holds nothing back

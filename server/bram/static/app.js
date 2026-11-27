@@ -315,6 +315,24 @@ function showCameras(view) {
     const side = element("span");
     side.append(box);
     if (camera.on) {
+      const scene = element("details", undefined, "scene"), summary = element("summary", camera.scene ? "What it sees: written" : "Describe what it sees");
+      const text = element("textarea"), save = element("button", "Save"), look = element("img");
+      text.value = camera.scene;
+      text.maxLength = 600;
+      text.rows = 4;
+      text.placeholder = "Things BRAM can spot in any picture, wherever it points. Ours: the concrete driveway with the basketball hoop. Neighbors': the house with the red door and its driveway. The street: people walking there don't matter.";
+      text.setAttribute("aria-label", `What ${cameraName(camera.name)} sees`);
+      look.alt = `${cameraName(camera.name)} now`;
+      scene.addEventListener("toggle", () => {
+        if (scene.open) look.src = `/api/camera-live?camera=${encodeURIComponent(camera.name)}&t=${Date.now()}`;
+      });
+      save.type = "button";
+      save.addEventListener("click", () => busy(save, "camera-message", async () => {
+        showCameras(await api("camera-scene", { camera: camera.name, text: text.value }));
+        return "Saved. Your model gets it with each picture from this camera.";
+      }));
+      scene.append(summary, look, text, save);
+      left.append(scene);
       const words = element("label", undefined, "check"), say = element("input");
       say.type = "checkbox";
       say.checked = camera.describe;
@@ -330,6 +348,20 @@ function showCameras(view) {
     return row;
   }));
   const on = view.cameras.filter((camera) => camera.on);
+  // What BRAM was taught, newest first, each with Forget.
+  $("learned-card").hidden = !view.learned.length;
+  $("learned-list").replaceChildren(...view.learned.map((item, index) => ({ item, index })).reverse().map(({ item, index }) => {
+    const row = element("li"), left = element("span", `${cameraName(item.camera)}: ${item.label}, ${item.matters ? "matters" : "doesn't matter"}`);
+    if (item.note) left.append(element("span", item.note, "note sub"));
+    if (item.seen) left.append(element("span", `It saw: ${item.seen}`, "note sub"));
+    const forget = element("button", "Forget", "quiet small");
+    forget.addEventListener("click", () => busy(forget, "learned-message", async () => {
+      showCameras(await api("camera-forget", { index }));
+      return "Forgotten";
+    }));
+    row.append(left, forget);
+    return row;
+  }));
   $("quiet-card").hidden = !view.quiet.length;
   $("quiet-list").replaceChildren(...view.quiet.map((item, index) => {
     const row = element("li"), left = element("span", `${cameraName(item.camera)}: ${item.label}${item.zones.length ? ` in ${item.zones.join(", ")}` : " outside every zone"}`);
@@ -350,22 +382,21 @@ function showCameras(view) {
   }));
 }
 
-// "Not news", and what it is: BRAM stays quiet about the same kind of thing on that camera,
-// in the same zones, and tells the model what it is.
+// Does it matter? The answer, and what it was, teach BRAM's model about this camera.
 function notNews(camera, event, key) {
-  const acts = element("div", undefined, "acts"), button = element("button", "Not news"), link = element("a", "Cameras");
-  button.type = "button";
+  const acts = element("div", undefined, "acts"), ask = element("small", "Does it matter?");
+  const yes = element("button", "It matters"), no = element("button", "Doesn't matter"), link = element("a", "Cameras");
   link.href = "#cameras";
-  button.addEventListener("click", () => {
-    const form = element("form", undefined, "acts"), note = element("input"), save = element("button", "Keep quiet");
-    note.placeholder = "What is it? Such as the neighbor's driveway";
-    note.maxLength = 80;
+  const answer = (matters) => {
+    const form = element("form", undefined, "acts"), note = element("input"), save = element("button", "Tell BRAM");
+    note.placeholder = matters ? "What is it? Such as a delivery at our door" : "What is it? Such as the neighbor in his driveway";
+    note.maxLength = 200;
     note.setAttribute("aria-label", "What is it");
     form.addEventListener("submit", async (submitted) => {
       submitted.preventDefault();
       save.disabled = true;
       try {
-        showCameras(await api("camera-quiet", { camera: camera.name, id: event.id, note: note.value }));
+        showCameras(await api("camera-learn", { camera: camera.name, id: event.id, matters, note: note.value }));
         closePop(key);
       } catch (error) {
         save.disabled = false;
@@ -375,8 +406,12 @@ function notNews(camera, event, key) {
     form.append(note, save);
     acts.replaceWith(form);
     note.focus();
-  });
-  acts.append(button, link);
+  };
+  for (const [button, matters] of [[yes, true], [no, false]]) {
+    button.type = "button";
+    button.addEventListener("click", () => answer(matters));
+  }
+  acts.append(ask, yes, no, link);
   return acts;
 }
 

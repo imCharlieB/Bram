@@ -229,7 +229,8 @@ Optional, for the installation and per person.
 | A vision model describes each event, for the cameras you choose | ✅ 0.42 |
 | Ask what a camera sees, in chat and in scheduled checks | ✅ 0.43 |
 | Not news: the owner says what an event is; BRAM stays quiet about the same and tells the model | ✅ 0.44 |
-| Learn from Not news without being told: suggest a zone or a quiet rule after the same thing is dismissed a few times | ⬜ |
+| Teach a camera: what it sees in your words, and Does it matter? on each event, given to the model with every picture | ✅ 0.47 |
+| Tell you less from what it learned: needs the owner's approval to change rule C6 | ⬜ |
 | Person while away, at night, or not known to Frigate; packages | ✅ 0.40, [Cameras](cameras.md) |
 | Person at an open or unlocked door; a car that stays in a zone; zones and messages for each camera | ✅ 0.41 |
 | Motion with no camera activity | ⬜ |

@@ -35,12 +35,11 @@ async def test_only_turned_on_cameras_reach_home_assistant(hass, server):  # noq
     # No entities: the Frigate integration already has the cameras.
     assert not [s for s in hass.states.async_entity_ids() if "front_door" in s]
 
-    # Not news, pressed on a phone: the server keeps it, and tells Home Assistant back.
+    # Does it matter, answered on a phone: the server keeps it to teach the model.
     await until(lambda: feed.server_version is not None)
-    assert feed.camera_not_news("front_door", "e1")
-    await until(lambda: page.cameras.quiet() == [
-        {"camera": "front_door", "label": "person", "zones": ["porch"], "note": ""}])
-    await until(lambda: feed.camera_watch.quiet == [("front_door", "person", ("porch",))])
+    assert feed.camera_not_news("front_door", "e1", False)
+    await until(lambda: [(x["id"], x["matters"]) for x in page.cameras.learned()] == [
+        ("e1", False)])
 
     page.cameras.choose("front_door", False)
     await page.tell_cameras()

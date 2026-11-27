@@ -161,6 +161,10 @@ class ConfigPage:
             web.post("/api/camera-home", self._private(self._camera_home)),
             web.post("/api/camera-describe", self._confirmed(self._camera_describe)),
             web.post("/api/camera-quiet", self._private(self._camera_quiet)),
+            web.post("/api/camera-scene", self._private(self._camera_scene)),
+            web.post("/api/camera-learn", self._private(self._camera_learn)),
+            web.post("/api/camera-forget", self._private(self._camera_forget)),
+            web.get("/api/camera-live", self._private(self._camera_live)),
             web.post("/api/camera-allow", self._private(self._camera_allow)),
             web.get("/api/camera-picture", self._private(self._camera_picture)),
             web.get("/api/monitors", self._private(self._list_monitors)),
@@ -985,6 +989,39 @@ class ConfigPage:
         await self.tell_cameras()
         return _json(self.cameras.view())
 
+    async def _camera_scene(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        try:
+            self.cameras.set_scene(body.get("camera"), body.get("text"))
+        except FrigateError as err:
+            return _json({"error": str(err)}, 400)
+        return _json(self.cameras.view())
+
+    async def _camera_learn(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        try:
+            self.cameras.learn(body.get("camera"), body.get("id"), body.get("matters"),
+                               body.get("note", ""))
+        except FrigateError as err:
+            return _json({"error": str(err)}, 400)
+        return _json(self.cameras.view())
+
+    async def _camera_forget(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        try:
+            self.cameras.forget(body.get("index"))
+        except FrigateError as err:
+            return _json({"error": str(err)}, 400)
+        return _json(self.cameras.view())
+
+    async def _camera_live(self, request: web.Request) -> web.Response:
+        data = await self.cameras.live(request.query.get("camera"))
+        if not data:
+            raise web.HTTPNotFound
+        return web.Response(body=data, content_type="image/jpeg", headers={
+            **HEADERS, "Cache-Control": "private, no-store",
+            "Content-Security-Policy": "default-src 'none'; sandbox"})
+
     async def _camera_allow(self, request: web.Request) -> web.Response:
         body = await _body(request)
         try:
@@ -995,7 +1032,7 @@ class ConfigPage:
         return _json(self.cameras.view())
 
     async def _describe_picture(self, picture: bytes, camera: str,
-                                notes: list[str] | None = None) -> str | None:
+                                context: dict | None = None) -> str | None:
         """The owner's own model, on their network, puts one event's picture into words. Its
         words are data: they describe, and never decide what is told (C6)."""
         saved = self._settings.all()
@@ -1005,8 +1042,7 @@ class ConfigPage:
                                  max_output=120)
         try:
             reply = await model.chat([
-                Message("system", DESCRIBE_PICTURE + ("\nThe owner's notes about this "
-                        "camera: " + "; ".join(notes) if notes else "")),
+                Message("system", _taught(DESCRIBE_PICTURE, context or {})),
                 Message("user", f"A picture from the {camera} camera.",
                         images=(Image(picture),))])
         finally:
@@ -1147,6 +1183,17 @@ async def _body(request: web.Request) -> dict:
 
 def _json(data: dict, status: int = 200) -> web.Response:
     return web.json_response(data, status=status, headers=HEADERS)
+
+
+def _taught(system: str, context: dict) -> str:
+    """The camera's scene and what the owner taught, for the model. Data, not orders."""
+    if context.get("scene"):
+        system += f"\nWhat this camera sees, in the owner's words: {context['scene']}"
+    if context.get("taught"):
+        system += ("\nWhat the owner told you about earlier pictures from this camera. Use it "
+                   "to name what you see, such as the neighbors' driveway:\n- "
+                   + "\n- ".join(context["taught"]))
+    return system
 
 
 def _older(version: str, than: tuple[int, int]) -> bool:

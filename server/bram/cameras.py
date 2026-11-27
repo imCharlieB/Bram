@@ -401,6 +401,68 @@ class Cameras:
             raise FrigateError("That is no longer listed")
         self._settings.update_channel(CHANNEL, {"quiet": items[:index] + items[index + 1:]})
 
+    # --- teaching: what a camera sees, and does it matter ---
+
+    def scene(self, camera: str) -> str:
+        return self.saved().get("scenes", {}).get(camera, "")
+
+    def set_scene(self, camera: object, text: object) -> None:
+        if not isinstance(camera, str) or camera not in self.chosen() or not isinstance(text, str):
+            raise FrigateError("Choose a camera BRAM watches")
+        scenes = dict(self.saved().get("scenes", {}))
+        scenes[camera] = " ".join("".join(c if c.isprintable() else " " for c in text)
+                                  .split())[:600]
+        self._settings.update_channel(CHANNEL, {"scenes": {k: v for k, v in scenes.items() if v}})
+
+    def learned(self) -> list[dict[str, Any]]:
+        return self.saved().get("learned", [])
+
+    def learn(self, camera: object, event_id: object, matters: object, note: object = "") -> None:
+        """The owner says whether an event matters, and what it was. Kept for the model."""
+        if not isinstance(camera, str) or camera not in self.chosen() or not isinstance(
+                matters, bool):
+            raise FrigateError("Choose a camera BRAM watches")
+        event = next((e for e in self.events.get(camera, []) if e["id"] == event_id), None)
+        if event is None:
+            raise FrigateError("That event is no longer listed")
+        note = " ".join(note.split())[:200] if isinstance(note, str) else ""
+        item = {"camera": camera, "id": event["id"], "label": event["label"],
+                "zones": sorted(event["zones"]), "seen": self.description(event) or "",
+                "matters": matters, "note": note, "at": round(self._clock())}
+        rest = [x for x in self.learned() if x["id"] != event["id"]]
+        self._settings.update_channel(CHANNEL, {"learned": [*rest, item][-200:]})
+
+    def forget(self, index: object) -> None:
+        items = self.learned()
+        if not isinstance(index, int) or not 0 <= index < len(items):
+            raise FrigateError("That is no longer listed")
+        self._settings.update_channel(CHANNEL, {"learned": items[:index] + items[index + 1:]})
+
+    def context(self, camera: str) -> dict[str, Any]:
+        """What the model is given with a picture: the scene, and what the owner taught it."""
+        lines = []
+        for x in [x for x in self.learned() if x["camera"] == camera][-25:]:
+            where = f" in {', '.join(x['zones'])}" if x["zones"] else ""
+            seen = f" (you had said: {x['seen']})" if x["seen"] else ""
+            note = f" The owner said it was: {x['note']}." if x["note"] else ""
+            lines.append(f"A {x['label']}{where}{seen}: it "
+                         f"{'mattered' if x['matters'] else 'did not matter'} to the owner.{note}")
+        return {"scene": self.scene(camera), "taught": lines + self.notes(camera)}
+
+    async def live(self, camera: object) -> bytes | None:
+        """A camera's picture now, to look at while describing it. No model sees it."""
+        frigate = self._client()
+        if not isinstance(camera, str) or camera not in self.chosen() or frigate is None:
+            return None
+        try:
+            found = await frigate._get(f"/api/{quote(camera, safe='')}/latest.jpg?h=480",
+                                       as_json=False, limit=MAX_PICTURE)
+        except FrigateError:
+            return None
+        if not found or found[1] != "image/jpeg" or found[0][:2] != b"\xff\xd8":
+            return None
+        return found[0]
+
     def notes(self, camera: str) -> list[str]:
         """What the owner said about this camera, for the model."""
         found = []
@@ -420,8 +482,10 @@ class Cameras:
             "reason": self.reason, "pinned": bool(saved.get("pin")),
             "model_problem": self.model_problem,
             "quiet": [{**q, "name": place(q["camera"])} for q in self.quiet()],
+            "learned": self.learned(),
             "cameras": [{"name": c, "on": c in on, "offline": c in self.offline,
                          "describe": c in saved.get("describe", []),
+                         "scene": saved.get("scenes", {}).get(c, ""),
                          "last": self._with_words(self.last(c)),
                          "shot": c in self.pictures} for c in self.found],
         }
@@ -568,7 +632,7 @@ class Cameras:
         try:
             async with self._model_lock, asyncio.timeout(90):
                 words = await self.describer(picture, place(event["camera"]),
-                                             self.notes(event["camera"]))
+                                             self.context(event["camera"]))
             self.model_problem = ""
         except (ModelError, TimeoutError) as err:
             words = None

@@ -70,7 +70,9 @@ Quiet hours here affect only Home Assistant's messages.
 | Settings > Cameras | Frigate address, and a Frigate username and password for its login port | None |
 | | Watch, for each camera | Off |
 | | Describe, for each watched camera: its event pictures go to your own model | Off |
-| Settings > Cameras > Not news | What you said is not news, each with Tell me again | None |
+| Settings > Cameras, each camera | Describe what it sees, in your words, for your model | Empty |
+| Settings > Cameras > What you taught BRAM | Your answers to Does it matter?, each with Forget | None |
+| Settings > Cameras > Not news | What you said was not news before 0.47, each with Tell me again | None |
 | Profile | Look: Command or Classic, and the Command color, in this browser | Command, cyan |
 | | Username, password, signed-in devices | |
 

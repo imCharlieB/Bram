@@ -232,6 +232,15 @@ async def _feed(request: web.Request) -> web.WebSocketResponse:
                                                               if ":" in key else "")
                     if isinstance(uid, str):
                         await ws.send_json({"type": "noted", "id": uid[:32]})
+                elif kind == "camera_learn" and ready:
+                    # Does it matter, answered on a phone. Only for this home's own cameras.
+                    config = request.app.get(CONFIG)
+                    if config is not None and config.cameras.house() == house_id:
+                        try:
+                            config.cameras.learn(data.get("camera"), data.get("id"),
+                                                 data.get("matters"))
+                        except FrigateError:
+                            pass  # the event is gone
                 elif kind == "camera_quiet_add" and ready:
                     # Not news, pressed on a phone. Only for this home's own cameras.
                     config = request.app.get(CONFIG)

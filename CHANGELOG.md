@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.47.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Teach BRAM a camera. Under **Settings > Cameras**, describe what each camera sees in your own words, with its picture now beside the box. Camera windows on Home and camera messages on your phone ask **Does it matter?**, and on Home you can say what it was, such as "the neighbor in his driveway". Your model gets both with every picture from that camera, so it learns your home. Your answers are under **What you taught BRAM**, each with **Forget**. They teach only; nothing is held back. See [Teach BRAM a camera](docs/cameras.md#teach-bram-a-camera).
+- **Not news** is replaced by **Does it matter?**. What you already marked stays under **Not news**.
+
 ## 0.46.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

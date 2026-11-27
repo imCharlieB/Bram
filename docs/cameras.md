@@ -57,7 +57,7 @@ A camera you have not set up sends every message you turned on, for its whole pi
 Frigate sees everything in the picture, so a person in the neighbors' driveway is still "a person". Two ways to fix that, best first:
 
 1. **Draw a zone in Frigate** over only your own driveway, porch, or path (Frigate's settings, the camera, **Zones**). Then in BRAM, under **Set up one camera**, choose that zone under **Frigate zones that count**. Anything outside it is never told.
-2. **Not news.** When a camera window opens on Home about something that is not news, select **Not news**, say what it is, such as "the neighbors' driveway", and **Keep quiet**. BRAM stops telling you, on Home and on your phone, about the same kind of thing on that camera in the same Frigate zones; an event in no zone matches only others in no zone. What you wrote goes to your model, so its descriptions use it. Camera messages on your phone have **Not news** too; it does the same, without a note, which you can add on BRAM's page. They are listed under **Settings > Cameras > Not news**, each with **Tell me again**.
+2. **Teach it.** For a camera that moves, zones do not stay put. Describe what it sees and answer **Does it matter?**; see [Teach BRAM a camera](#teach-bram-a-camera). Things you said were not news before 0.47 are listed under **Settings > Cameras > Not news**, each with **Tell me again**. New answers go to [Teach BRAM a camera](#teach-bram-a-camera) instead.
 
 - **Same thing, once.** A person or package already told about on that camera is not told again for 30 minutes. Change it with **Not again on the same camera for**.
 - **One moment, once.** One person walking past several cameras within 2 minutes is one message.
@@ -68,6 +68,20 @@ Frigate sees everything in the picture, so a person in the neighbors' driveway i
 ## The message
 
 The camera, who Frigate recognized, what is true in the rest of the home, and the zones, such as "Someone at front door, and it's night. In porch." With the [Frigate integration](https://docs.frigate.video/integrations/home-assistant) installed in Home Assistant, it shows Frigate's picture of the event: its snapshot, or its smaller thumbnail when snapshots are off for that camera in Frigate. Turn snapshots on in Frigate for a better picture. Tap it to open the finding on BRAM's page. Coming: your model's description, such as "A delivery driver left a box on the porch."
+
+## Teach BRAM a camera
+
+Your model learns your home from you, two ways. Both need **Describe** on for the camera.
+
+**What it sees.** Under **Settings > Cameras**, open **Describe what it sees** under a camera. Its picture now shows above the box. Write things your model can spot in any picture, wherever the camera points, which matters for one that moves:
+
+> Ours: the concrete driveway with the basketball hoop, the white truck, the black mailbox. Neighbors': the house with the red door and its gravel driveway. The street: people walking there don't matter.
+
+**Does it matter?** Each camera window on Home asks it, with **It matters** and **Doesn't matter**, and a box to say what it was, such as "the neighbor in his driveway". Camera messages on your phone ask it too, without the box.
+
+Both go to your model with every picture from that camera, so its descriptions use your words, such as "The neighbor walks to his car in his own driveway." Your answers are listed under **Settings > Cameras > What you taught BRAM**, each with **Forget**.
+
+For now this teaches the model only: an answer never holds a message back (rule C6). Later, BRAM may use what it learned to tell you less, with your approval of a change to that rule.
 
 ## Descriptions from your model
 
@@ -85,7 +99,7 @@ The words appear in the event's window on Home, in **Looking at**, and under **S
 | Where | Shows |
 |---|---|
 | Home, **Looking at** | The latest picture from the cameras BRAM watches, and each camera's last event ✅ |
-| Home, over the brain | A window with the picture and **Not news**, only for an event BRAM told you about or held for quiet hours; one window for all cameras ✅ |
+| Home, over the brain | A window with the picture and **Does it matter?**, only for an event BRAM told you about or held for quiet hours; one window for all cameras ✅ |
 | Settings > Cameras | Each camera, with its switch and last event ✅ |
 | Findings | Each camera event BRAM told you about, with its story |
 

@@ -193,12 +193,13 @@ class Feed:
                 and _key(self.server_version) >= (0, 24))
 
     @callback
-    def camera_not_news(self, camera: str, event_id: str) -> bool:
-        """Not news, pressed on a phone: the server keeps it with the rest (0.45 or later)."""
+    def camera_not_news(self, camera: str, event_id: str, matters: bool = False) -> bool:
+        """Does it matter, answered on a phone: the server keeps it to teach the model."""
         if not self.connected or self.server_version is None or _key(
-                self.server_version) < (0, 45):
+                self.server_version) < (0, 47):
             return False
-        return self.send({"type": "camera_quiet_add", "camera": camera, "id": event_id[:80]})
+        return self.send({"type": "camera_learn", "camera": camera, "id": event_id[:80],
+                          "matters": matters})
 
     async def ask(self, text: str, conversation: str) -> str:
         """Ask the server. The answer is only ever words to say."""

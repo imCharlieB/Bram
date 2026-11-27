@@ -342,6 +342,42 @@ async def test_not_news_and_what_it_is(env):
     await env.cameras.tick()
     import asyncio
     await asyncio.sleep(0.05)
-    assert notes[-1] == ["person in porch: the neighbor's porch"]  # the model is told too
+    assert notes[-1]["taught"] == ["person in porch: the neighbor's porch"]  # told too
     env.cameras.allow(0)
     assert env.cameras.quiet() == []
+
+
+async def test_teaching_a_camera(env):
+    told = []
+
+    async def describer(picture, camera, context):
+        told.append(context)
+        return "The neighbor walks to his car."
+
+    env.cameras.describer = describer
+    await env.cameras.connect(env.url)
+    env.cameras.choose("front_door", True)
+    with pytest.raises(FrigateError):
+        env.cameras.set_scene("yard", "not watched")
+    env.cameras.set_scene("front_door", "Ours: the driveway with the hoop.\nNeighbors': red door.")
+    assert env.cameras.view()["cameras"][0]["scene"] == (
+        "Ours: the driveway with the hoop. Neighbors': red door.")
+    env.now = 1010.0
+    env.cameras.set_describe("front_door", True)
+    await env.cameras.tick()
+    import asyncio
+    await asyncio.sleep(0.05)
+    with pytest.raises(FrigateError):
+        env.cameras.learn("front_door", "1.1-a", "no")  # an answer is yes or no
+    env.cameras.learn("front_door", "1.1-a", False, "neighbor at his car")
+    (taught,) = env.cameras.learned()
+    assert taught["matters"] is False and taught["seen"] == "The neighbor walks to his car."
+    context = env.cameras.context("front_door")
+    assert context["scene"].startswith("Ours: the driveway")
+    assert context["taught"] == ["A person in porch (you had said: The neighbor walks to his "
+                                 "car.): it did not matter to the owner. The owner said it was: "
+                                 "neighbor at his car."]
+    assert await env.cameras.live("front_door") == LATEST
+    assert await env.cameras.live("yard") is None  # not watched
+    env.cameras.forget(0)
+    assert env.cameras.learned() == []

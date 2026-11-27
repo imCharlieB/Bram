@@ -29,7 +29,7 @@ BRAM tells your phone about what matters, without repeating what you already kno
 |---|---|---|
 | **Acknowledge** | Stops an urgent alert repeating | |
 | **Stop these** | No more of this message from this device | **Allow stopped messages** on BRAM's device page |
-| **Not news** | On camera messages: no more about the same kind of thing on that camera, in the same Frigate zones | **Tell me again** under **Settings > Cameras > Not news** on BRAM's page |
+| **It matters** / **Doesn't matter** | On camera messages: teaches your model what matters on that camera. It holds nothing back | **Forget** under **Settings > Cameras > What you taught BRAM** |
 | **Less often** | At most once a day. Offered from the third time in a week | **Allow stopped messages** |
 
 The phone shows the buttons when you expand the message: drag it down on Android, or press and hold it on iPhone.
