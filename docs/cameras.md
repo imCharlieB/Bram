@@ -121,7 +121,22 @@ On BRAM's page, **Settings > Cameras**:
 
 BRAM checks Frigate every 10 seconds. A camera you add in Frigate shows up within 10 minutes. Each watched camera shows its latest event under Settings and in the **Cameras** card on Home. If Frigate stops getting a picture from a camera, it says so, and never treats it as nothing there. Turning a camera off drops its events and picture from BRAM. **Disconnect** forgets the address, login, and choices.
 
-Only an address on your own network is accepted.
+Only an address on your own network is accepted. If you type the address without `http://` or `https://`, BRAM tries both.
+
+### If it cannot connect
+
+The message under **Connect** says what went wrong:
+
+| Message | Try |
+|---|---|
+| Nothing answered at HOST:PORT | The address or port is wrong, or the port is closed. With the Frigate app in Home Assistant, port 5000 is off until you set it under the app's **Configuration > Network**; 8971 is on |
+| No reply in time | A firewall between BRAM's server and Frigate, or the wrong address |
+| Use https:// | That is Frigate's login port; type `https://HOST:8971` |
+| Answered, but not like Frigate | Another program is on that port |
+| Did not accept that username and password | Check the Frigate user; a viewer is enough |
+| Asks for a login | That port needs a Frigate user |
+
+BRAM's server runs in Docker, so `localhost` there means the container itself. Use Frigate's address on your network, such as `192.168.1.20`.
 
 ## Settings
 

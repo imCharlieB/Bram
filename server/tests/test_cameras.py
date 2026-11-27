@@ -137,7 +137,7 @@ async def test_frigate_down_is_shown(env):
     env.cameras.choose("yard", True)
     await env.server.close()
     await env.cameras.tick()
-    assert env.cameras.view()["reason"] == "Frigate could not be reached"
+    assert env.cameras.view()["reason"].startswith("Frigate could not be reached: nothing answered")
     assert not env.cameras.view()["connected"]
 
 
@@ -200,8 +200,12 @@ async def test_login_port_certificate_is_pinned(tmp_path):
     url = f"https://127.0.0.1:{runner.addresses[0][1]}"
     settings = Settings(":memory:")
     cameras = Cameras(settings)
-    await cameras.connect(url, "viewer", "secret")
+    with pytest.raises(FrigateError, match="use https"):  # plain http to the login port
+        await cameras.connect(url.replace("https", "http"), "viewer", "secret")
+    # Typed without https://: both are tried.
+    await cameras.connect(url.removeprefix("https://"), "viewer", "secret")
     assert settings.channel("cameras")["pin"] == fingerprint
+    assert settings.channel("cameras")["url"] == url
     # Someone else's certificate: refused before the password is sent.
     cameras.choose("yard", True)
     settings.update_channel("cameras", {"pin": "00" * 32})

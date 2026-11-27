@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.38.1
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- Connecting Frigate says exactly what went wrong, such as nothing answering at that address and port, or the login port needing `https://`. An address typed without `http://` or `https://` is tried both ways. See [If it cannot connect](docs/cameras.md#if-it-cannot-connect).
+
 ## 0.38.0
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update for this one.

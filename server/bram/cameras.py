@@ -38,6 +38,26 @@ class FrigateError(Exception):
     """Something to show the owner."""
 
 
+def _why(err: BaseException, url: str) -> str:
+    """Why Frigate could not be reached, in words the owner can act on."""
+    parts = urlsplit(url)
+    where = f"{parts.hostname}:{parts.port}"
+    if isinstance(err, TimeoutError | asyncio.TimeoutError):
+        return f"Frigate could not be reached: no reply from {where} in time"
+    if isinstance(err, aiohttp.ClientConnectorCertificateError | ssl.SSLError):
+        return f"Frigate could not be reached: a secure connection to {where} failed"
+    if isinstance(err, aiohttp.ServerDisconnectedError) and url.startswith("http://"):
+        return (f"Frigate could not be reached: {where} closed the connection. If this is "
+                "Frigate's login port, use https://")
+    if isinstance(err, aiohttp.ClientConnectorError | ConnectionError | OSError):
+        return (f"Frigate could not be reached: nothing answered at {where}. Check the address "
+                "and port, and that this port is open in Frigate")
+    if isinstance(err, ValueError):
+        return (f"{where} answered, but not like Frigate. Check the port: 5000, or 8971 "
+                "with https://")
+    return f"Frigate could not be reached at {where}"
+
+
 def _text(value: object, limit: int = NAME) -> str:
     text = str(value) if isinstance(value, str | int | float) else ""
     return " ".join("".join(c if c.isprintable() else " " for c in text).split())[:limit]
@@ -115,7 +135,7 @@ class Frigate:
                 _, writer = await asyncio.open_connection(parts.hostname, parts.port or 443,
                                                           ssl=context)
         except (OSError, TimeoutError) as err:
-            raise FrigateError("Frigate could not be reached") from err
+            raise FrigateError(_why(err, self.url)) from err
         ssl_object = writer.get_extra_info("ssl_object")
         der = ssl_object.getpeercert(binary_form=True) if ssl_object else None
         writer.close()
@@ -151,6 +171,9 @@ class Frigate:
                                            "that can only view")
                     if response.status == 404:
                         return None
+                    if response.status == 400 and self.url.startswith("http://"):
+                        raise FrigateError("Frigate refused plain http on this port. If this is "
+                                           "Frigate's login port, use https://")
                     if response.status != 200:
                         raise FrigateError(f"Frigate replied with error {response.status}")
                     body = await response.content.read(limit + 1)
@@ -163,7 +186,7 @@ class Frigate:
                 raise FrigateError("Frigate's certificate changed. If you renewed it, connect "
                                    "Frigate again to trust the new one") from err
             except (aiohttp.ClientError, TimeoutError, ValueError) as err:
-                raise FrigateError("Frigate could not be reached") from err
+                raise FrigateError(_why(err, self.url)) from err
         raise FrigateError("Frigate did not accept the login")
 
     async def cameras(self) -> list[str]:
@@ -206,6 +229,28 @@ async def clean_address(url: object) -> str:
     if not isinstance(url, str) or not url.strip():
         raise FrigateError("Enter Frigate's address")
     text = url.strip() if "://" in url else f"http://{url.strip()}"
+    return await _local(text)
+
+
+async def addresses(url: object) -> list[str]:
+    """The addresses to try. Without http:// or https://, the login port is https."""
+    if not isinstance(url, str) or not url.strip():
+        raise FrigateError("Enter Frigate's address")
+    text = url.strip()
+    if "://" in text:
+        return [await _local(text)]
+    try:
+        port = urlsplit(f"http://{text}").port
+    except ValueError:
+        raise FrigateError("That is not a valid address") from None
+    if port == 8971:
+        return [await _local(f"https://{text}")]
+    if port is None:
+        return [await _local(f"http://{text}:5000"), await _local(f"https://{text}:8971")]
+    return [await _local(f"http://{text}"), await _local(f"https://{text}")]
+
+
+async def _local(text: str) -> str:
     try:
         port = urlsplit(text).port
     except ValueError:
@@ -263,7 +308,7 @@ class Cameras:
         self._frigate = None
 
     async def connect(self, url: object, user: object = "", password: object = "") -> None:
-        clean = await clean_address(url)
+        tries = await addresses(url)
         user = _text(user, 64) if isinstance(user, str) else ""
         password = password if isinstance(password, str) and len(password) <= 200 else ""
         if not user and password:
@@ -273,12 +318,22 @@ class Cameras:
                 else ""
             if not password:
                 raise FrigateError("Enter the Frigate password")
-        trial = self._connect(clean, user, password, "")
-        try:
-            pin = await trial.trust()
-            found = await trial.cameras()
-        finally:
-            await trial.close()
+        first: FrigateError | None = None
+        for clean in tries:
+            trial = self._connect(clean, user, password, "")
+            try:
+                pin = await trial.trust()
+                found = await trial.cameras()
+                break
+            except FrigateError as err:
+                first = first or err
+                if "could not be reached" not in str(err) and "plain http" not in str(err) \
+                        and "not like Frigate" not in str(err):
+                    raise  # it was Frigate, and it said no
+            finally:
+                await trial.close()
+        else:
+            raise first or FrigateError("Frigate could not be reached")
         await self._drop()
         keep = [c for c in self.saved().get("on", []) if c in found]
         self._settings.update_channel(CHANNEL, {"url": clean, "user": user, "password": password,
