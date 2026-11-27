@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.40.4
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update, but stay on 0.40 there.
+
+- Home shows what is running at the top: the server's version and BRAM's in Home Assistant, in amber when they differ.
+- The cards that say what just happened look like the alert windows, with the room on a tab, and take turns in four places around the brain so they never cover each other.
+
 ## 0.40.3
 
 Update BRAM in HACS, then restart Home Assistant. The server has no change; updating it too keeps the versions the same.

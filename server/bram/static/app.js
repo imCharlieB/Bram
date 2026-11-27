@@ -114,6 +114,12 @@ const release = (text) => text.split(".").slice(0, 2).join(".");
 async function loadStatus() {
   const { houses, version } = await api("status");
   $("version").textContent = `BRAM Server ${version}`;
+  // What is running, on Home: the server, and BRAM in each connected Home Assistant.
+  const there = houses.filter((house) => house.connected && house.version);
+  const apart = there.some((house) => house.version !== version);
+  $("hud-version").textContent = [`Server ${version}`, ...there.map((house) => `${houses.length > 1 ? house.name : "HA"} ${house.version}`)].join(" · ");
+  $("hud-version").classList.toggle("apart", apart);
+  $("hud-version").title = apart ? "The two halves of BRAM are on different versions. Update both." : "What is running";
   paired = houses.length > 0;
   loadSteps();
   world.houses = houses;
@@ -840,7 +846,7 @@ function days() {
 
 // --- what BRAM is doing ---
 
-const seen = { states: null, decisions: new Set(), watching: new Set(), said: "", cameras: new Set(), camerasReady: false, needs: null };
+const seen = { states: null, decisions: new Set(), watching: new Set(), said: "", cameras: new Set(), camerasReady: false, needs: null, spot: 0 };
 
 // Alerts open as windows over the brain. Red ones stay until closed; others close by themselves.
 function popUp(key, kind, title, text, detail = "", link = null, picture = "", acts = null) {
@@ -897,16 +903,22 @@ function closePop(key) {
 }
 const DID = { sent: "Told your phone", "not sent": "Could not send", held: "Held back", acked: "Acknowledged", stopped: "You stopped", snoozed: "Snoozed" };
 
+const SPOTS = [[34, 17], [66, 17], [34, 61], [66, 61]];
+
 // Something happened: a card comes, stays a moment, and goes, and a pulse runs from that system into the brain.
 function happen(text, kind = "", detail = "", system = "") {
   const box = $("hud-events");
   if (!box || $("deck").hidden) return;
   while (box.children.length >= 4) box.firstChild.remove();
-  const card = element("div", undefined, `event ${kind}`), top = Math.random() < .5;
-  card.style.setProperty("--x", `${40 + Math.random() * 20}%`);
-  card.style.setProperty("--y", `${top ? 14 + Math.random() * 5 : 66 + Math.random() * 4}%`);
-  card.append(element("b", text));
-  if (detail) card.append(element("small", detail));
+  // Four places around the brain, taken in turn, so cards never land on each other.
+  const card = element("div", undefined, `event ${kind}`), [x, y] = SPOTS[seen.spot++ % SPOTS.length];
+  for (const other of box.children) if (other.dataset.spot === `${x},${y}`) other.remove();
+  card.dataset.spot = `${x},${y}`;
+  card.style.setProperty("--x", `${x}%`);
+  card.style.setProperty("--y", `${y}%`);
+  const frame = element("div", undefined, "frame");
+  frame.append(element("small", detail || "BRAM"), element("b", text));
+  card.append(frame);
   box.append(card);
   deck.pulse(system, kind === "bad" ? "bad" : kind === "warn" ? "warn" : "main");
   setTimeout(() => card.classList.add("going"), 9000);
