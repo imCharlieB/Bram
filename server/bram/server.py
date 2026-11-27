@@ -414,6 +414,7 @@ async def _start(app: web.Application) -> None:
     app[TASKS] += [asyncio.create_task(c.listen()) for c in app[ALERTS].channels]
     app[TASKS].append(asyncio.create_task(app[ALERTS].run()))
     app[TASKS].append(asyncio.create_task(app[MONITORS].run()))
+    app[TASKS].append(asyncio.create_task(app[CONFIG].cameras.run()))
     if app.get(HISTORY) is not None:
         app[TASKS].append(asyncio.create_task(_keep(app)))
 
@@ -422,6 +423,7 @@ async def _stop(app: web.Application) -> None:
     for task in app[TASKS]:
         task.cancel()
     await asyncio.gather(*app[TASKS], return_exceptions=True)
+    await app[CONFIG].cameras.close()
 
 
 async def _belief(ws: web.WebSocketResponse, world: World, event: Event) -> None:

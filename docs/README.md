@@ -25,6 +25,7 @@
 - [Voice](voice.md)
 - [Personality](personality.md)
 - [Blueprints](blueprints.md)
+- [Cameras](cameras.md)
 
 ## How it works
 
@@ -37,7 +38,6 @@
 ## The project
 
 - [Plan](roadmap.md)
-- [Cameras, planned](cameras.md)
 - [Testing your model](benchmark.md)
 - [Development](development.md)
 - [Design](../SPEC.md)

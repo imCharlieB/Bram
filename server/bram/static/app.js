@@ -2,13 +2,13 @@
 const $ = (id) => document.getElementById(id);
 const PAGES = ["overview", "messages", "settings", "findings", "history", "log", "profile"];
 // Places inside a page.
-const PLACES = { homes: "settings", model: "settings", personality: "settings", voice: "settings", monitors: "messages" };
+const PLACES = { homes: "settings", model: "settings", personality: "settings", voice: "settings", cameras: "settings", monitors: "messages" };
 const STORY = {
   connected: "Home Assistant connected", disconnected: "Home Assistant disconnected", paired: "A home was paired",
   unpaired: "A home was removed", "signed in": "You signed in", "login refused": "Someone entered a wrong login",
   "setup refused": "A setup attempt was refused", "settings saved": "Settings changed", "login created": "Your login was created",
   "code created": "A pairing code was made", "password changed": "Your password changed", "history saved": "History settings changed", "history cleaned": "History was cleaned up", "history deleted": "History was deleted", "database damaged": "The database failed its check", "second factor on": "Second factor turned on", "second factor off": "Second factor turned off", "username changed": "Your username changed",
-  "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "monitor removed": "A monitor was removed",
+  "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "frigate connected": "Frigate was connected", "frigate removed": "Frigate was disconnected", "camera on": "A camera was turned on", "camera off": "A camera was turned off", "monitor removed": "A monitor was removed",
 };
 const ALARMING = new Set(["login refused", "setup refused", "disconnected", "alert", "send failed"]);
 let paired = false, modelSaved = false, signedIn = false, oldest = null;
@@ -250,6 +250,50 @@ async function loadMonitors() {
     row.append(left, side);
     return row;
   }) : [element("li", "None yet")]));
+}
+
+function cameraLine(camera) {
+  if (camera.offline) return ["Frigate gets no picture", false];
+  if (!camera.last) return ["No events yet", null];
+  const when = new Date(camera.last.start * 1000).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+  const what = camera.last.who || camera.last.label, where = camera.last.zones.length ? `, ${camera.last.zones.join(", ").replaceAll("_", " ")}` : "";
+  return [`${what}${where}, ${when}`, true];
+}
+
+function showCameras(view) {
+  $("frigate-url").value = view.url;
+  $("frigate-user").value = view.user;
+  $("frigate-password").value = "";
+  $("frigate-password").placeholder = view.user ? "Saved; leave empty to keep it" : "";
+  $("frigate-off").hidden = !view.url;
+  $("frigate-state").textContent = !view.url ? "Not connected" : view.connected ? "Connected" : "Not answering";
+  $("frigate-state").className = !view.url ? "note" : view.connected ? "good" : "bad";
+  if (view.reason) say("frigate-message", view.reason);
+  $("camera-card").hidden = !view.cameras.length;
+  $("camera-list").replaceChildren(...view.cameras.map((camera) => {
+    const row = element("li"), left = element("span", camera.name.replaceAll("_", " ")), box = element("label", undefined, "check");
+    const input = element("input");
+    input.type = "checkbox";
+    input.checked = camera.on;
+    input.addEventListener("change", () => busy(input, "camera-message", async () => {
+      showCameras(await api("camera", { camera: camera.name, on: input.checked }));
+      return input.checked ? "Watching" : "Not watching. Its events and picture were dropped.";
+    }));
+    if (camera.on) left.append(element("span", cameraLine(camera)[0], "note sub"));
+    box.append(input, " Watch");
+    row.append(left, box);
+    return row;
+  }));
+  const on = view.cameras.filter((camera) => camera.on);
+  $("home-cameras-card").hidden = !on.length;
+  dots("home-cameras", on.map((camera) => {
+    const [text, good] = cameraLine(camera);
+    return [camera.name.replaceAll("_", " "), good, text];
+  }));
+}
+
+async function loadCameras() {
+  showCameras(await api("cameras"));
 }
 
 function hourSelect(value, label) {
@@ -998,7 +1042,7 @@ async function loadBrain() {
 async function loadHome() {
   let problem = "";
   try {
-    await Promise.all([loadStatus(), loadMonitors(), loadSettings(), loadLatest(), loadHouse()]);
+    await Promise.all([loadStatus(), loadMonitors(), loadSettings(), loadLatest(), loadHouse(), loadCameras()]);
     await loadBrain();
   } catch (error) {
     problem = error.message;
@@ -1267,7 +1311,7 @@ async function showFinding(key) {
 
 const LOADERS = {
   overview: () => Promise.all([loadChat(), loadVoice(), loadHome()]),
-  settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice()]),
+  settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice(), loadCameras()]),
   messages: () => Promise.all([loadMonitors(), loadMessages()]),
   findings: async () => say("findings-message", await loadFindings()), history: loadHistory,
   log: async () => say("log-message", await loadLog()), profile: loadProfile,
@@ -1462,6 +1506,19 @@ onClick("save-model", "model-message", async () => {
     confirm, model_url: $("url").value, model: $("model").value, context: Number($("context").value),
   });
   return "Saved";
+});
+
+onSubmit("frigate-form", "frigate-save", "frigate-message", async () => {
+  const confirm = await askPassword("BRAM will read Frigate's cameras and events. It never changes Frigate.");
+  showCameras(await api("cameras", {
+    confirm, url: $("frigate-url").value, user: $("frigate-user").value, password: $("frigate-password").value,
+  }));
+  return "Connected. Turn on the cameras BRAM should watch.";
+});
+onClick("frigate-off", "frigate-message", async () => {
+  const confirm = await askPassword("Disconnect Frigate? BRAM forgets its address, login, and camera choices.");
+  showCameras(await api("cameras-off", { confirm }));
+  return "Disconnected";
 });
 
 $("monitor-kind").addEventListener("change", () => {

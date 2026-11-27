@@ -166,6 +166,7 @@
       <div class="board">
         <div class="card"><div class="head"><h2>Homes</h2><a href="#homes">Manage</a></div><ul id="home-houses"></ul></div>
         <div class="card"><div class="head"><h2>Watching</h2><a href="#monitors">Manage</a></div><ul id="home-monitors"></ul></div>
+        <div class="card" id="home-cameras-card" hidden><div class="head"><h2>Cameras</h2><a href="#cameras">Manage</a></div><ul id="home-cameras"></ul></div>
         <div class="card"><div class="head"><h2>Mood</h2><a href="#personality">More</a></div><p class="mood" id="tile-personality"></p><div id="moods"></div></div>
         <div class="card"><div class="head"><h2>Brain</h2><a href="#model">Change</a></div><p class="mood" id="tile-model"></p><p class="note">Runs on your own network.</p></div>
       </div>
@@ -215,6 +216,33 @@
         <input id="context" type="number" min="2048" max="262144" step="1024">
         <button id="save-model">Save model</button>
         <p class="message" id="model-message" role="status"></p>
+      </div>
+    </section>
+
+    <section id="at-cameras" data-page="settings" hidden>
+      <h1>Cameras</h1>
+      <p class="note">Through <a href="https://frigate.video" rel="noreferrer" target="_blank">Frigate</a>. BRAM only reads from Frigate: it never turns off, moves, or changes a camera, recording, or Frigate setting. Nothing is watched until you turn a camera on, and pictures stay on this server.</p>
+      <div class="card">
+        <div class="head"><h2>Frigate</h2><span id="frigate-state"></span></div>
+        <form id="frigate-form">
+          <label for="frigate-url">Frigate address</label>
+          <input id="frigate-url" placeholder="http://HOST:5000" required>
+          <p class="note">Port 5000 needs no login. Frigate's login port, such as https://HOST:8971, needs a Frigate user; make one that can only view. Its certificate is trusted the first time and checked every time after.</p>
+          <label for="frigate-user">Frigate username, for the login port</label>
+          <input id="frigate-user" maxlength="64" autocomplete="off">
+          <label for="frigate-password">Frigate password</label>
+          <input id="frigate-password" type="password" maxlength="200" autocomplete="new-password">
+          <div class="row">
+            <button id="frigate-save">Connect</button>
+            <button type="button" id="frigate-off" class="quiet" hidden>Disconnect</button>
+          </div>
+        </form>
+        <p class="message" id="frigate-message" role="status"></p>
+      </div>
+      <div class="card" id="camera-card" hidden>
+        <h2>Which cameras BRAM watches</h2>
+        <ul id="camera-list"></ul>
+        <p class="message" id="camera-message" role="status"></p>
       </div>
     </section>
 

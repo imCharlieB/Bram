@@ -21,6 +21,7 @@ from aiohttp import web
 from . import second_factor
 from .alerts import Alerts, Outgoing
 from .audit import KINDS, Audit
+from .cameras import Cameras, FrigateError
 from .channels import TOKEN, ChannelError, Ntfy, Telegram, new_topic
 from .chat import MAX_TEXT, Busy, Chat
 from .cleanup import Cleanup, Plan
@@ -72,7 +73,9 @@ class ConfigPage:
                  findings: Findings | None = None,
                  printers: dict[str, list[dict]] | None = None,
                  watching: dict[str, list[dict]] | None = None,
-                 send_house: Callable[[str, dict], Awaitable[bool]] | None = None) -> None:
+                 send_house: Callable[[str, dict], Awaitable[bool]] | None = None,
+                 cameras: Cameras | None = None) -> None:
+        self.cameras = cameras if cameras is not None else Cameras(settings)
         self._send_house = send_house
         self.printers = printers if printers is not None else {}
         self.watching = watching if watching is not None else {}
@@ -139,6 +142,11 @@ class ConfigPage:
             web.get("/api/chat", self._private(self._chat_history)),
             web.post("/api/chat", self._private(self._chat_ask)),
             web.post("/api/chat-clear", self._private(self._chat_clear)),
+            web.get("/api/cameras", self._private(self._list_cameras)),
+            web.post("/api/cameras", self._confirmed(self._connect_cameras)),
+            web.post("/api/cameras-off", self._confirmed(self._disconnect_cameras)),
+            web.post("/api/camera", self._private(self._choose_camera)),
+            web.get("/api/camera-picture", self._private(self._camera_picture)),
             web.get("/api/monitors", self._private(self._list_monitors)),
             web.post("/api/monitors", self._private(self._add_monitor)),
             web.post("/api/monitor-remove", self._private(self._remove_monitor)),
@@ -864,6 +872,45 @@ class ConfigPage:
     async def _chat_clear(self, request: web.Request) -> web.Response:
         self.chat.clear(self._chat_key(request))
         return _json({"ok": True})
+
+    async def _list_cameras(self, request: web.Request) -> web.Response:
+        return _json(self.cameras.view())
+
+    async def _connect_cameras(self, body: dict) -> web.Response:
+        try:
+            await self.cameras.connect(body.get("url"), body.get("user", ""),
+                                       body.get("password", ""))
+        except FrigateError as err:
+            return _json({"error": str(err)}, 400)
+        self._audit.record("server", "config page", "frigate connected",
+                           "with a login" if body.get("user") else "no login", "ok",
+                           approver="owner")
+        return _json(self.cameras.view())
+
+    async def _disconnect_cameras(self, body: dict) -> web.Response:
+        await self.cameras.disconnect()
+        self._audit.record("server", "config page", "frigate removed", "by owner", "ok",
+                           approver="owner")
+        return _json(self.cameras.view())
+
+    async def _choose_camera(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        try:
+            self.cameras.choose(body.get("camera"), body.get("on"))
+        except FrigateError as err:
+            return _json({"error": str(err)}, 400)
+        self._audit.record("server", "config page",
+                           "camera on" if body["on"] else "camera off", str(body["camera"]),
+                           "ok", approver="owner")
+        return _json(self.cameras.view())
+
+    async def _camera_picture(self, request: web.Request) -> web.Response:
+        data = self.cameras.picture(request.query.get("camera"))
+        if not data:
+            raise web.HTTPNotFound
+        return web.Response(body=data, content_type="image/jpeg", headers={
+            **HEADERS, "Cache-Control": "private, no-store",
+            "Content-Security-Policy": "default-src 'none'; sandbox"})
 
     async def _list_monitors(self, request: web.Request) -> web.Response:
         if self.monitors is None:

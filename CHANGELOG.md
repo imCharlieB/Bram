@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.38.0
+
+Update the server in Portainer. Home Assistant needs no update for this one.
+
+- Cameras, part 1: connect Frigate under **Settings > Cameras** and choose which cameras BRAM watches. It reads only, and never changes Frigate. Frigate's login port works with a view-only Frigate user, and its certificate is pinned. Each watched camera's latest event shows under Settings and in a Cameras card on Home, and a camera Frigate gets no picture from says so. Rules and phone messages come next. See [Cameras](docs/cameras.md).
+- The plan now covers what BRAM is: the brain of the house that monitors and protects it. Added: security checks to match and go past Home Generative Agent, rules suggested from what BRAM sees, memory across chats, and cloud models for anyone who wants them.
+
 ## 0.37.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the server in Portainer.

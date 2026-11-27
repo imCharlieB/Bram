@@ -73,6 +73,8 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("POST", "history-delete"),
            ("GET", "picture"), ("GET", "chat"), ("POST", "chat"), ("POST", "chat-clear"),
            ("GET", "monitors"), ("POST", "monitors"), ("POST", "monitor-remove"),
+           ("GET", "cameras"), ("POST", "cameras"), ("POST", "cameras-off"), ("POST", "camera"),
+           ("GET", "camera-picture"),
            ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
            ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),
            ("POST", "unmute"), ("GET", "profile"), ("POST", "factor-start"),

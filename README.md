@@ -95,7 +95,7 @@ BRAM has two halves. HACS installs the integration; the server runs in Docker.
 | **Talk** | Chat on its page, in Assist, and in Telegram; voice; personalities; blueprints | Other model providers, speakers in rooms |
 | **Explain** | | Likely causes and what to do |
 | **Control and fix** | Nothing. BRAM cannot control anything | Lights, one-tap repairs, then locks with your approval |
-| **Cameras and people** | | What cameras saw, the right message to the right person |
+| **Cameras and people** | Frigate connected, each camera's latest event on BRAM's page | Camera rules and messages, the right message to the right person |
 
 [The whole plan](https://github.com/imCharlieB/Bram/blob/main/docs/roadmap.md)
 

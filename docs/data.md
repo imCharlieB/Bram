@@ -13,6 +13,8 @@ One SQLite file, plus a key and certificate, in the data folder.
 | Paired homes | Recognize your Home Assistant | Tokens are hashed |
 | Settings, monitors | | |
 | Telegram token and account number | Send messages | **Plain**; protect the folder |
+| Frigate address, username, password, and certificate fingerprint; which cameras are watched | Read cameras | **Plain**; protect the folder. Use a Frigate user that can only view |
+| Each watched camera's last 20 events and latest picture | Show them | In memory only; gone on restart, or when the camera is turned off |
 | ntfy topics | Send messages | **Plain** |
 | Open and past alerts | Reminders after a restart | |
 | [Findings](findings.md) | What was found, told, and ended | |

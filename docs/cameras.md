@@ -1,6 +1,6 @@
 # Cameras
 
-> **Planned.** This page describes how cameras will work, for the owner to approve before it is built. Each part below is marked when it ships.
+> **Being built.** Part 1, connecting Frigate, works now, and BRAM's page shows each camera's latest event. The rules, messages, and Home Assistant entities below are coming; [the order](#the-order-it-will-be-built) shows what is done.
 
 BRAM watches your cameras through [Frigate](https://frigate.video). Frigate already finds people, cars, animals, and packages, and with face recognition on, who someone is. BRAM adds what Frigate does not: it knows the rest of your home (who is home, what is open or unlocked, night hours), so it can tell you what matters and stay quiet about what does not. A vision model on your own network can describe what happened in a sentence.
 
@@ -109,14 +109,29 @@ This is your automation, not BRAM's: BRAM itself only reads cameras and sends me
 
 In chat: "What is on the porch?" or "Is anyone in the backyard?" BRAM takes the camera's picture now and the model answers, saying it is a description. The scheduled check [blueprint](blueprints.md) can then ask, for example, "Is there a package on the porch?" every hour.
 
+## Connect Frigate
+
+On BRAM's page, **Settings > Cameras**:
+
+1. Enter Frigate's address.
+   - `http://HOST:5000` is Frigate's port with no login. Use it if BRAM's server is on the same trusted network.
+   - `https://HOST:8971` is Frigate's login port. Make a Frigate user that can only view (Frigate, Settings, Users, role **viewer**) and enter its username and password. BRAM trusts Frigate's certificate the first time and refuses to connect if it changes, so the password only goes to your Frigate. If you renew Frigate's certificate, select **Connect** again.
+2. Select **Connect** and enter your BRAM password.
+3. Under **Which cameras BRAM watches**, turn on **Watch** for each camera.
+
+BRAM checks Frigate every 10 seconds. A camera you add in Frigate shows up within 10 minutes. Each watched camera shows its latest event under Settings and in the **Cameras** card on Home. If Frigate stops getting a picture from a camera, it says so, and never treats it as nothing there. Turning a camera off drops its events and picture from BRAM. **Disconnect** forgets the address, login, and choices.
+
+Only an address on your own network is accepted.
+
 ## Settings
 
 On BRAM's page, **Settings > Cameras**:
 
 | Setting | Detail | Default |
 |---|---|---|
-| Frigate address | Such as `http://frigate.local:5000`. With Frigate's login on, a Frigate user that can only view | None |
-| Each camera | Watch events; which rules; which zones count; which doors it looks at | Off |
+| Frigate address | Such as `http://HOST:5000`, or the login port `https://HOST:8971` with a Frigate user that can only view | None |
+| Each camera | Watch events | Off |
+| Each camera, coming | Which rules; which zones count; which doors it looks at | Off |
 | Describe with the model | Per camera; sends the event's picture and a few frames to your model | Off |
 | Cloud model may see pictures | Only if you also use a cloud model | Off |
 | Keep pictures | The latest event per camera, or the last 7 days | Latest only |
@@ -132,8 +147,8 @@ On BRAM's page, **Settings > Cameras**:
 
 | Part | What you get | Status |
 |---|---|---|
-| 1. Connect Frigate | The address and cameras on BRAM's page; each camera's switch | ⬜ |
-| 2. Events | Frigate's events in Findings and on Home, with pictures; the Home Assistant picture and sensor per camera | ⬜ |
+| 1. Connect Frigate | The address and cameras on BRAM's page; each camera's switch | ✅ 0.38 |
+| 2. Events | Each camera's latest event and picture on BRAM's page ✅; the Home Assistant picture and sensors per camera ⬜ | 🟡 |
 | 3. Rules and messages | The rules above, with the picture in the message, same-thing-once, and cooldown | ⬜ |
 | 4. Descriptions | The model describes events, per camera | ⬜ |
 | 5. Ask a camera | Chat questions and scheduled checks about what a camera sees | ⬜ |

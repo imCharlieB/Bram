@@ -2,7 +2,7 @@
 
 Every feature, what is built, and the order for the rest. Nothing gets built unless it is on this page, and each phase needs the owner's approval before it starts. Everything follows the [Hard rules](../HARD_RULES.md).
 
-BRAM's job: **notice** what is happening, **remember** it, **explain** what is wrong, **tell** the right person, and **fix** what it is allowed to fix.
+BRAM is the brain of the house: it monitors and protects it. Its job: **notice** what is happening, **remember** it, **explain** what is wrong, **tell** the right person, and **fix** what it is allowed to fix.
 
 | Mark | Meaning |
 |---|---|
@@ -143,6 +143,9 @@ BRAM looks by itself. Plain rules decide what is a problem. One finding per prob
 | New Zigbee, Z-Wave, Bluetooth, or Matter device; Z-Wave joining open; weak Z-Wave security; coordinator updates | ⬜ |
 | New device on the network, with Trust; unconfigured discovered devices | ⬜ |
 | Router update, changed public address, new port opened, guest Wi-Fi left on, router protection off, unusual data use | ⬜ |
+| Z-Wave locks without S2 security; Bluetooth trackers that follow you home | ⬜ |
+| The model sees only counts and fixed titles from the check; addresses and device IDs removed | ⬜ |
+| Beyond HGA: a new network device while everyone is away is urgent; Home Assistant backups missing or older than a week; certificates about to expire; a security device's battery low | ⬜ |
 
 ### 3D printers
 
@@ -161,6 +164,7 @@ Read from the printer's own integration. One printer is one device with a sectio
 | Power used by a print | ⬜ |
 | Picture of the print, then the vision model looking for failed prints (phase 6) | ⬜ |
 | Pause a print with one tap; never start one or heat anything (phase 4) | ⬜ |
+| Make a model for you to print from a description or a photo; you check it and start the print yourself (much later) | ⬜ |
 
 ### Outreach
 
@@ -209,6 +213,7 @@ Optional, for the installation and per person.
 
 | Feature | Status |
 |---|---|
+| Remembers across chats: what you said yesterday is known today, in chat, voice, and Telegram | ⬜ |
 | Facts, preferences, and corrections, with who said it and when | ⬜ |
 | See, correct, and delete memories | ⬜ |
 | Promised follow-ups that survive a restart | ⬜ |
@@ -219,11 +224,12 @@ Optional, for the installation and per person.
 
 | Feature | Status |
 |---|---|
-| Frigate events: people, vehicles, pets, packages | ⬜ |
+| Connect Frigate, with its login port and a pinned certificate; choose cameras | ✅ 0.38, [Cameras](cameras.md) |
+| Frigate events: people, vehicles, pets, packages | 🟡 latest event and picture on BRAM's page |
 | Ask what a camera sees; a vision model describes it | ⬜ |
 | Person near an open or unlocked door; person while away; motion with no camera activity | ⬜ |
 | Picture in the message; repeats of the same scene combined | ⬜ |
-| Camera stale, offline, or disabled | 🟡 offline |
+| Camera stale, offline, or disabled | 🟡 offline in the security check; no picture in Frigate on BRAM's page |
 | Unknown person, through Frigate's face recognition | ⬜ |
 | One summary per event: frames while the event lasts, unchanged frames dropped, frames with a person always kept, then the vision model sums it up | ⬜ |
 | Tell only when unusual: the same scene (a parked car, an empty porch) is not told again, the same person not within 30 minutes; a cooldown per camera and across cameras | ⬜ |
@@ -249,7 +255,7 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 | Thermostat against room sensor over time: drift, a room that lags, and which one to trust | ⬜ |
 | Climate trends: run time against outside temperature and setting, a system working harder than it used to, what each setting costs in run time, suggested settings | ⬜ |
 | Usual arrivals, lockup, and routines | ⬜ |
-| Suggested rules, previewed against past days before approval | ⬜ |
+| Suggests new rules from what it sees, such as "the garage is open most nights after 11 PM": code finds the pattern, the model only words it, previewed against past days, and on only after approval | ⬜ |
 | Describe an automation; BRAM drafts it, checks every device exists, shows it, and installs it only after approval | ⬜ |
 | Switch a suggested rule off, back on, or repair it | ⬜ |
 
@@ -269,7 +275,7 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 | Ollama, with a benchmark | ✅ |
 | A model per job: chat, vision, triage, summary, search | ⬜ |
 | Backup model; stop using one that fails, and try again later | ⬜ |
-| OpenAI-compatible, OpenAI, Anthropic, Gemini; off by default | ⬜ |
+| Cloud models for those who want them: OpenAI, Anthropic, Gemini, and any OpenAI-compatible server. Each one is off until you turn it on, and never used silently when your own model is down (rule E1) | ⬜ |
 | Web search and other tools through MCP; off by default | ⬜ |
 | BRAM's own health: model, database, rules, last check | 🟡 connection and versions |
 | Trainer, with approved examples only | ⬜ |
