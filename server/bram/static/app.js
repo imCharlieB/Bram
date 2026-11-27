@@ -815,7 +815,7 @@ function needActs(need) {
   const box = element("div", undefined, "acts"), story = element("a", "Story"), hide = element("button", "Hide");
   story.href = need.key ? `#finding=${encodeURIComponent(need.key)}` : "#findings";
   hide.type = "button";
-  hide.title = "Takes it off this list. It does not change what is sent to your phone.";
+  hide.title = "Off this list until it happens again. It does not change what is sent to your phone.";
   hide.addEventListener("click", async () => {
     hide.disabled = true;
     try {
@@ -1213,7 +1213,7 @@ let lastFinding = null;
 function findingRow(item) {
   const row = element("li", undefined, item.severity), head = element("div", undefined, "head"), side = element("span");
   const told = item.told ? `told ${ago(item.told)}` : "not told", over = item.closed && !item.is_open ? `, over ${ago(item.closed)}` : "";
-  const story = element("button", "Story", "quiet small"), hide = element("button", item.ignored ? "Stop ignoring" : "Ignore", "quiet small");
+  const story = element("button", "Story", "quiet small"), hide = element("button", item.ignored ? "Show again" : "Hide", "quiet small");
   const list = element("ol");
   list.hidden = true;
   story.addEventListener("click", () => busy(story, "findings-message", async () => {

@@ -119,8 +119,9 @@ class Findings:
                                          "WHERE id = ?", (at, text, finding))
                         return
                     self._db.execute(
+                        # Hidden until it happened again: it has.
                         "UPDATE finding SET is_open = 1, last = ?, times = times + 1, text = ?, "
-                        "severity = ?, acked = NULL, closed = NULL WHERE id = ?",
+                        "severity = ?, acked = NULL, closed = NULL, ignored = 0 WHERE id = ?",
                         (at, text, severity, finding))
                 elif what == "closed" and not row["is_open"]:
                     return

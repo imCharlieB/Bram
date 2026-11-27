@@ -31,10 +31,12 @@ def phones(hass: HomeAssistant) -> list[str]:
 
 
 async def notify(hass: HomeAssistant, targets: list[str], title: str, text: str, tag: str, *,
-                 safety: bool, actions: list[dict[str, str]], finding: str | None = None) -> bool:
-    """Send to every chosen phone. True if at least one accepted it."""
+                 safety: bool, actions: list[dict[str, str]], finding: str | None = None,
+                 url: str | None = None) -> bool:
+    """Send to every chosen phone. True if at least one accepted it. A url that starts with /
+    opens that page of the Home Assistant app."""
     data: dict = {"tag": tag, "actions": actions}
-    if (url := link(hass, finding)) is not None:
+    if (url := url or link(hass, finding)) is not None:
         data |= {"url": url, "clickAction": url}  # iPhone, Android
     if safety:
         data |= {"ttl": 0, "priority": "high", "channel": "BRAM safety", "importance": "max",

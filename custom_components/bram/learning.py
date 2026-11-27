@@ -13,13 +13,13 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_LEARN,
+    CONF_PHONES,
     CONF_WEEKEND_FROM,
     CONF_WEEKEND_TO,
     DEFAULT_NIGHT_FROM,
@@ -28,6 +28,7 @@ from .const import (
     DOMAIN,
 )
 from .feed import Feed
+from .notifier import notify
 
 START = datetime.time(18)  # a night is looked at from 6 PM until noon
 STEP = 5  # minutes
@@ -37,7 +38,12 @@ KEEP_DAYS, MIN_DAYS, MIN_WEEKEND, MIN_OPENS = 60, 14, 5, 20
 MIN_CHANGE = 30  # minutes
 EVERY = datetime.timedelta(days=30)
 EXPIRES = datetime.timedelta(days=30)
-ISSUE = "suggestion"
+REVIEW = "/bram-review"  # the review page in Home Assistant
+TITLES = {"night": "Better night hours", "weekend": "Better Friday and Saturday night hours",
+          "open": "A better left-open time"}
+NAMES = {"night_from": "Night starts", "night_to": "Night ends",
+         CONF_WEEKEND_FROM: "Friday and Saturday night starts",
+         CONF_WEEKEND_TO: "Friday and Saturday night ends", "open_minutes": "Left open after"}
 MAX_OPENS = 200
 
 
@@ -157,14 +163,7 @@ class Learner:
         self.data = {**empty(), **{k: v for k, v in saved.items() if k in empty()}}
         if not self._on:
             return lambda: None
-        self._show()
-        stop_tick = async_track_time_interval(self._hass, self._tick, datetime.timedelta(hours=1))
-
-        @callback
-        def stop() -> None:
-            stop_tick()
-            ir.async_delete_issue(self._hass, DOMAIN, ISSUE)
-        return stop
+        return async_track_time_interval(self._hass, self._tick, datetime.timedelta(hours=1))
 
     # --- the server's summaries ---
 
@@ -207,46 +206,75 @@ class Learner:
             self.data["last"] = now.timestamp()
             self.data["suggestion"] = {**found, "at": now.timestamp()}
             self._feed.note("learning:suggestion", "open", found["text"], "learning")
-            self._show()
+            self._hass.async_create_task(self._announce(TITLES.get(found["key"], "A suggestion")),
+                                         "bram suggestion")
+
+    async def _announce(self, title: str) -> None:
+        """One message that opens the review page. Answering happens there."""
+        phones = self._entry.options.get(CONF_PHONES, [])
+        if phones:
+            await notify(self._hass, phones, "BRAM suggests a change",
+                         f"{title}. Tap to review.", "bram_suggestion", safety=False,
+                         actions=[], url=REVIEW)
+
+    def review(self) -> list[dict[str, Any]]:
+        """What is waiting, with the evidence and exactly what would change."""
+        held = self.data["suggestion"]
+        if held is None:
+            return []
+        options = dict(self._entry.options)
+        now = {"night_from": DEFAULT_NIGHT_FROM, "night_to": DEFAULT_NIGHT_TO,
+               "open_minutes": DEFAULT_OPEN_MINUTES, **options}
+        now.setdefault(CONF_WEEKEND_FROM, now["night_from"])
+        now.setdefault(CONF_WEEKEND_TO, now["night_to"])
+        shown = {k: (spoken(str(v)) if k != "open_minutes" else f"{v} minutes")
+                 for k, v in now.items() if k in NAMES}
+        changes = [{"name": NAMES[k], "now": shown.get(k, ""),
+                    "new": spoken(str(v)) if k != "open_minutes" else f"{v} minutes"}
+                   for k, v in held["set"].items()]
+        return [{"id": f"learning:{held['key']}", "title": TITLES.get(held["key"], "Suggestion"),
+                 "text": held["text"], "changes": changes,
+                 "expires": held["at"] + EXPIRES.total_seconds()}]
 
     @callback
-    def _show(self) -> None:
-        if held := self.data["suggestion"]:
-            ir.async_create_issue(
-                self._hass, DOMAIN, ISSUE, is_fixable=True, severity=ir.IssueSeverity.WARNING,
-                translation_key=ISSUE, translation_placeholders={"text": held["text"]},
-                data={"entry_id": self._entry.entry_id, "text": held["text"]})
-
-    @callback
-    def _clear(self) -> None:
+    def _clear(self, why: str = "Expired") -> None:
         self.data["suggestion"] = None
-        self._feed.note("learning:suggestion", "closed", "Answered or expired", "learning")
-        ir.async_delete_issue(self._hass, DOMAIN, ISSUE)
+        self._feed.note("learning:suggestion", "closed", why, "learning")
         self._store.async_delay_save(lambda: self.data, 0)
 
     # --- the owner's answer ---
 
     @callback
-    def approve(self) -> None:
+    def answer(self, item: str, word: str, who: str) -> bool:
+        """Only the suggestion that is waiting can be answered, by a signed-in admin."""
+        held = self.data["suggestion"]
+        if held is None or item != f"learning:{held['key']}" or word not in (
+                "approve", "later", "never"):
+            return False
+        getattr(self, word)(who)
+        return True
+
+    @callback
+    def approve(self, who: str = "") -> None:
         held = self.data["suggestion"]
         if held is None:
             return
         options = dict(self._entry.options)
         self.data["undo"] = {k: options.get(k) for k in held["set"]}
-        self._clear()
+        self._clear(f"Approved{' by ' + who if who else ''}")
         self._hass.config_entries.async_update_entry(
             self._entry, options={**options, **held["set"]})
         self._hass.config_entries.async_schedule_reload(self._entry.entry_id)
 
     @callback
-    def later(self) -> None:
-        self._clear()
+    def later(self, who: str = "") -> None:
+        self._clear(f"Not now{', said ' + who if who else ''}")
 
     @callback
-    def never(self) -> None:
+    def never(self, who: str = "") -> None:
         if held := self.data["suggestion"]:
             self.data["never"].append(held["key"])
-        self._clear()
+        self._clear(f"Never suggest this{', said ' + who if who else ''}")
 
     @callback
     def undone(self, options: dict[str, Any]) -> dict[str, Any]:
@@ -262,5 +290,4 @@ class Learner:
     async def forget(self) -> None:
         """Start again: nights before today are not counted. History itself is kept."""
         self.data = {**empty(), "since": dt_util.now().date().isoformat()}
-        ir.async_delete_issue(self._hass, DOMAIN, ISSUE)
         await self._store.async_save(self.data)

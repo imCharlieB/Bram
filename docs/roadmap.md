@@ -42,6 +42,8 @@ BRAM's job: **notice** what is happening, **remember** it, **explain** what is w
 | Whisper and Piper | ✅ | [Voice](voice.md) |
 | Personalities | ✅ | [Personality](personality.md) |
 | Suggested night hours | ✅ | [Learning](learning.md) |
+| A review page in Home Assistant for suggestions, opened from a phone message; admins only | ✅ 0.36 | [Learning](learning.md) |
+| Suggestions from what you do: something you hide or never act on, offered as Stop these or Less often | ⬜ | |
 | Command center page, second factor | ✅ | [Security](security.md) |
 
 ## 1. One record

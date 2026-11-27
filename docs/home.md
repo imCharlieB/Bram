@@ -17,7 +17,7 @@ Screens down both sides each have a tab. Point at one, or tab into it, and it li
 | **Watching** | What is counting down: a door left open with the minutes until you are told, a print until it finishes, and when night starts. Each says why |
 | **Looking at** | The picture BRAM is reading. Until cameras come, it says there is nothing to look at |
 | **Climate** | Outside temperature, from a weather entity you share with BRAM; the last 24 hours inside and outside; and how long each thermostat has run today. Needs [Keep history](history.md) |
-| **Needs you** | Safety alarms, open alerts, and open [findings](findings.md) that matter, each with what to do. A finding has **Story**, which opens it under Findings; **Stop these** and **Less often** when your phone was given them (see [How often BRAM tells you](how-often.md)); and **Hide**, which takes it off the list but does not change what is sent to your phone |
+| **Needs you** | Safety alarms, open alerts, and open [findings](findings.md) that matter, each with what to do. A finding has **Story**, which opens it under Findings; **Stop these** and **Less often** when your phone was given them (see [How often BRAM tells you](how-often.md)); and **Hide**, which takes it off the list until it happens again but does not change what is sent to your phone |
 | **I noticed** | Patterns: a room sensor that reads warmer or cooler than its thermostat over the week, how many nights are learned, and things not reporting |
 | **What I did** | What BRAM told your phone, held back, or was told to stop today, and why something was held. See [How often BRAM tells you](how-often.md) |
 

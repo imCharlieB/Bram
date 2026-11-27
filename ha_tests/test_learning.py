@@ -2,14 +2,11 @@ import datetime
 from unittest.mock import patch
 
 import pytest
-from homeassistant.helpers import issue_registry as ir
-from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_mock_service
 
 from custom_components.bram.house_rules import HouseRules
-from custom_components.bram.learning import ISSUE, Learner, empty, quiet_gap, suggest
-from custom_components.bram.repairs import async_create_fix_flow
+from custom_components.bram.learning import Learner, empty, quiet_gap, suggest
 
 pytestmark = pytest.mark.usefixtures("custom")
 
@@ -127,11 +124,8 @@ async def test_left_open_minutes():
 
 
 async def answer(env, word):
-    issue = ir.async_get(env.hass).async_get_issue("bram", ISSUE)
-    flow = await async_create_fix_flow(env.hass, ISSUE, issue.data)
-    flow.hass, flow.handler, flow.flow_id = env.hass, "bram", "x"
-    flow.context = {}
-    return await getattr(flow, f"async_step_{word}")()
+    (item,) = env.learner.review()
+    return env.learner.answer(item["id"], word, "Owner")
 
 
 @pytest.mark.rule("F4")
@@ -142,9 +136,13 @@ async def test_nothing_changes_until_approved_and_it_can_be_undone(env):
     with patch.object(env.hass.config_entries, "async_schedule_reload") as reload:
         env.learner.tick()
         assert dict(env.entry.options) == before
-        issue = ir.async_get(env.hass).async_get_issue("bram", ISSUE)
-        assert "nights" in issue.translation_placeholders["text"]  # the evidence
-        await answer(env, "approve")
+        (item,) = env.learner.review()
+        assert "nights" in item["text"]  # the evidence
+        assert item["changes"] == [
+            {"name": "Night starts", "now": "10:00 PM", "new": "11:45 PM"},
+            {"name": "Night ends", "now": "6:00 AM", "new": "7:00 AM"}]
+        assert not env.learner.answer("learning:open", "approve", "Owner")  # not the one waiting
+        assert await answer(env, "approve")
     assert reload.called
     assert env.entry.options["night_from"] == "23:45:00"
     assert env.entry.options["night_to"] == "07:00:00"
@@ -152,6 +150,7 @@ async def test_nothing_changes_until_approved_and_it_can_be_undone(env):
     assert {k for k in env.entry.options if env.entry.options[k] != before.get(k)} == {
         "night_from", "night_to"}
     assert env.learner.undone(dict(env.entry.options)) == before
+    assert env.learner.review() == []
 
 
 @pytest.mark.rule("F4")
@@ -161,8 +160,7 @@ async def test_a_suggestion_expires(env):
     env.learner.tick()
     env.now += datetime.timedelta(days=31)
     env.learner.tick()
-    assert env.learner.data["suggestion"] is None
-    assert ir.async_get(env.hass).async_get_issue("bram", ISSUE) is None
+    assert env.learner.data["suggestion"] is None and env.learner.review() == []
 
 
 @pytest.mark.parametrize("word", ["later", "never"])
@@ -200,15 +198,16 @@ async def test_weekend_night_hours(env, day, hour, minute, night):
     assert rules.is_night() is night
 
 
-async def test_the_answer_works_through_home_assistants_own_repairs(env):
-    env.hass.config.components.add("bram")
-    assert await async_setup_component(env.hass, "repairs", {})
-    await env.hass.async_block_till_done()
+async def test_a_suggestion_sends_one_message_that_opens_the_review_page(env):
+    calls = async_mock_service(env.hass, "notify", "mobile_app_phone")
+    env.hass.config_entries.async_update_entry(env.entry, options={
+        **env.entry.options, "phones": ["mobile_app_phone"]})
     env.fill()
     env.at(13)
     env.learner.tick()
-    flows = env.hass.data["repairs"]["flow_manager"]
-    shown = await flows.async_init("bram", data={"issue_id": ISSUE})
-    assert shown["type"] == "menu" and "nights" in shown["description_placeholders"]["text"]
-    done = await flows.async_configure(shown["flow_id"], {"next_step_id": "never"})
-    assert done["type"] == "create_entry" and env.learner.data["never"] == ["night"]
+    env.learner.tick()
+    await env.hass.async_block_till_done()
+    assert len(calls) == 1
+    assert calls[0].data["message"] == "Better night hours. Tap to review."
+    assert calls[0].data["data"]["url"] == "/bram-review"
+    assert calls[0].data["data"]["clickAction"] == "/bram-review"

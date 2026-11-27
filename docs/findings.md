@@ -14,7 +14,7 @@ Everything BRAM found and what became of it, on BRAM's page under **Findings**.
 
 Each finding is one line, however often it happens: first and last time, how many times, whether you were told, acknowledged, or stopped it, and when it was over. **Story** shows each step, including messages to your phones.
 
-- **Ignore** only moves a finding off the list. It never stops an alert; use **Stop these** for that.
+- **Hide** takes a finding off the list, and off Needs you on Home, until it happens again; then it is back. Hidden ones are under **Show > Hidden**, with **Show again**. Hide never stops a message to your phone; use **Stop these** for that.
 - **Stop these** and **Less often** appear beside a finding whose phone message had them. See [How often BRAM tells you](how-often.md).
 - Home Assistant keeps up to 500 notes while the server is away and sends them when it is back. Alerts never wait for this.
 - Something that ended while Home Assistant was off is closed as *No longer seen*, up to two hours after it starts.

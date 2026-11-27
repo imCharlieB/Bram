@@ -96,6 +96,16 @@ def test_ignore_changes_only_the_list(env):
     assert not env.f.ignore(True, True) and not env.f.ignore("1", True)
 
 
+def test_hidden_comes_back_when_it_happens_again(env):
+    env.note("open")
+    env.f.ignore(env.only()["id"], True)
+    env.note("open")  # still the same time: stays hidden
+    assert env.f.list("open") == []
+    env.note("closed")
+    env.note("open")
+    assert env.only()["ignored"] == 0
+
+
 def test_learned_copy(env):
     env.note("learned", key="night:2026-01-04", source="learning", text="[345, 780]")
     env.note("learned", key="night:2026-01-04", source="learning", text="[345, 785]")

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.36.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the server in Portainer.
+
+- Suggestions have their own review page in the Home Assistant app instead of Repairs. Your phone gets a message that opens it, showing the evidence and each setting now and after. Only a Home Assistant administrator can answer.
+- **Hide** takes a finding off the list until it happens again; then it is back. Hidden findings are under **Show > Hidden**.
+
 ## 0.35.4
 
 Update BRAM in HACS and restart Home Assistant. Update the server in Portainer too to keep the versions together.

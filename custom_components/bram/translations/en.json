@@ -1,24 +1,5 @@
 {
   "issues": {
-    "suggestion": {
-      "title": "BRAM suggests a change",
-      "fix_flow": {
-        "step": {
-          "init": {
-            "title": "BRAM suggests a change",
-            "description": "{text}",
-            "menu_options": {
-              "approve": "Approve",
-              "later": "Not now",
-              "never": "Never suggest this"
-            }
-          }
-        },
-        "abort": {
-          "gone": "This suggestion is no longer waiting."
-        }
-      }
-    },
     "server_outdated": {
       "title": "The BRAM Server is out of date",
       "description": "The server is {server} and BRAM here is {here}. Update the server: in Portainer, recreate the bram container with Re-pull image turned on."
@@ -164,7 +145,7 @@
       },
       "learn": {
         "title": "Learning",
-        "description": "BRAM reads from its history when your home goes quiet at night and how long doors stay open, then suggests better night hours and left-open times. It needs Keep history on, on BRAM's page. Suggestions appear in Settings > System > Repairs. Nothing changes until you approve one.\n\nNights found so far: {nights} of the 14 needed. A night counts at noon after it.",
+        "description": "BRAM reads from its history when your home goes quiet at night and how long doors stay open, then suggests better night hours and left-open times. It needs Keep history on, on BRAM's page. Your phone gets a message that opens the review page. Nothing changes until you approve one.\n\nNights found so far: {nights} of the 14 needed. A night counts at noon after it.",
         "data": {
           "learn": "Learning is on",
           "undo": "Undo the last change I approved",
