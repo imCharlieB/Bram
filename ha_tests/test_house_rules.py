@@ -334,3 +334,13 @@ async def test_humid(env):
                                             "friendly_name": "Bathroom"})
     await env.wait(31)
     assert env.texts() == ["Bathroom is 82% humid, above your 70% limit."]
+
+
+async def test_asleep_helper_makes_it_night(env):
+    await env.start(night=True, asleep=["input_boolean.asleep"])
+    env.hass.states.async_set("input_boolean.asleep", "on")
+    await env.set(LOCK, "unlocked")
+    await env.wait(3)  # 2 PM, outside night hours, but someone is asleep
+    assert env.texts() == ["Front lock is unlocked, and it's night."]
+    env.hass.states.async_set("input_boolean.asleep", "unavailable")
+    assert not env.rules.is_night()  # unknown changes nothing; the hours still count

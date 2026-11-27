@@ -34,6 +34,7 @@
 | | Motion | Off |
 | Night hours | Night starts, night ends | 10 PM, 6 AM |
 | | Friday and Saturday night starts, ends | Empty: same as other nights |
+| | Also night while any of these is on: helpers or sensors that are on while someone is asleep | None |
 | Watching > Temperature and humidity | Too hot, too cold, near freezing, humid | Off |
 | | Too hot above, too cold below, near freezing below | 85, 55, 38 °F (29, 13, 3 °C) |
 | | Humid above | 70% |

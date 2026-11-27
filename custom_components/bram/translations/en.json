@@ -208,7 +208,11 @@
               "night_from": "Night starts",
               "night_to": "Night ends",
               "weekend_night_from": "Friday and Saturday night starts (empty: same)",
-              "weekend_night_to": "Friday and Saturday night ends (empty: same)"
+              "weekend_night_to": "Friday and Saturday night ends (empty: same)",
+              "asleep": "Also night while any of these is on"
+            },
+            "data_description": {
+              "asleep": "Optional. A helper or sensor that is on while someone is asleep, such as a bedtime switch. Night then starts when it turns on, even before your hours. If it is unavailable, only the hours count."
             }
           }
         }

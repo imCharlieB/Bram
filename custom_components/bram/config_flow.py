@@ -310,6 +310,7 @@ class BramOptionsFlow(OptionsFlowWithReload):
         if user_input is not None:
             options.pop(CONF_WEEKEND_FROM, None)
             options.pop(CONF_WEEKEND_TO, None)
+            options.pop("asleep", None)
             flat = {k: v for part in user_input.values() if isinstance(part, dict)
                     for k, v in part.items()}
             return self.async_create_entry(data={**options, **flat})
@@ -335,6 +336,9 @@ class BramOptionsFlow(OptionsFlowWithReload):
                     "night_to", DEFAULT_NIGHT_TO)): selector.TimeSelector(),
                 **{vol.Optional(key, description={"suggested_value": options.get(key)}):
                    selector.TimeSelector() for key in (CONF_WEEKEND_FROM, CONF_WEEKEND_TO)},
+                vol.Optional("asleep", description={"suggested_value": options.get(
+                    "asleep", [])}): selector.EntitySelector(selector.EntitySelectorConfig(
+                        domain=["input_boolean", "binary_sensor", "switch"], multiple=True)),
             }), {"collapsed": False}),
         }))
 

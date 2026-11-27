@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.40.3
+
+Update BRAM in HACS, then restart Home Assistant. The server has no change; updating it too keeps the versions the same.
+
+- Night can follow your bedtime: under **Configure > Watching > Locks, doors, and windows > Night hours**, choose helpers or sensors that are on while someone is asleep. It is night while any of them is on, as well as during your night hours. See [Night hours](docs/watching.md#night-hours).
+
 ## 0.40.2
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

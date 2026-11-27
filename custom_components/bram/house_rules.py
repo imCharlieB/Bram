@@ -87,6 +87,8 @@ class HouseRules:
                        options.get("night_to", DEFAULT_NIGHT_TO))
         self._weekend = (options.get(CONF_WEEKEND_FROM) or self._night[0],
                          options.get(CONF_WEEKEND_TO) or self._night[1])
+        # Helpers or sensors that are on while someone is asleep, such as a bedtime switch.
+        self._asleep: list[str] = list(options.get("asleep", []))
         self._open_types = {t for t in OPEN_TYPES if options.get(t, True)}
         self._open_seconds = options.get("open_minutes", DEFAULT_OPEN_MINUTES) * 60
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.rules")
@@ -103,7 +105,8 @@ class HouseRules:
         self._muted = saved.get("muted", [])
         self._told = set(saved.get("told", []))
         stops = [
-            async_track_state_change_event(self._hass, self._entities, self._changed),
+            async_track_state_change_event(self._hass, [*self._entities, *self._asleep],
+                                           self._changed),
             self._hass.bus.async_listen("mobile_app_notification_action", self.answered),
             async_track_time_interval(self._hass, self._tick, datetime.timedelta(seconds=30)),
         ]
@@ -150,6 +153,11 @@ class HouseRules:
         return self._kinds.get(entity_id)
 
     def is_night(self) -> bool:
+        """Night hours, and also while anyone's asleep helper is on. A helper that is
+        unavailable changes nothing, so the hours still count (B2)."""
+        if any((s := self._hass.states.get(e)) is not None and s.state == "on"
+               for e in self._asleep):
+            return True
         now = dt_util.now()
         # Friday and Saturday nights run into the next morning.
         weekend = (now - datetime.timedelta(hours=12)).weekday() in (4, 5)

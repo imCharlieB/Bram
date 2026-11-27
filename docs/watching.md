@@ -59,6 +59,8 @@ You set when night starts and ends, separately from quiet hours. Night decides w
 
 Friday and Saturday nights can have their own hours. BRAM can [suggest better hours](learning.md); nothing changes until you approve it.
 
+If you have a helper or sensor that is on while someone is asleep, such as an `input_boolean` you turn on at bedtime, choose it under **Also night while any of these is on**. It is night while any of them is on, even before your hours start, as well as during your hours. If one is unavailable, only the hours count. This also covers a person at night on a [camera](cameras.md).
+
 ## What it does not do
 
 It does not watch cameras, tell people apart, lock or close anything, or call anyone. It does not replace certified alarms.
