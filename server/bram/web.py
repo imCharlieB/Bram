@@ -611,7 +611,8 @@ class ConfigPage:
                                key=lambda w: w.get("due", 9e10)),
             "decisions": found.decisions(today - 86400) if found else [],
             "needs": [{k: r[k] for k in ("id", "key", "source", "severity", "text", "first",
-                                         "times", "told")} | {"buttons": json.loads(r["buttons"])}
+                                         "times", "told")} | {"buttons": json.loads(r["buttons"]),
+                                                              "routine": found.routine(r)}
                       for r in (found.list("open", limit=50) if found else [])
                       if r["severity"] in ("high", "medium")][:8],
             "sent_today": found.sent_since(today) if found else 0,

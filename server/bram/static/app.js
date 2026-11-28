@@ -1302,18 +1302,19 @@ function showNeeds(brain) {
     ...(world.urgentNow || []).map((d) => row(`${d.name}: ${d.says}`, "now", "bad", d.area ? `In ${d.area}. Home Assistant has messaged your phones if you set that up.` : "", true)),
     ...(world.alertsNow || []).map((a) => row(a.text, ago(a.created), a.safety ? "bad" : "warn")),
     ...brain.needs.map((n) => [...row(n.text, n.times > 1 ? `${n.times} times` : ago(n.first), n.severity === "high" ? "bad" : "warn",
-      `${n.times === 1 ? "Since" : "First"} ${ago(n.first)}${n.told ? ". I told you" : ""}.`, true), needActs(n)]),
+      `${n.times === 1 ? "Since" : "First"} ${ago(n.first)}${n.told ? ". I told you" : ""}.${n.routine ? ` Listed, not popped up: ${n.routine}` : ""}`, true), needActs(n)]),
   ];
   $("needs-pane").hidden = !rows.length;
   const urgent = world.urgentNow || [], alerts = world.alertsNow || [];
   const keys = new Map([
     ...urgent.map((d) => [`urgent:${d.id}`, ["bad", d.area ? `${d.area} · alert` : "Alert", `${d.name}: ${d.says}`, "Home Assistant has messaged your phones if you set that up.", null]]),
     ...alerts.map((a) => [`alert:${a.text}`, [a.safety ? "bad" : "warn", a.safety ? "Safety" : "Needs you", a.text, ago(a.created), null]]),
-    ...brain.needs.map((n) => [`need:${n.id}`, [n.severity === "high" ? "bad" : "warn", FROM[n.source] || "Needs you", n.text, n.told ? "I told your phone." : "", needActs(n)]]),
+    ...brain.needs.map((n) => [`need:${n.id}`, [n.severity === "high" ? "bad" : "warn", FROM[n.source] || "Needs you", n.text, n.told ? "I told your phone." : "", needActs(n), n.routine]]),
   ]);
   if (seen.needs) {
-    for (const [key, [kind, title, text, detail, acts]] of keys) {
-      if (!seen.needs.has(key)) popUp(key, kind, title, text, detail, null, "", acts);
+    for (const [key, [kind, title, text, detail, acts, routine]] of keys) {
+      // What BRAM learned is routine stays in the list, without a window.
+      if (!seen.needs.has(key) && !routine) popUp(key, kind, title, text, detail, null, "", acts);
     }
     for (const key of seen.needs) if (!keys.has(key)) closePop(key);
   }

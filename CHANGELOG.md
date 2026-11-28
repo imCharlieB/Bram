@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.56.0
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- BRAM learns by itself which findings are not worth a window on Home: ones that keep fixing themselves, keep coming back, or that you keep hiding or never act on. They stay listed under **Needs you**, with why. Safety, silent sensors, and anything urgent or new always open a window, and phone messages do not change.
+
 ## 0.55.4
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.

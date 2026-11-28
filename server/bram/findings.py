@@ -29,6 +29,8 @@ HABIT_SOURCES = ("rules", "printers", "problems", "cameras")
 HABIT_DAYS = 14
 HIDDEN_TIMES, TOLD_TIMES = 3, 5
 ASK_AGAIN = 30 * 86400
+FIXES_ITSELF = 3600  # back to normal within an hour, by itself
+OFTEN = 6
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS finding (
@@ -254,6 +256,38 @@ class Findings:
                 found.append((row["key"], f"I told your phone {counts['sent']} times in two "
                                           "weeks and nothing was done about it."))
         return found
+
+    def routine(self, finding: dict) -> str:
+        """Why this one is not worth a window on Home, in fixed words, or "" when it is.
+        Learned from what happens, with no answers needed: it keeps fixing itself, it keeps
+        coming back, or you keep hiding it or doing nothing when told. Only the page: what
+        reaches a phone never changes (C3), and safety, silent sensors, and anything urgent
+        always get a window."""
+        if finding["source"] in ("safety", "silent") or finding["severity"] == "high":
+            return ""
+        since = self._clock() - HABIT_DAYS * 86400
+        story = self._db.execute("SELECT at, what FROM story WHERE finding = ? AND at >= ? "
+                                 "ORDER BY at", (finding["id"], since)).fetchall()
+        opened, fixed, start = 0, 0, None
+        for at, what in story:
+            if what == "open":
+                opened, start = opened + 1, at
+            elif what == "closed" and start is not None:
+                fixed += at - start <= FIXES_ITSELF
+                start = None
+        counts: dict[str, int] = {}
+        for _, what in story:
+            counts[what] = counts.get(what, 0) + 1
+        if counts.get("hidden", 0) >= 2:
+            return f"You hid it {counts['hidden']} times in two weeks."
+        if opened >= 3 and fixed * 3 >= opened * 2:
+            return f"It fixed itself {fixed} of {opened} times in two weeks."
+        if opened >= OFTEN:
+            return f"It came up {opened} times in two weeks."
+        if counts.get("sent", 0) >= TOLD_TIMES and not any(
+                counts.get(w) for w in ("acked", "stopped")):
+            return f"I told your phone {counts['sent']} times in two weeks and nothing was done."
+        return ""
 
     def suggested(self, house_id: str, key: str) -> None:
         with self._db:

@@ -200,7 +200,18 @@ When something needs you, a window opens over the brain, like a screen in a comm
 
 A camera window opens only for an event BRAM told your phone about, or held for quiet hours, under your [camera messages](cameras.md#what-it-tells-you). Every other event only updates **Looking at**, where tapping a camera opens its window. A camera window asks **Does it matter?**: see [Teach BRAM a camera](cameras.md#teach-bram-a-camera).
 
-A finding's window has the same **Story**, **Stop these**, **Less often**, and **Hide** as under **Needs you**. A camera's window shows Frigate's picture. Windows open only for what is new while the page is open; what was already there is listed under **Needs you**. At most three are open at once. Cameras share one window: a new camera event replaces the last one, so several cameras at once never pile up.
+A finding's window has the same **Story**, **Stop these**, **Less often**, and **Hide** as under **Needs you**. A camera's window shows Frigate's picture. Windows open only for what is new while the page is open; what was already there is listed under **Needs you**.
+
+BRAM learns by itself which findings are not worth a window, with nothing for you to answer. A finding is still listed under **Needs you**, with why, but opens no window when, in the last two weeks:
+
+| It | Such as |
+|---|---|
+| Fixed itself within an hour at least 2 of every 3 times, at least 3 times | A car that goes offline when it sleeps |
+| Came up 6 times or more | The same error over and over |
+| Was hidden by you twice | Something you keep hiding |
+| Was told to your phone 5 times with nothing done | |
+
+Safety alerts, silent sensors, anything urgent, and anything new always open a window. This changes only BRAM's page: what reaches your phone stays the same. At most three are open at once. Cameras share one window: a new camera event replaces the last one, so several cameras at once never pile up.
 
 While something needs you, rings keep going out from the brain: red and often for safety and the most important findings, amber now and then for the rest. While BRAM is thinking about a chat answer, arcs sweep around the brain.
 

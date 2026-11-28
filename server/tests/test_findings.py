@@ -221,3 +221,43 @@ def test_safety_is_never_suggested(env):
     for _ in range(9):
         env.note("sent", key="safety:leak", source="safety", severity="high")
     assert env.f.habits("h1") == []
+
+
+def test_bram_learns_what_needs_no_window_on_its_own(env):
+    """No answers needed: something that keeps fixing itself stops popping up on Home."""
+    env.note("open")
+    assert env.f.routine(env.only()) == ""  # the first time always gets a window
+    for _ in range(2):
+        env.now += 600
+        env.note("closed")
+        env.now += 86400
+        env.note("open")
+    assert env.f.routine(env.only()) == "It fixed itself 2 of 3 times in two weeks."
+
+
+def test_what_stays_open_or_is_safety_always_gets_a_window(env):
+    for _ in range(3):
+        env.note("open")
+        env.now += 7200  # fixed, but only after hours: not routine
+        env.note("closed")
+    env.note("open")
+    assert env.f.routine(env.only()) == ""
+    env.f.from_home("h1", {"type": "note", "id": "f" * 16, "at": env.now, "key": "safety:x",
+                           "what": "open", "text": "Leak", "source": "safety",
+                           "severity": "medium"})
+    leak = next(r for r in env.f.list("open") if r["source"] == "safety")
+    for _ in range(3):
+        env.f.ignore(leak["id"], True)
+    assert env.f.routine(leak) == ""
+
+
+def test_hidden_twice_is_routine(env):
+    env.note("open")
+    row = env.only()
+    env.f.ignore(row["id"], True)
+    env.note("closed")
+    env.note("open")
+    env.f.ignore(env.only()["id"], True)
+    env.note("closed")
+    env.note("open")
+    assert env.f.routine(env.only()) == "You hid it 2 times in two weeks."

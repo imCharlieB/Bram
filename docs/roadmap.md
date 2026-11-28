@@ -270,6 +270,8 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 | Usual arrivals, lockup, and routines | ⬜ |
 | Suggests nightly checks from history, such as "Check Garage door at 11 PM?" after it was still open on 19 of 28 nights; code finds the pattern; on only after approval | ✅ 0.51, [Learning](watching.md#nightly-checks) |
 | Suggested: lights, switches, and fans often left on while everyone is away | ✅ 0.54, [Learning](watching.md#left-on-while-everyone-is-away) |
+| Learns by itself which findings need no window on Home: fixes itself, keeps coming back, hidden, or never acted on; no answers needed | ✅ 0.56, [Using BRAM](guide.md#brams-home-page) |
+| Learns by itself which phone messages to send less of, the same way; needs owner approval of a hard-rule change | ⬜ |
 | More kinds of suggested rules: a door unlocked at the same time each day | ⬜ |
 | Describe an automation; BRAM drafts it, checks every device exists, shows it, and installs it only after approval | ⬜ |
 | Switch a suggested rule off, back on, or repair it | ⬜ |
