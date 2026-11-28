@@ -81,6 +81,7 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("GET", "memory"), ("POST", "memory-on"), ("POST", "memory-add"),
            ("POST", "memory-edit"), ("POST", "memory-delete"), ("POST", "memory-forget-all"),
            ("POST", "memory-person"),
+           ("GET", "cloud"), ("POST", "cloud"), ("POST", "cloud-models"),
            ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
            ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),
            ("POST", "unmute"), ("GET", "profile"), ("POST", "factor-start"),
@@ -536,7 +537,7 @@ async def test_sample_uses_only_the_invented_fact(page, monkeypatch):
     async def opened(*args, **kw):
         return fake
 
-    monkeypatch.setattr("bram.web.open_model", opened)
+    monkeypatch.setattr("bram.local_model.open_model", opened)
     reply = await page.post("sample", {"personality": "dry"})
     assert (await reply.json())["text"] == "Bold strategy."
     assert fake.seen[0][1].content == f"Facts: {SAMPLE}"

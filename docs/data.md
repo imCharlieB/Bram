@@ -49,6 +49,7 @@ The connection token, BRAM's options, open alerts, stopped messages, which devic
 |---|---|---|
 | HA app messages | Alert text, through Home Assistant's push service | When you choose phones |
 | Telegram | Messages, and chat if turned on | Off |
+| A cloud model, if you choose one | Your questions, what BRAM shares about your home to answer them, and what you asked it to remember that fits; camera pictures only with their own switch | Off |
 | Everything else | Nothing | |
 
 Whisper and Piper download their models when first started. Docker and HACS download updates.

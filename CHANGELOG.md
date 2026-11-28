@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.55.0
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- Cloud models, for anyone without their own: under **Settings > Model**, choose OpenAI, Anthropic, Google Gemini, or another OpenAI-compatible service, enter its key, and pick a model. BRAM tries it before saving. Nothing goes to the cloud until you choose this, BRAM never falls back to the cloud when your own model is down, and camera pictures go to it only with their own switch. Choosing your own model again forgets the key.
+
 ## 0.54.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

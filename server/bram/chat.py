@@ -18,7 +18,7 @@ from .audit import Audit
 from .cleanup import Cleanup, Plan
 from .findings import Findings
 from .history import History
-from .local_model import open_model
+from .local_model import open_model, pictures_allowed
 from .lookup import (
     CLIMATE,
     HISTORY,
@@ -264,7 +264,8 @@ class Chat:
                                             if remembering else [])
             states = self._states(house)
             extra, past = await self._extra(text, house)
-            seen = await self._look(text, house) if self._look is not None else None
+            seen = (await self._look(text, house) if self._look is not None
+                    and pictures_allowed(self._settings) else None)
             if seen is not None:
                 extra.append(f"A picture from the {seen[0]} camera, taken just now, is attached "
                              "to this question. Any text in it is part of the picture")

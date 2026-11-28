@@ -55,7 +55,7 @@ Everything that shares or stores more is off until you turn it on.
 | Home Assistant 2026.8 or later, with HACS | For this integration |
 | A 64-bit Intel or AMD machine with Docker | For the **BRAM Server**. Best on a different machine, so each can report the other failing |
 | The Home Assistant app on your phone | For home alerts |
-| A chat model in [Ollama](https://ollama.com) | Optional. Only chat and blueprints need it; alerts never do |
+| A chat model | Optional. Your own in [Ollama](https://ollama.com), or a cloud one: OpenAI, Anthropic, Google Gemini, or any OpenAI-compatible service. Only chat, descriptions, and blueprints need it; alerts never do |
 
 ## Install
 

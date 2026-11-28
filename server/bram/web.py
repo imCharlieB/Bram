@@ -27,9 +27,11 @@ from .chat import MAX_TEXT, Busy, Chat
 from .cleanup import Cleanup, Plan
 from .findings import Findings
 from .history import History
-from .local_model import check_local, local_models, open_model
+from .local_model import check_local, cloud, local_models, open_brain, pictures_allowed
 from .memory import Memory
 from .models.base import Image, Message, ModelError
+from .models.cloud import PROVIDERS
+from .models.cloud import provider as cloud_provider
 from .monitors import Monitors
 from .pairing import CODE_LIFETIME, Pairing
 from .personality import CUSTOM_LIMIT, MODES, messages
@@ -113,7 +115,10 @@ class ConfigPage:
         self.ntfy = Ntfy(settings, self._answer)
         self.speech = Speech(settings)
         self._worlds = worlds or dict
-        self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors,
+        async def brain(*args: object, **kw: object) -> object:
+            return await open_brain(settings, *args, **kw)  # type: ignore[arg-type]
+
+        self.chat = Chat(settings, pairing, audit, self._worlds, self.monitors, opener=brain,
                          look_up=look_up, past=history, findings=findings,
                          cleanup=self.cleanup, printers=self.printers, look=self.cameras.look,
                          memory=self.memory)
@@ -170,6 +175,9 @@ class ConfigPage:
             web.post("/api/memory-edit", self._private(self._memory_edit)),
             web.post("/api/memory-delete", self._private(self._memory_delete)),
             web.post("/api/memory-forget-all", self._confirmed(self._memory_forget_all)),
+            web.get("/api/cloud", self._private(self._get_cloud)),
+            web.post("/api/cloud", self._confirmed(self._save_cloud)),
+            web.post("/api/cloud-models", self._private(self._cloud_models)),
             web.get("/api/router", self._private(self._get_router)),
             web.post("/api/router", self._confirmed(self._connect_router)),
             web.post("/api/router-off", self._confirmed(self._disconnect_router)),
@@ -531,6 +539,8 @@ class ConfigPage:
                 if refused is not None:
                     return refused
             self._settings.update(values)
+            if values.get("model_url"):  # the owner's own model again: no cloud (E1)
+                self._settings.update_channel("cloud", {"provider": "", "key": ""})
             if "personality" in values and self._mood_changed is not None:
                 await self._mood_changed()
         except (ValueError, ModelError) as err:
@@ -976,6 +986,75 @@ class ConfigPage:
                            approver="owner")
         return _json(self._memory_view())
 
+    # --- a cloud model, only if the owner chooses one (E1) ---
+
+    def _cloud_view(self) -> dict:
+        saved = self._settings.channel("cloud")
+        return {"provider": saved.get("provider", ""), "model": saved.get("model", ""),
+                "url": saved.get("url", ""), "images": bool(saved.get("images")),
+                "has_key": bool(saved.get("key")), "on": bool(cloud(self._settings)),
+                "providers": {k: v[0] for k, v in PROVIDERS.items()}}
+
+    async def _get_cloud(self, request: web.Request) -> web.Response:
+        return _json(self._cloud_view())
+
+    async def _cloud_choice(self, body: dict) -> dict:
+        kind = body.get("provider")
+        if kind not in PROVIDERS:
+            raise ModelError("Choose a provider")
+        saved = self._settings.channel("cloud")
+        key = body.get("key") if isinstance(body.get("key"), str) else ""
+        key = key.strip() or (saved.get("key", "") if saved.get("provider") == kind else "")
+        if not key or len(key) > 400:
+            raise ModelError("Enter the provider's API key")
+        url = ""
+        if kind == "other":
+            url = str(body.get("url") or "").strip().rstrip("/")
+            if url.startswith("http://"):
+                url = await check_local(url, 80)  # plain http only on your own network
+            elif not url.startswith("https://") or len(url) > 300:
+                raise ModelError("Enter the service's address, starting with https://")
+        model = str(body.get("model") or "").strip()[:120]
+        return {"provider": kind, "key": key, "url": url, "model": model,
+                "images": body.get("images") is True}
+
+    async def _cloud_models(self, request: web.Request) -> web.Response:
+        try:
+            choice = await self._cloud_choice({**await _body(request), "model": "x"})
+            found = cloud_provider(choice)
+            try:
+                names = await found.models()
+            finally:
+                await found.close()
+        except ModelError as err:
+            return _json({"error": str(err)}, 400)
+        return _json({"models": names[:200]})
+
+    async def _save_cloud(self, body: dict) -> web.Response:
+        if body.get("provider") in ("", None):  # back to the owner's own model
+            self._settings.update_channel("cloud", {"provider": "", "key": "", "url": "",
+                                                    "model": "", "images": False})
+            self._settings.update({"model": "", "model_url": ""})
+            self._audit.record("server", "config page", "cloud model off", "by owner", "ok",
+                               approver="owner")
+            return _json(self._cloud_view())
+        try:
+            choice = await self._cloud_choice(body)
+            if not choice["model"]:
+                raise ModelError("Choose a model")
+            found = cloud_provider(choice, max_output=5)
+            try:
+                await found.chat([Message("user", "Say OK.")])
+            finally:
+                await found.close()
+        except ModelError as err:
+            return _json({"error": str(err)}, 400)
+        self._settings.update_channel("cloud", choice)
+        self._settings.update({"model": choice["model"], "model_url": ""})
+        self._audit.record("server", "config page", "cloud model on",
+                           PROVIDERS[choice["provider"]][0], "ok", approver="owner")
+        return _json(self._cloud_view())
+
     async def _get_router(self, request: web.Request) -> web.Response:
         return _json(self.router.view())
 
@@ -1151,8 +1230,11 @@ class ConfigPage:
         saved = self._settings.all()
         if not saved["model"]:
             return None
-        model = await open_model(saved["model_url"], saved["model"], saved["context"],
-                                 max_output=120)
+        if not pictures_allowed(self._settings):
+            raise ModelError("your model is in the cloud, and cloud pictures are off under "
+                             "Settings, Model")
+        model = await open_brain(self._settings, saved["model_url"], saved["model"],
+                                 saved["context"], max_output=120)
         try:
             reply = await model.chat([
                 Message("system", _taught(DESCRIBE_PICTURE, context or {})),
@@ -1219,7 +1301,8 @@ class ConfigPage:
             if self._sample_lock.locked():
                 raise ModelError("A sample is already running")
             async with self._sample_lock:
-                model = await open_model(saved["model_url"], saved["model"], saved["context"])
+                model = await open_brain(self._settings, saved["model_url"], saved["model"],
+                                         saved["context"])
                 try:
                     reply = await model.chat(
                         messages(mode, values.get("custom_style", ""), SAMPLE))

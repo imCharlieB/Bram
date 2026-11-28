@@ -8,7 +8,7 @@ const STORY = {
   unpaired: "A home was removed", "signed in": "You signed in", "login refused": "Someone entered a wrong login",
   "setup refused": "A setup attempt was refused", "settings saved": "Settings changed", "login created": "Your login was created",
   "code created": "A pairing code was made", "password changed": "Your password changed", "history saved": "History settings changed", "history cleaned": "History was cleaned up", "history deleted": "History was deleted", "database damaged": "The database failed its check", "second factor on": "Second factor turned on", "second factor off": "Second factor turned off", "username changed": "Your username changed",
-  "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "frigate connected": "Frigate was connected", "frigate removed": "Frigate was disconnected", "camera on": "A camera was turned on", "router connected": "Your router was connected", "memory on": "Memory was turned on", "memory off": "Memory was turned off", "memory forgotten": "Everything remembered was forgotten", "router removed": "Your router was disconnected", "camera off": "A camera was turned off", "monitor removed": "A monitor was removed",
+  "signed out others": "Other devices were signed out", "monitor added": "A monitor was added", "frigate connected": "Frigate was connected", "frigate removed": "Frigate was disconnected", "camera on": "A camera was turned on", "router connected": "Your router was connected", "memory on": "Memory was turned on", "cloud model on": "A cloud model was chosen", "cloud model off": "The cloud model was turned off", "memory off": "Memory was turned off", "memory forgotten": "Everything remembered was forgotten", "router removed": "Your router was disconnected", "camera off": "A camera was turned off", "monitor removed": "A monitor was removed",
 };
 const ALARMING = new Set(["login refused", "setup refused", "disconnected", "alert", "send failed"]);
 let paired = false, modelSaved = false, signedIn = false, oldest = null;
@@ -1694,7 +1694,7 @@ async function showFinding(key) {
 
 const LOADERS = {
   overview: () => Promise.all([loadChat(), loadVoice(), loadHome()]),
-  settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice(), loadCameras(), loadRouter(), loadMemory()]),
+  settings: () => Promise.all([loadStatus(), loadSettings(), loadVoice(), loadCameras(), loadRouter(), loadMemory(), loadCloud()]),
   messages: () => Promise.all([loadMonitors(), loadMessages()]),
   findings: async () => say("findings-message", await loadFindings()), history: loadHistory,
   log: async () => say("log-message", await loadLog()), profile: loadProfile,
@@ -1934,6 +1934,49 @@ deck.start();
 onClick("chat-clear", "chat-message", async () => {
   await api("chat-clear", {});
   await loadChat();
+});
+
+// Where the model runs: your own network, or a cloud provider you choose (E1).
+function showCloud(view) {
+  world.cloud = view;
+  const where = $("brain-where").dataset.picked ?? view.provider;
+  $("brain-where").value = where;
+  $("local-card").hidden = Boolean(where);
+  $("cloud-card").hidden = !where;
+  $("cloud-url").hidden = $("cloud-url-label").hidden = where !== "other";
+  if (where === view.provider) {
+    $("cloud-url").value = view.url;
+    $("cloud-model").value = view.model;
+    $("cloud-images").checked = view.images;
+    $("cloud-key").placeholder = view.has_key ? "Saved; leave empty to keep it" : "";
+  }
+}
+
+async function loadCloud() {
+  showCloud(await api("cloud"));
+}
+
+$("brain-where").addEventListener("change", async () => {
+  $("brain-where").dataset.picked = $("brain-where").value;
+  if (!$("brain-where").value && world.cloud?.on) {
+    const confirm = await askPassword("Use your own model again? BRAM stops using the cloud and forgets its key.");
+    showCloud(await api("cloud", { confirm, provider: "" }));
+    say("model-message", "Choose your model below.", "good");
+  }
+  showCloud(world.cloud || {});
+});
+onClick("cloud-find", "cloud-message", async () => {
+  const { models } = await api("cloud-models", { provider: $("brain-where").value, key: $("cloud-key").value, url: $("cloud-url").value });
+  $("cloud-models").replaceChildren(...models.map((name) => { const o = element("option"); o.value = name; return o; }));
+  return `Found ${models.length}. Pick one in the Model box.`;
+});
+onClick("cloud-save", "cloud-message", async () => {
+  const name = $("brain-where").selectedOptions[0].textContent;
+  const confirm = await askPassword(`${name}: your questions and what BRAM shares about your home to answer them will go to this company.`);
+  showCloud(await api("cloud", { confirm, provider: $("brain-where").value, key: $("cloud-key").value, url: $("cloud-url").value, model: $("cloud-model").value, images: $("cloud-images").checked }));
+  delete $("brain-where").dataset.picked;
+  $("cloud-key").value = "";
+  return "Saved. BRAM tried it, and it answered.";
 });
 
 onClick("find", "model-message", async () => {

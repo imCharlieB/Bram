@@ -51,7 +51,9 @@ Do this right away. Setup closes 15 minutes after the server starts, and until t
 
 ## 5. Choose a model (optional)
 
-**Settings > Model**: enter `http://HOST:11434`, press **Find models**, then **Save model**. Pick a personality and press **Try it**.
+**Settings > Model**: under **Where your model runs**, keep **On your own network** and enter your Ollama address, such as `http://HOST:11434`, press **Find models**, then **Save model**. Without your own model, choose a cloud provider instead (OpenAI, Anthropic, Google Gemini, or another OpenAI-compatible service), enter its API key, press **Find models**, pick one, and **Save cloud model**. Then pick a personality and press **Try it**.
+
+With a cloud model, your questions and what BRAM shares about your home to answer them go to that company. Camera pictures go only if you turn on **Let the cloud model see camera pictures**. Safety alerts never use a model.
 
 ## 6. Set up alerts and watching
 

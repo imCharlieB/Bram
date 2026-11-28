@@ -7,7 +7,9 @@ import ipaddress
 from urllib.parse import urlsplit
 
 from .models.base import ModelError
+from .models.cloud import PROVIDERS, provider
 from .models.ollama import OllamaProvider
+from .settings import Settings
 
 
 async def check_local(url: str, default_port: int = 11434) -> str:
@@ -78,3 +80,25 @@ def _keep_alive(expires_at: object) -> str | int:
     except ValueError:
         return "30m"
     return -1 if year > datetime.datetime.now(datetime.UTC).year + 1 else "30m"
+
+
+def cloud(settings: Settings) -> dict:
+    """The cloud provider the owner chose, or an empty dict for their own model (E1)."""
+    choice = settings.channel("cloud")
+    return choice if choice.get("provider") in PROVIDERS and choice.get("key") else {}
+
+
+def pictures_allowed(settings: Settings) -> bool:
+    """Camera pictures go to a cloud model only with their own switch (E2)."""
+    chosen = cloud(settings)
+    return not chosen or bool(chosen.get("images"))
+
+
+async def open_brain(settings: Settings, url: str, model: str, context: int, *,
+                     max_output: int = 300):
+    """The owner's model: their own on their network, or the cloud provider they chose.
+    Never one in place of the other when it fails (E1)."""
+    chosen = cloud(settings)
+    if chosen:
+        return provider(chosen, max_output=max_output)
+    return await open_model(url, model, context, max_output=max_output)

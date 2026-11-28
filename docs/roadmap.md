@@ -289,7 +289,7 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 | Ollama, with a benchmark | ✅ |
 | A model per job: chat, vision, triage, summary, search | ⬜ |
 | Backup model; stop using one that fails, and try again later | ⬜ |
-| Cloud models for those who want them: OpenAI, Anthropic, Gemini, and any OpenAI-compatible server. Each one is off until you turn it on, and never used silently when your own model is down (rule E1) | ⬜ |
+| Cloud models for those who want them: OpenAI, Anthropic, Gemini, and any OpenAI-compatible server. Off until you choose one, never used when your own model is down (E1), and pictures only with their own switch (E2) | ✅ 0.55 |
 | Web search and other tools through MCP; off by default | ⬜ |
 | BRAM's own health: model, database, rules, last check | 🟡 connection and versions |
 | Trainer, with approved examples only | ⬜ |

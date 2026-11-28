@@ -210,6 +210,32 @@
     <section id="at-model" data-page="settings" hidden>
       <h1>Model</h1>
       <div class="card">
+        <label for="brain-where">Where your model runs</label>
+        <select id="brain-where">
+          <option value="">On your own network, with Ollama (nothing leaves your home)</option>
+          <option value="openai">In the cloud: OpenAI</option>
+          <option value="anthropic">In the cloud: Anthropic</option>
+          <option value="gemini">In the cloud: Google Gemini</option>
+          <option value="other">Another OpenAI-compatible service</option>
+        </select>
+      </div>
+      <div class="card" id="cloud-card" hidden>
+        <p class="note">With a cloud model, your questions and what BRAM shares about your home to answer them go to that company. Your own model on your network keeps them home. Safety alerts never use a model, and passwords, tokens, and PINs are never sent.</p>
+        <label for="cloud-url" id="cloud-url-label">Service address</label>
+        <input id="cloud-url" placeholder="https://api.example.com/v1">
+        <label for="cloud-key">API key</label>
+        <input id="cloud-key" type="password" autocomplete="off" maxlength="400">
+        <div class="row">
+          <button type="button" id="cloud-find" class="quiet">Find models</button>
+        </div>
+        <label for="cloud-model">Model</label>
+        <input id="cloud-model" list="cloud-models" maxlength="120" placeholder="Such as gpt-4o-mini">
+        <datalist id="cloud-models"></datalist>
+        <label class="check"><input type="checkbox" id="cloud-images"> Let the cloud model see camera pictures (for Describe and asking a camera)</label>
+        <button type="button" id="cloud-save">Save cloud model</button>
+        <p class="message" id="cloud-message" role="status"></p>
+      </div>
+      <div class="card" id="local-card">
         <label for="url">Ollama address</label>
         <div class="row">
           <input id="url" type="url" placeholder="http://HOST:11434">
