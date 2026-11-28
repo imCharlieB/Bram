@@ -68,7 +68,7 @@ Frigate sees everything in the picture, so a person in the neighbors' driveway i
 
 ## The message
 
-The camera, who Frigate recognized, what is true in the rest of the home, and the zones, such as "Someone at front door, and it's night. In porch." With the [Frigate integration](https://docs.frigate.video/integrations/home-assistant) installed in Home Assistant, it shows Frigate's picture of the event: its snapshot, or its smaller thumbnail when snapshots are off for that camera in Frigate. Turn snapshots on in Frigate for a better picture. Tap it to open the finding on BRAM's page. Coming: your model's description, such as "A delivery driver left a box on the porch."
+The camera, who Frigate recognized, what is true in the rest of the home, and the zones, such as "Someone at front door, and it's night. In porch." With the [Frigate integration](https://docs.frigate.video/integrations/home-assistant) installed in Home Assistant, it shows Frigate's picture of the event: its snapshot, or its smaller thumbnail when snapshots are off for that camera in Frigate. Turn snapshots on in Frigate for a better picture. Tap it to open the finding on BRAM's page. With **Describe** on, your model's words are added when they are ready in time, such as "A delivery driver left a box on the porch."
 
 ## Teach BRAM a camera
 

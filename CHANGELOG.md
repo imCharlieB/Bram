@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.55.1
+
+Update the BRAM Server (pull the new image).
+
+- Monitors around the brain say "checking" until the first look, instead of "0 of 1 up".
+- Docs: new screenshots of Home, Findings, and History; the README status and the model table say what is built now.
 - Docs: about 30 pages merged into 8, each with what is on it at the top: Installing, Using BRAM, What BRAM tells you, Cameras, Chat and voice, Settings, How BRAM works, and the Plan. Nothing was removed; old links point to the right section.
 
 ## 0.55.0

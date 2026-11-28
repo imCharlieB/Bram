@@ -111,15 +111,15 @@ How to configure each part, and what each uses. For a plain list, see [Every set
 | Job | Provider | Default | Purpose | Status |
 |---|---|---|---|---|
 | Chat | Ollama | None; you choose | Answers on the page, Assist, and Telegram | Built |
-| Chat | OpenAI-compatible, OpenAI, Anthropic, Gemini | | Same | Planned, off by default |
+| Chat | OpenAI, Anthropic, Google Gemini, or another OpenAI-compatible service | Off | Same, for anyone without their own model | Built; off until you choose one |
 | Alerts | None | Fixed text | Leak, smoke, locks, doors, monitors, summary | Built; never uses a model |
 | History and problems | None | Code | Looks up and measures; chat words the answer | Built |
 | Hearing | Whisper (Wyoming) | `base-int8`, English | Hold to talk, Telegram voice notes | Built |
 | Speaking | Piper (Wyoming) | `en_US-lessac-medium` | Spoken answers | Built |
-| Vision | Ollama model with vision | Same as chat | Describe Frigate events | Planned |
-| Memory search | Ollama embedding model | None | Find memories by meaning | Planned; keyword search without it |
+| Vision | The chat model, if it reads pictures | Off for each camera | Describe camera events, answer questions about a camera | Built; cloud models need their own picture switch |
+| Memory search | Ollama embedding model | None | Find memories by meaning | Planned; keyword search today |
 | Summaries of long chats | Same as chat | | Keep long chats short | Planned |
-| Learning | None | Code | [Suggested night hours and left-open time](watching.md#learning) | Built; never uses a model. Patterns and suggested rules are planned |
+| Learning | None | Code | [Suggested night hours, left-open time, nightly checks, and things left on while away](watching.md#learning) | Built; never uses a model |
 | Backup model | Another local Ollama model | None | When the first fails | Planned |
 
 #### Models tried

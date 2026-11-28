@@ -92,10 +92,10 @@ BRAM has two halves. HACS installs the integration; the server runs in Docker.
 | | Works today | Planned |
 |---|---|---|
 | **Watch and tell** | Safety alerts, silent sensors, locks, doors, windows, motion while away, temperature and humidity, phone messages with buttons, quiet hours, daily summary, Telegram, ntfy, monitors | Severity for every finding, safety acknowledge from BRAM's page |
-| **Find problems** | Home Assistant health, 3D printers, the security check | Power and energy, network devices, poor air, appliances left on |
-| **Remember** | Findings with their stories, history and trends, heating and cooling runs, prints; memory of what you ask it to remember, and your conversation, if you turn it on | Preferences and corrections it notices |
-| **Learn** | Suggested night hours and left-open time, approved on a review page | Usual routines, suggested rules and automations |
-| **Talk** | Chat on its page, in Assist, and in Telegram; voice; personalities; blueprints | Other model providers, speakers in rooms |
+| **Find problems** | Home Assistant health, 3D printers, the security check with new devices on every network and VLAN | Power and energy, poor air |
+| **Remember** | Findings with their stories, history and trends, heating and cooling runs, prints; memory of what you ask it to remember, for each person, and your conversation, if you turn it on | Search by meaning |
+| **Learn** | Suggested night hours and left-open time, nightly checks for what is often left open, things left on while away, fewer messages about what you keep hiding; all approved on a review page | Usual routines, automations it drafts |
+| **Talk** | Chat on its page, in Assist, and in Telegram; voice; personalities; blueprints; your own model or a cloud one | Speakers in rooms |
 | **Explain** | | Likely causes and what to do |
 | **Control and fix** | Nothing. BRAM cannot control anything | Lights, one-tap repairs, then locks with your approval |
 | **Cameras and people** | Frigate events, camera messages with pictures, zones and doors for each camera, descriptions from your own model, asking a camera in chat, a dashboard card | The right message to the right person, faces |

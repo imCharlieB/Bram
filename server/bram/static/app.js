@@ -1391,7 +1391,8 @@ function showSystems(brain) {
   }
   if (world.monitors.length) {
     const upNow = world.monitors.filter((m) => m.up).length, down = world.monitors.filter((m) => m.up === false);
-    list.push({ name: "Monitors", value: down.length ? `${down[0].name} down` : `${upNow} of ${world.monitors.length} up`, hot: down.length ? "bad" : "" });
+    const checking = world.monitors.some((m) => m.up === null);
+    list.push({ name: "Monitors", value: down.length ? `${down[0].name} down` : checking ? "checking" : `${upNow} of ${world.monitors.length} up`, hot: down.length ? "bad" : "" });
   }
   const router = world.router;
   if (router?.url) list.push({ name: "Router", value: router.connected ? `${router.devices} devices` : "not answering", hot: router.connected ? (router.update ? "warn" : "") : "bad" });
