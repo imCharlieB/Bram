@@ -74,11 +74,15 @@ The camera, who Frigate recognized, what is true in the rest of the home, and th
 
 Your model learns your home from you, two ways. Both need **Describe** on for the camera.
 
-**What it sees.** Under **Settings > Cameras**, open **Describe what it sees** under a camera. Its picture now shows above the box. Write things your model can spot in any picture, wherever the camera points, which matters for one that moves:
+**What it sees.** Under **Settings > Cameras**, each camera has **Describe what it sees**, with its picture now above the box. Write things your model can spot in any picture, wherever the camera points, which matters for one that moves:
 
 > Ours: the concrete driveway with the basketball hoop, the white truck, the black mailbox. Neighbors': the house with the red door and its gravel driveway. The street: people walking there don't matter.
 
-**Does it matter?** Each camera window on Home asks it, with **It matters** and **Doesn't matter**, and a box to say what it was, such as "the neighbor in his driveway". Camera messages on your phone ask it too, without the box.
+**Does it matter?** This is about one picture BRAM looked at, not where the camera points. Answer it with **It matters** or **Doesn't matter**, then say what it was, such as "my Tesla" or "the neighbor in his driveway". It is asked in three places:
+
+- **Settings > Cameras**, under each camera's last picture.
+- On Home, under **Looking at**: tap the picture, or a camera's row, to open its last event in a window.
+- In the window that pops up on Home for an event BRAM told your phone about. Camera messages on your phone ask it too, without the box.
 
 Both go to your model with every picture from that camera, so its descriptions use your words, such as "The neighbor walks to his car in his own driveway." Your answers are listed under **Settings > Cameras > What you taught BRAM**, each with **Forget**.
 

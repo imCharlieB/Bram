@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.55.3
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- Tell BRAM what any camera picture was, not only ones it sent your phone: each camera under **Settings > Cameras** shows its last picture with **It matters** and **Doesn't matter**, and on Home, tapping the picture or a camera under **Looking at** opens its window.
+- **Describe what it sees** is open under each camera, instead of folded away.
+
 ## 0.55.2
 
 Update BRAM in HACS, then restart Home Assistant. Update the BRAM Server (pull the new image).

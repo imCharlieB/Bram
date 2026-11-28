@@ -335,15 +335,28 @@ function showCameras(view) {
       text.placeholder = "Things BRAM can spot in any picture, wherever it points. Ours: the concrete driveway with the basketball hoop. Neighbors': the house with the red door and its driveway. The street: people walking there don't matter.";
       text.setAttribute("aria-label", `What ${cameraName(camera.name)} sees`);
       look.alt = `${cameraName(camera.name)} now`;
-      scene.addEventListener("toggle", () => {
-        if (scene.open) look.src = `/api/camera-live?camera=${encodeURIComponent(camera.name)}&t=${Date.now()}`;
-      });
+      scene.open = true;  // shown, not hidden: what it sees now, and the words for it
+      look.src = `/api/camera-live?camera=${encodeURIComponent(camera.name)}&t=${Date.now()}`;
+      look.addEventListener("error", () => look.remove());
       save.type = "button";
       save.addEventListener("click", () => busy(save, "camera-message", async () => {
         showCameras(await api("camera-scene", { camera: camera.name, text: text.value }));
         return "Saved. Your model gets it with each picture from this camera.";
       }));
       scene.append(summary, look, text, save);
+      // The last picture BRAM looked at, to answer Does it matter? about it.
+      if (camera.last) {
+        const last = element("div", undefined, "last-look");
+        if (camera.shot) {
+          const shot = element("img");
+          shot.src = `/api/camera-picture?camera=${encodeURIComponent(camera.name)}&e=${encodeURIComponent(camera.last.id)}`;
+          shot.alt = `${cameraName(camera.name)}: ${cameraLine(camera)[0]}`;
+          shot.addEventListener("error", () => shot.remove());
+          last.append(shot);
+        }
+        last.append(element("small", `What it looked at last: ${cameraLine(camera)[0]}`, "note"), notNews(camera, camera.last, `camera:${camera.last.id}`));
+        left.append(last);
+      }
       left.append(scene);
       const words = element("label", undefined, "check"), say = element("input");
       say.type = "checkbox";
@@ -447,9 +460,21 @@ function showLooking(view, on) {
     $("look-img").alt = `${pretty(latest.name)}: ${cameraLine(latest)[0]}`;
     $("look-caption").textContent = `${pretty(latest.name)} · ${cameraLine(latest)[0]}${latest.last.quiet ? ` · ${latest.last.quiet}` : latest.last.description ? ` · ${latest.last.description}` : ""}`;
   }
+  // Any camera's last event can be answered: open its window from here.
+  const answerable = (target, camera) => {
+    target.classList.add("answer");
+    target.tabIndex = 0;
+    target.setAttribute("role", "button");
+    target.title = "Open it, and tell BRAM whether it matters";
+    target.onclick = () => cameraWindow(camera, camera.last);
+    target.onkeydown = (key) => { if (key.key === "Enter" || key.key === " ") { key.preventDefault(); cameraWindow(camera, camera.last); } };
+  };
+  if (latest?.shot) answerable($("look-shot"), latest);
   $("hud-cameras").replaceChildren(...on.flatMap((camera) => {
     const [text, good] = cameraLine(camera);
-    return row(pretty(camera.name), camera.offline ? "no picture" : camera.last ? camera.last.who || camera.last.label : "quiet", good === false ? "bad" : good ? "" : "off", camera.last ? text : "");
+    const lines = row(pretty(camera.name), camera.offline ? "no picture" : camera.last ? camera.last.who || camera.last.label : "quiet", good === false ? "bad" : good ? "" : "off", camera.last ? text : "");
+    if (camera.last) answerable(lines[0], camera);
+    return lines;
   }));
   // Words from the model come later; they fill in a window that is still open.
   for (const camera of on) {
@@ -464,15 +489,24 @@ function showLooking(view, on) {
     const first = !seen.camerasReady;
     seen.cameras.add(key);
     if (first || Date.now() / 1000 - event.start > 300) continue;
-    const what = event.who || PEOPLE_AND_THINGS[event.label] || event.label;
-    for (const win of [...$("hud-alerts").querySelectorAll('[data-key^="camera:"]')]) win.remove();
-    popUp(key, event.label === "person" ? "warn" : "good", `Camera · ${pretty(camera.name)}`, `${what} at ${pretty(camera.name)}`,
-      [event.zones.join(", ").replaceAll("_", " "), new Date(event.start * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })].filter(Boolean).join(" · "),
-      null,
-      camera.shot ? `/api/camera-picture?camera=${encodeURIComponent(camera.name)}&e=${encodeURIComponent(event.id)}` : "",
-      notNews(camera, event, key));
+    cameraWindow(camera, event);
   }
   seen.camerasReady = true;
+}
+
+// One camera window at a time: the picture BRAM looked at, its words, and Does it matter?
+function cameraWindow(camera, event) {
+  const key = `camera:${event.id}`, pretty = cameraName;
+  if ($("hud-alerts").querySelector(`[data-key="${CSS.escape(key)}"]`)) return;
+  const what = event.who || PEOPLE_AND_THINGS[event.label] || event.label;
+  for (const win of [...$("hud-alerts").querySelectorAll('[data-key^="camera:"]')]) win.remove();
+  popUp(key, event.label === "person" ? "warn" : "good", `Camera · ${pretty(camera.name)}`, `${what} at ${pretty(camera.name)}`,
+    [(event.zones || []).join(", ").replaceAll("_", " "), new Date(event.start * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })].filter(Boolean).join(" · "),
+    null,
+    camera.shot ? `/api/camera-picture?camera=${encodeURIComponent(camera.name)}&e=${encodeURIComponent(event.id)}` : "",
+    notNews(camera, event, key));
+  const win = $("hud-alerts").querySelector(`[data-key="${CSS.escape(key)}"] .body`);
+  if (win && event.description && !win.querySelector(".words")) win.insertBefore(element("p", event.description, "words"), win.querySelector("small")?.nextSibling || null);
 }
 
 // Memory: everything shown here can be changed or deleted (E7).

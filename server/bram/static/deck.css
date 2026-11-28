@@ -223,6 +223,9 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 #look-shot { margin: 4px 0 6px; }
 #look-shot img { display: block; width: 100%; max-height: 150px; object-fit: cover; border: 1px solid var(--hud-line); }
 #look-shot figcaption { margin-top: 4px; font: .7rem var(--mono); color: var(--hud-dim); }
+.answer { cursor: pointer; }
+.answer:hover, .answer:focus-visible { outline: 1px solid var(--hud-line); outline-offset: 2px; }
+#look-shot.answer figcaption::after { content: " · Tap: does it matter?"; color: var(--hud); }
 #monitors-pane .more, #look-pane a { color: var(--hud); font: .7rem var(--mono); }
 @keyframes event-in { from { opacity: 0; transform: translate(-50%, -50%) scale(.6); filter: blur(4px); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: none; } }
 @keyframes event-out { to { opacity: 0; transform: translate(-50%, -90%) scale(.9); filter: blur(3px); } }
@@ -411,3 +414,6 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 }
 @keyframes fold { to { opacity: 0; transform: scaleY(.015); filter: brightness(2.5); } }
 @media (prefers-reduced-motion: reduce) { .command .unfolding, .command .folding { animation: none; } }
+.last-look { margin: 10px 0 4px; }
+.last-look img { display: block; max-width: 320px; width: 100%; border: 1px solid var(--hud-line); margin-bottom: 4px; }
+.last-look .acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
