@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.52.3
+
+Update BRAM in HACS, then restart Home Assistant. The server has no change; updating it too keeps the versions the same.
+
+- Fixed: connecting your router made every device on your network a "new device". A device is now known by its hardware address whichever source reports it, and each source's first look learns what is already there; only devices that join after it are told.
+
 ## 0.52.2
 
 Update the BRAM Server (pull the new image).

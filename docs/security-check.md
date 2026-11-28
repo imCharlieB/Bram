@@ -45,7 +45,7 @@ BRAM uses every source it has, whatever router you use:
 - **Home Assistant's own network discovery**, which notices any device on Home Assistant's network that asks for an address. It is on in a normal Home Assistant.
 - **A router integration's device list** in Home Assistant, if you have one with device tracking, such as UniFi, FRITZ!Box, eero, or Netgear.
 
-The first look learns every device already there. After that, each new one is told once, with its name and network, or its address if it has no name. If everyone BRAM can see is away, it is urgent.
+The first look at each source learns every device already there, so connecting your router later does not make every device on it new. A device is known by its hardware address, whichever source reports it. After that, each new one is told once, with its name and network, or its address if it has no name. If everyone BRAM can see is away, it is urgent.
 
 ## Connect your router
 

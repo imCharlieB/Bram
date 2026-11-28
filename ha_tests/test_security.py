@@ -122,7 +122,7 @@ async def test_new_devices_on_the_network_and_paired(hass):
     zigbee = MockConfigEntry(domain="zha")
     zigbee.add_to_hass(hass)
     first = await check(hass, {})
-    assert first["ids"]["network"] == ["dhcp:aa:bb:cc:00:00:01"]
+    assert first["ids"]["network"] == ["mac:aa:bb:cc:00:00:01"]
     known = {k: v for k, v in first["ids"].items()}
     assert not [f for f in first["findings"] if f["key"].startswith("new:")]
     hass.data[DATA_DHCP].address_data["AA:BB:CC:00:00:02"] = {"hostname": "", "ip": "10.0.0.9"}
@@ -131,7 +131,7 @@ async def test_new_devices_on_the_network_and_paired(hass):
     later = await check(hass, known, away=True)
     news = {f["key"]: (f["level"], f["text"]) for f in later["findings"]
             if f["key"].startswith("new:")}
-    assert news["new:network:dhcp:aa:bb:cc:00:00:02"] == (
+    assert news["new:network:mac:aa:bb:cc:00:00:02"] == (
         "high", "A new device joined your network while everyone is away: a device at 10.0.0.9")
     (paired,) = [v for k, v in news.items() if k.startswith("new:radio:")]
     assert paired == ("medium", "A new Zigbee device was paired: Door sensor")
@@ -180,3 +180,29 @@ async def test_the_routers_devices_join_the_check(hass):
     said = " | ".join(texts(later))
     assert "A new device joined your network: camera on IOT" in said
     assert "Router update waiting: OPNsense 25.7.3" in said
+
+
+async def test_a_router_connected_later_tells_only_what_joins_after_it(hass):
+    hass.data["dhcp"] = SimpleNamespace(address_data={
+        "aa:bb:cc:00:00:01": {"hostname": "laptop", "ip": "10.0.0.5"}})
+    first = await check(hass, {})
+    known = first["ids"]
+    # The router is connected: dozens of devices on other networks, all already there.
+    router = {f"router:aa:bb:cc:00:01:{i:02x}": f"device {i}" for i in range(40)}
+    router["router:aa:bb:cc:00:00:01"] = "laptop on LAN"  # the same laptop, seen both ways
+    second = await check(hass, known, own=(router, {"update": False}))
+    assert not [f for f in second["findings"] if f["key"].startswith("new:network")]
+    known = {k: sorted(set(v) | set(known.get(k, []))) for k, v in second["ids"].items()}
+    later = await check(hass, known, own=({**router, "router:aa:bb:cc:00:02:00": "tablet on IOT"},
+                                          {"update": False}))
+    assert [f["text"] for f in later["findings"] if f["key"].startswith("new:network")] == [
+        "A new device joined your network: tablet on IOT"]
+    del hass.data["dhcp"]
+
+
+async def test_what_was_learned_before_still_counts(hass):
+    hass.data["dhcp"] = SimpleNamespace(address_data={
+        "aa:bb:cc:00:00:01": {"hostname": "laptop", "ip": "10.0.0.5"}})
+    old = {"network": ["dhcp:aa:bb:cc:00:00:01"]}  # learned by an earlier version
+    assert not (await check(hass, old))["findings"]
+    del hass.data["dhcp"]

@@ -55,7 +55,8 @@ async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None,
     """Findings, most serious first. Each check that fails is listed as not run."""
     found: list[dict[str, str]] = []
     missed = list(NOT_CHECKED)
-    ids: dict[str, list[str]] = {"admins": [], "tokens": [], "network": [], "radio": []}
+    ids: dict[str, list[str]] = {"admins": [], "tokens": [], "network": [], "radio": [],
+                                 "network_sources": []}
     registry, devices = er.async_get(hass), dr.async_get(hass)
     domains = {e.entry_id: e.domain for e in hass.config_entries.async_entries()}
 
@@ -180,32 +181,39 @@ async def check(hass: HomeAssistant, known: dict[str, list[str]] | None = None,
             found.append(_finding("updates", "low", f"Updates waiting: {', '.join(names[:4])}"))
 
     def network() -> None:
-        """Devices on the network: from Home Assistant's own DHCP discovery, which sees any
-        device that asks the network for an address, whatever the router, and from any router
-        integration's device list. New ones are told once."""
-        seen: dict[str, str] = {}
+        """Devices on the network: from the router connected on BRAM's page, Home Assistant's
+        own DHCP discovery, and any router integration's device list. A device is known by its
+        hardware address whichever source reports it. Each source's first look learns what is
+        already there, so only devices that join after it are told, once."""
+        seen: dict[str, tuple[str, str]] = {}  # key: (source, name)
         for state in hass.states.async_all("device_tracker"):
             if state.attributes.get("source_type") == "router" or owner(state.entity_id) in ROUTERS:
-                seen[state.entity_id] = state.name
-        # The router itself, connected on BRAM's page: every network and VLAN.
-        if own is not None and own[0]:
-            seen.update(own[0])
+                mac = str(state.attributes.get("mac") or "").lower()
+                seen[f"mac:{mac}" if mac else state.entity_id] = ("trackers", state.name)
         # Home Assistant's DHCP discovery keeps what it has seen under its own name.
         addresses = getattr(hass.data.get("dhcp"), "address_data", None) or {}
         for mac, data in list(addresses.items()):
             name = str(data.get("hostname") or "").strip()
             where = data.get("ip") or "an unknown address"
-            seen[f"dhcp:{mac.lower()}"] = name or f"a device at {where}"
+            seen.setdefault(f"mac:{mac.lower()}", ("discovery", name or f"a device at {where}"))
+        # The router itself: every network and VLAN, with the best names.
+        if own is not None and own[0]:
+            for key, name in own[0].items():
+                seen[f"mac:{key.removeprefix('router:').lower()}"] = ("router", name)
         if not seen:
             missed.append("Devices on your network: none seen yet. Connect your router on "
                           "BRAM's page to see every network")
             return
-        ids["network"] = sorted(seen)
+        sources = sorted({source for source, _ in seen.values()})
+        ids["network"], ids["network_sources"] = sorted(seen), sources
         if known is None or "network" not in known:
             return  # the first look learns what is already there
-        for key, name in seen.items():
-            if key in known["network"]:
-                continue
+        # Learned before 0.52.3: keys were dhcp:<mac>; trackers and discovery had been seen.
+        before = {k.replace("dhcp:", "mac:", 1) for k in known["network"]}
+        learned = set(known.get("network_sources") or ["trackers", "discovery"])
+        for key, (source, name) in seen.items():
+            if key in before or source not in learned:
+                continue  # known, or a source seen for the first time: learned, not told
             where = " while everyone is away" if away else ""
             found.append(_finding(f"new:network:{key}", "high" if away else "medium",
                                   f"A new device joined your network{where}: {name}"))
