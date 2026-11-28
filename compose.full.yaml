@@ -1,4 +1,4 @@
-# BRAM, ntfy, Whisper, and Piper in one stack. See docs/voice.md.
+# BRAM, ntfy, Whisper, and Piper in one stack. See docs/chat.md#voice.
 services:
   bram:
     image: ghcr.io/imcharlieb/bram-server:edge

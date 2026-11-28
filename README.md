@@ -75,11 +75,11 @@ BRAM has two halves. HACS installs the integration; the server runs in Docker.
 5. **Run Quick setup.** **BRAM > Configure > Quick setup**: pick your phone, put anything you do not want to share under **Leave these out**, and **Submit**. Nothing is shared until you do.
 6. **Check it.** BRAM's device page says **Connected**. Press **Send test message**; it should reach your phone.
 
-[Full install instructions](https://github.com/imCharlieB/Bram/blob/main/docs/installation.md)
+[Full install instructions](https://github.com/imCharlieB/Bram/blob/main/docs/installation.md#installing-1)
 
 ## First days
 
-**[Using BRAM day to day](https://github.com/imCharlieB/Bram/blob/main/docs/guide.md)** walks you through the rest, in order:
+**[Using BRAM day to day](https://github.com/imCharlieB/Bram/blob/main/docs/guide.md#using-bram-day-to-day)** walks you through the rest, in order:
 
 - Choose devices in **Configure > Devices**. Share a weather entity for the outside temperature.
 - Turn on watches in **Configure > Watching**: Home Assistant and security, locks, doors, and windows, temperature and humidity, and 3D printers. Printers start switched off.
@@ -109,7 +109,7 @@ BRAM has two halves. HACS installs the integration; the server runs in Docker.
 - Models, speech, and history stay on your network. Home Assistant app messages use its push service, and Telegram is optional.
 - Never forward BRAM's ports on your router.
 
-[Security](https://github.com/imCharlieB/Bram/blob/main/docs/security.md) · [What BRAM stores](https://github.com/imCharlieB/Bram/blob/main/docs/data.md) · [Hard rules](https://github.com/imCharlieB/Bram/blob/main/HARD_RULES.md)
+[Security](https://github.com/imCharlieB/Bram/blob/main/docs/how-it-works.md#security) · [What BRAM stores](https://github.com/imCharlieB/Bram/blob/main/docs/how-it-works.md#what-bram-stores) · [Hard rules](https://github.com/imCharlieB/Bram/blob/main/HARD_RULES.md)
 
 ## Update
 
@@ -135,21 +135,16 @@ Update both and keep them on the same version; BRAM warns you when they differ. 
 
 **[All documentation](https://github.com/imCharlieB/Bram/blob/main/docs/README.md)**
 
-| Start | Features | How it works |
-|---|---|---|
-| [Installing](https://github.com/imCharlieB/Bram/blob/main/docs/installation.md) | [BRAM's Home page](https://github.com/imCharlieB/Bram/blob/main/docs/home.md) | [Architecture](https://github.com/imCharlieB/Bram/blob/main/docs/architecture.md) |
-| [Using BRAM day to day](https://github.com/imCharlieB/Bram/blob/main/docs/guide.md) | [Watching your home](https://github.com/imCharlieB/Bram/blob/main/docs/watching.md) | [Security](https://github.com/imCharlieB/Bram/blob/main/docs/security.md) |
-| [Devices](https://github.com/imCharlieB/Bram/blob/main/docs/devices.md) | [Alerts and messages](https://github.com/imCharlieB/Bram/blob/main/docs/messages.md) | [What BRAM stores](https://github.com/imCharlieB/Bram/blob/main/docs/data.md) |
-| [Configuration](https://github.com/imCharlieB/Bram/blob/main/docs/configuration.md) | [How often BRAM tells you](https://github.com/imCharlieB/Bram/blob/main/docs/how-often.md) | [Hard rules](https://github.com/imCharlieB/Bram/blob/main/HARD_RULES.md) |
-| [Every setting](https://github.com/imCharlieB/Bram/blob/main/docs/settings.md) | [Findings](https://github.com/imCharlieB/Bram/blob/main/docs/findings.md) | [Server commands](https://github.com/imCharlieB/Bram/blob/main/docs/server.md) |
-| [Plan](https://github.com/imCharlieB/Bram/blob/main/docs/roadmap.md) | [History and trends](https://github.com/imCharlieB/Bram/blob/main/docs/history.md) | [Testing your model](https://github.com/imCharlieB/Bram/blob/main/docs/benchmark.md) |
-| [Changes](https://github.com/imCharlieB/Bram/blob/main/CHANGELOG.md) | [Learning](https://github.com/imCharlieB/Bram/blob/main/docs/learning.md) | [Development](https://github.com/imCharlieB/Bram/blob/main/docs/development.md) |
-| | [Problems with Home Assistant](https://github.com/imCharlieB/Bram/blob/main/docs/problems.md) | |
-| | [3D printers](https://github.com/imCharlieB/Bram/blob/main/docs/printers.md) | |
-| | [Security check](https://github.com/imCharlieB/Bram/blob/main/docs/security-check.md) | |
-| | [Monitors](https://github.com/imCharlieB/Bram/blob/main/docs/monitors.md) | |
-| | [Chat](https://github.com/imCharlieB/Bram/blob/main/docs/chat.md) and [Voice](https://github.com/imCharlieB/Bram/blob/main/docs/voice.md) | |
-| | [Personality](https://github.com/imCharlieB/Bram/blob/main/docs/personality.md) | |
-| | [Blueprints](https://github.com/imCharlieB/Bram/blob/main/docs/blueprints.md) | |
+| Page | What is in it |
+|---|---|
+| [Installing](https://github.com/imCharlieB/Bram/blob/main/docs/installation.md) | The server, the integration, connecting them, updating |
+| [Using BRAM](https://github.com/imCharlieB/Bram/blob/main/docs/guide.md) | Day to day: the Home page, Findings, History |
+| [What BRAM tells you](https://github.com/imCharlieB/Bram/blob/main/docs/watching.md) | Watching, messages, problems, printers, monitors, security, learning |
+| [Cameras](https://github.com/imCharlieB/Bram/blob/main/docs/cameras.md) | Frigate, camera messages, teaching a camera, the dashboard card |
+| [Chat and voice](https://github.com/imCharlieB/Bram/blob/main/docs/chat.md) | Chat, memory, voice, personality, blueprints |
+| [Settings](https://github.com/imCharlieB/Bram/blob/main/docs/settings.md) | Every setting, configuration, devices |
+| [How BRAM works](https://github.com/imCharlieB/Bram/blob/main/docs/how-it-works.md) | Architecture, security, what BRAM stores |
+| [Plan](https://github.com/imCharlieB/Bram/blob/main/docs/roadmap.md) | What is built and what comes next |
+| [Changes](https://github.com/imCharlieB/Bram/blob/main/CHANGELOG.md) | Every release |
 
 MIT licensed. See [LICENSE](https://github.com/imCharlieB/Bram/blob/main/LICENSE).

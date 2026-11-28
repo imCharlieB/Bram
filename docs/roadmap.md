@@ -1,5 +1,6 @@
 # Plan
 
+
 Every feature, what is built, and the order for the rest. Nothing gets built unless it is on this page, and each phase needs the owner's approval before it starts. Everything follows the [Hard rules](../HARD_RULES.md).
 
 BRAM is the brain of the house: it monitors and protects it. Its job: **notice** what is happening, **remember** it, **explain** what is wrong, **tell** the right person, and **fix** what it is allowed to fix.
@@ -29,22 +30,22 @@ BRAM is the brain of the house: it monitors and protects it. Its job: **notice**
 
 | Feature | Status | More |
 |---|---|---|
-| Pairing, live state, rooms, people, media, pictures | ✅ | [Devices](devices.md) |
-| Recommended setup and suggestions | ✅ | [Configuration](configuration.md) |
-| Leak, smoke, CO, gas, and heat alerts that repeat until acknowledged | ✅ | [Watching](watching.md) |
-| Lock and door rules, silent sensors | ✅ | [Watching](watching.md) |
-| Home Assistant security check, every 10 minutes or when asked | ✅ | [Security check](security-check.md) |
-| HA phone app, Telegram, ntfy | ✅ | [Messages](messages.md) |
-| Quiet hours, daily limits, Stop these, grouping, daily summary | ✅ | [Messages](messages.md) |
-| Monitors for things outside Home Assistant | ✅ | [Monitors](monitors.md) |
-| Chat on the page, in Assist, and in Telegram | ✅ | [Chat](chat.md) |
-| Chat looks up history, errors, batteries, and updates **only when asked** | ✅ | [Chat](chat.md) |
-| Whisper and Piper | ✅ | [Voice](voice.md) |
-| Personalities | ✅ | [Personality](personality.md) |
-| Suggested night hours | ✅ | [Learning](learning.md) |
-| A review page in Home Assistant for suggestions, opened from a phone message; admins only | ✅ 0.36 | [Learning](learning.md) |
-| Suggestions from what you do: something you hide or never act on, offered as Stop these or Less often | ✅ 0.37 | [How often BRAM tells you](how-often.md) |
-| Command center page, second factor | ✅ | [Security](security.md) |
+| Pairing, live state, rooms, people, media, pictures | ✅ | [Devices](settings.md#devices) |
+| Recommended setup and suggestions | ✅ | [Configuration](settings.md#configuration) |
+| Leak, smoke, CO, gas, and heat alerts that repeat until acknowledged | ✅ | [Watching](watching.md#how-bram-watches-your-home) |
+| Lock and door rules, silent sensors | ✅ | [Watching](watching.md#how-bram-watches-your-home) |
+| Home Assistant security check, every 10 minutes or when asked | ✅ | [Security check](watching.md#security-check) |
+| HA phone app, Telegram, ntfy | ✅ | [Messages](watching.md#alerts-and-messages) |
+| Quiet hours, daily limits, Stop these, grouping, daily summary | ✅ | [Messages](watching.md#alerts-and-messages) |
+| Monitors for things outside Home Assistant | ✅ | [Monitors](watching.md#monitors-1) |
+| Chat on the page, in Assist, and in Telegram | ✅ | [Chat](chat.md#chat) |
+| Chat looks up history, errors, batteries, and updates **only when asked** | ✅ | [Chat](chat.md#chat) |
+| Whisper and Piper | ✅ | [Voice](chat.md#voice) |
+| Personalities | ✅ | [Personality](chat.md#personality) |
+| Suggested night hours | ✅ | [Learning](watching.md#learning) |
+| A review page in Home Assistant for suggestions, opened from a phone message; admins only | ✅ 0.36 | [Learning](watching.md#learning) |
+| Suggestions from what you do: something you hide or never act on, offered as Stop these or Less often | ✅ 0.37 | [How often BRAM tells you](watching.md#how-often-bram-tells-you) |
+| Command center page, second factor | ✅ | [Security](how-it-works.md#security) |
 
 ## 1. One record
 
@@ -53,10 +54,10 @@ Today the server's database logs connections, sign-ins, monitors, what the serve
 | Feature | Status |
 |---|---|
 | Server database and append-only log | ✅ |
-| Every finding in one list: what, where, first seen, last seen, how often, told, acknowledged, fixed | ✅ [Findings](findings.md) |
+| Every finding in one list: what, where, first seen, last seen, how often, told, acknowledged, fixed | ✅ [Findings](guide.md#findings) |
 | Home Assistant sends its findings and phone messages to that list, and catches up after a disconnect | ✅ |
 | Findings page: open, fixed, and ignored, with the story of each | ✅ |
-| History of shared devices, off until you turn it on (rule E10) | ✅ [History](history.md) |
+| History of shared devices, off until you turn it on (rule E10) | ✅ [History](guide.md#history-and-trends) |
 | Climate: every run of heating, cooling, and fan, with start, end, target, mode, preset, inside and outside temperature | ✅ |
 | Readings: temperature, humidity, air quality, power, energy, and water | ✅ |
 | Past readings brought in from Home Assistant's own statistics, so trends do not start from nothing | ✅ |
@@ -108,7 +109,7 @@ BRAM looks by itself. Plain rules decide what is a problem. One finding per prob
 
 | Finds | Status |
 |---|---|
-| Integration failed to start or keeps retrying | ✅ [Problems](problems.md) |
+| Integration failed to start or keeps retrying | ✅ [Problems](watching.md#problems-with-home-assistant) |
 | The same error repeating | ✅ |
 | New repairs | ✅ |
 | Low batteries, and phone battery low at night | ✅ |
@@ -158,7 +159,7 @@ Read from the printer's own integration. One printer is one device with a sectio
 
 | Feature | Status |
 |---|---|
-| Printer found automatically: printing, paused, idle, off, with progress, time left, and file name | ✅ [3D printers](printers.md) |
+| Printer found automatically: printing, paused, idle, off, with progress, time left, and file name | ✅ [3D printers](watching.md#3d-printers) |
 | Nozzle, bed, and chamber temperatures against target | ✅ |
 | Told when finished, failed, paused, or asking for attention | ✅ |
 | Told when out of filament | 🟡 as paused or a problem |
@@ -253,7 +254,7 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 
 | Blueprint | Does | Status |
 |---|---|---|
-| BRAM scheduled check | On a schedule, asks BRAM a question, such as "any packages on the porch?", and tells your phone only when the answer is yes | ✅ 0.35, see [Blueprints](blueprints.md) |
+| BRAM scheduled check | On a schedule, asks BRAM a question, such as "any packages on the porch?", and tells your phone only when the answer is yes | ✅ 0.35, see [Blueprints](chat.md#blueprints) |
 | BRAM house summary | On a schedule, asks BRAM for the state of the home, cameras included, and sends it | ✅ 0.35, cameras when they come |
 | BRAM camera event | When BRAM tells you about a camera event, also runs actions you choose, such as turning on a porch light | ⬜ |
 | BRAM finding router | When BRAM finds something, runs a script you choose for that kind of finding. Anything that unlocks, opens, or disarms still needs your approval by a tap (rules A3, A15) | ⬜ |
@@ -267,8 +268,8 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 | Thermostat against room sensor over time: drift, a room that lags, and which one to trust | ⬜ |
 | Climate trends: run time against outside temperature and setting, a system working harder than it used to, what each setting costs in run time, suggested settings | ⬜ |
 | Usual arrivals, lockup, and routines | ⬜ |
-| Suggests nightly checks from history, such as "Check Garage door at 11 PM?" after it was still open on 19 of 28 nights; code finds the pattern; on only after approval | ✅ 0.51, [Learning](learning.md#nightly-checks) |
-| Suggested: lights, switches, and fans often left on while everyone is away | ✅ 0.54, [Learning](learning.md#left-on-while-everyone-is-away) |
+| Suggests nightly checks from history, such as "Check Garage door at 11 PM?" after it was still open on 19 of 28 nights; code finds the pattern; on only after approval | ✅ 0.51, [Learning](watching.md#nightly-checks) |
+| Suggested: lights, switches, and fans often left on while everyone is away | ✅ 0.54, [Learning](watching.md#left-on-while-everyone-is-away) |
 | More kinds of suggested rules: a door unlocked at the same time each day | ⬜ |
 | Describe an automation; BRAM drafts it, checks every device exists, shows it, and installs it only after approval | ⬜ |
 | Switch a suggested rule off, back on, or repair it | ⬜ |

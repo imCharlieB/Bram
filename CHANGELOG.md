@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Docs: about 30 pages merged into 8, each with what is on it at the top: Installing, Using BRAM, What BRAM tells you, Cameras, Chat and voice, Settings, How BRAM works, and the Plan. Nothing was removed; old links point to the right section.
+
 ## 0.55.0
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.
@@ -12,7 +14,7 @@ Update the BRAM Server (pull the new image). Home Assistant needs no update.
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
 
-- Learning suggests telling you about lights, switches, and fans often left on while everyone is away, from the last 28 days of history. Approve one, and you are told when it has been on for ten minutes after everyone leaves. BRAM never turns anything off. See [Left on while everyone is away](docs/learning.md#left-on-while-everyone-is-away).
+- Learning suggests telling you about lights, switches, and fans often left on while everyone is away, from the last 28 days of history. Approve one, and you are told when it has been on for ten minutes after everyone leaves. BRAM never turns anything off. See [Left on while everyone is away](docs/watching.md#left-on-while-everyone-is-away).
 
 ## 0.53.0
 
@@ -60,7 +62,7 @@ Update the BRAM Server (pull the new image). Home Assistant needs no update.
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
 
-- Learning suggests nightly checks. From the last 28 nights of history, BRAM finds a door, window, or lock that is often still open or unlocked late, and asks on the review page, for example "Check Garage door at 11 PM?". Approve, and each night at that hour it tells you if it is still open. Needs Learning and Keep history on. Remove a check under **Configure > Learning**. See [Nightly checks](docs/learning.md#nightly-checks).
+- Learning suggests nightly checks. From the last 28 nights of history, BRAM finds a door, window, or lock that is often still open or unlocked late, and asks on the review page, for example "Check Garage door at 11 PM?". Approve, and each night at that hour it tells you if it is still open. Needs Learning and Keep history on. Remove a check under **Configure > Learning**. See [Nightly checks](docs/watching.md#nightly-checks).
 
 ## 0.50.2
 
@@ -88,7 +90,7 @@ Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pul
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
 
-- Connect your router: on BRAM's page, **Settings > Router**, with a read-only API key. BRAM then sees every device on every network and VLAN, which Home Assistant alone cannot, and the router's firmware updates, for the security check. OPNsense for now. BRAM only reads, and the router's certificate is pinned. See [Connect your router](docs/security-check.md#connect-your-router).
+- Connect your router: on BRAM's page, **Settings > Router**, with a read-only API key. BRAM then sees every device on every network and VLAN, which Home Assistant alone cannot, and the router's firmware updates, for the security check. OPNsense for now. BRAM only reads, and the router's certificate is pinned. See [Connect your router](docs/watching.md#connect-your-router).
 - The docs say plainly that Home Assistant only sees its own network.
 
 ## 0.48.0
@@ -96,7 +98,7 @@ Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pul
 Update BRAM in HACS, then restart Home Assistant. The server has no change; updating it too keeps the versions the same.
 
 - The security check now also tells you about a new device on your network, from Home Assistant's own network discovery and any router integration, urgent if everyone is away; a new Zigbee, Z-Wave, Matter, Thread, or HomeKit device paired; Z-Wave locks without S2 security; a router update waiting or guest Wi-Fi on; and apps with protection off or ports open. It first learns what is already there.
-- It runs every 10 minutes instead of every hour. See [Security check](docs/security-check.md).
+- It runs every 10 minutes instead of every hour. See [Security check](docs/watching.md#security-check).
 
 ## 0.47.0
 
@@ -247,7 +249,7 @@ Update the BRAM Server (pull the new image). Home Assistant needs no update for 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
 
 - BRAM notices what you do. When you keep hiding the same finding, or are told about it often and never act, it suggests **Stop these** or **Less often** on the review page in Home Assistant, opened from one phone message. Only routine messages, never safety. Nothing changes until an administrator answers.
-- Docs: a new guide, [Using BRAM day to day](docs/guide.md); a clearer README; every page checked against BRAM itself, with setting names as you see them; new screenshots of the review page, a closer look on Home, and the History page; and the [camera plan](docs/cameras.md) for your approval.
+- Docs: a new guide, [Using BRAM day to day](docs/guide.md#using-bram-day-to-day); a clearer README; every page checked against BRAM itself, with setting names as you see them; new screenshots of the review page, a closer look on Home, and the History page; and the [camera plan](docs/cameras.md) for your approval.
 
 ## 0.36.0
 
@@ -290,7 +292,7 @@ Update BRAM in HACS and restart Home Assistant. The server is unchanged, but upd
 - New watches, each off until you turn it on under **Configure > Watching**:
   - **Locks, doors, windows, and motion**: open at night, open while heating or cooling, and motion while everyone is away.
   - **Temperature and humidity** (new page): too hot, too cold, near freezing, and humid, with your own limits in your home's unit, and sensors to leave out.
-- Two blueprints: **BRAM scheduled check** asks BRAM a yes-or-no question on a schedule and tells you only on yes; **BRAM house summary** sends how the home is doing at a time you choose. See [Blueprints](docs/blueprints.md).
+- Two blueprints: **BRAM scheduled check** asks BRAM a yes-or-no question on a schedule and tells you only on yes; **BRAM house summary** sends how the home is doing at a time you choose. See [Blueprints](docs/chat.md#blueprints).
 - The plan lists more camera features and blueprints.
 
 ## 0.34.1

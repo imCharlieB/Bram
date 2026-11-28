@@ -1,5 +1,6 @@
 # Cameras
 
+
 > **Built,** part by part; the last parts came in 0.43. More rules may come; [the order](#the-order-it-will-be-built) shows what is done.
 
 **Who talks to Frigate:** only BRAM's server. It reads Frigate's events, names, and pictures, and decides what matters. Home Assistant is told only what BRAM needs for its phone messages.
@@ -34,7 +35,7 @@ Turn these on in Home Assistant: **Settings > Devices & services > BRAM > Config
 | A person Frigate does not know | A person Frigate did not name. Only useful with face recognition on in Frigate; without it, every person is unknown | Off |
 | A package | Frigate sees a package | Off |
 | A car | A car that stays at least 30 seconds, in the zones you choose for that camera, such as the driveway. A car driving past is never told | Off |
-| Camera offline | Frigate or a camera stops reporting | In the [security check](security-check.md), and on BRAM's page |
+| Camera offline | Frigate or a camera stops reporting | In the [security check](watching.md#security-check), and on BRAM's page |
 
 A person Frigate knows is named in the message, such as "Alex at front door, and everyone I track is away."
 
@@ -62,7 +63,7 @@ Frigate sees everything in the picture, so a person in the neighbors' driveway i
 - **Same thing, once.** A person or package already told about on that camera is not told again for 30 minutes. Change it with **Not again on the same camera for**.
 - **One moment, once.** One person walking past several cameras within 2 minutes is one message.
 - **Quiet hours** hold a stranger or a package, noted in Findings, but not a person while away or at night.
-- **Stop these** on the message stops that kind on that camera, such as people at the front door. **Less often**, **Allow stopped messages**, and suggestions from what you do work as for other messages. See [How often BRAM tells you](how-often.md).
+- **Stop these** on the message stops that kind on that camera, such as people at the front door. **Less often**, **Allow stopped messages**, and suggestions from what you do work as for other messages. See [How often BRAM tells you](watching.md#how-often-bram-tells-you).
 - At most 30 camera messages a day.
 
 ## The message
@@ -136,7 +137,7 @@ The list starts when Home Assistant starts, and keeps up to 20 events for each c
 
 In chat, on BRAM's page, in Assist, or in Telegram: "Is anyone on the porch?" or "What's in the driveway?" BRAM finds the camera by its name, or by one of its Frigate zones, takes its picture now, and your model answers from it, saying it is what the picture shows. If you have one camera that can be asked, "Any packages on the camera?" works too.
 
-Only cameras with **Describe** on can be asked, since the picture goes to your model. The picture is not kept with the chat. The scheduled check [blueprint](blueprints.md) can ask, for example, "Is there a package on the porch?" every hour, and tell your phone only when the answer is yes.
+Only cameras with **Describe** on can be asked, since the picture goes to your model. The picture is not kept with the chat. The scheduled check [blueprint](chat.md#blueprints) can ask, for example, "Is there a package on the porch?" every hour, and tell your phone only when the answer is yes.
 
 ## Connect Frigate
 

@@ -1,4 +1,4 @@
-# Optional: Whisper (hearing) and Piper (speaking). See docs/voice.md.
+# Optional: Whisper (hearing) and Piper (speaking). See docs/chat.md#voice.
 services:
   whisper:
     image: rhasspy/wyoming-whisper:3.9.1
