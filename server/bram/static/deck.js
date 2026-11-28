@@ -15,6 +15,81 @@ const deck = (() => {
   // When something happens, the brain takes that system's color for a few seconds.
   const HUES = { People: "#5dff9d", Lights: "#ffe066", Security: "#ffb84d", Safety: "#ff4d63", Climate: "#7ad7ff", Printers: "#b88cff", Messages: "#ff7ad9", Learning: "#b88cff", "Home Assistant": "#2fe6ff" };
   let tint = null;
+  let level = 0;  // how loud the voice is now, smoothed
+  const name = { born: 0, last: -1e9 };
+  let readings = [], shown = { i: -1, born: 0, side: 1 };
+
+  // A geodesic sphere: an icosahedron with each face split in four, on the unit sphere.
+  const GEO = (() => {
+    const p = (1 + Math.sqrt(5)) / 2;
+    let points = [[-1, p, 0], [1, p, 0], [-1, -p, 0], [1, -p, 0], [0, -1, p], [0, 1, p], [0, -1, -p], [0, 1, -p], [p, 0, -1], [p, 0, 1], [-p, 0, -1], [-p, 0, 1]];
+    let faces = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+    const unit = ([x, y, z]) => { const l = Math.hypot(x, y, z); return [x / l, y / l, z / l]; };
+    points = points.map(unit);
+    const middle = new Map(), mid = (a, b) => {
+      const key = a < b ? `${a},${b}` : `${b},${a}`;
+      if (!middle.has(key)) { points.push(unit(points[a].map((v, k) => (v + points[b][k]) / 2))); middle.set(key, points.length - 1); }
+      return middle.get(key);
+    };
+    faces = faces.flatMap(([a, b, c]) => { const ab = mid(a, b), bc = mid(b, c), ca = mid(c, a); return [[a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca]]; });
+    const edges = new Set();
+    for (const [a, b, c] of faces) for (const [x, y] of [[a, b], [b, c], [c, a]]) edges.add(x < y ? `${x},${y}` : `${y},${x}`);
+    return { points, edges: [...edges].map((e) => e.split(",").map(Number)) };
+  })();
+
+  // The dots that spell BRAM, read once from the letters drawn off screen.
+  const NAME = (() => {
+    const c = document.createElement("canvas"), width = 360, height = 110;
+    c.width = width; c.height = height;
+    const g = c.getContext("2d");
+    g.fillStyle = "#fff"; g.font = "800 96px ui-monospace, Consolas, monospace"; g.textBaseline = "middle"; g.textAlign = "center";
+    g.fillText("BRAM", width / 2, height / 2);
+    const pixels = g.getImageData(0, 0, width, height).data, dots = [];
+    for (let y = 0; y < height; y += 3) for (let x = 0; x < width; x += 3) {
+      if (pixels[(y * width + x) * 4 + 3] > 128) dots.push({ x, y, fx: Math.random(), fy: Math.random(), dx: Math.random() - .5, dy: Math.random() - .5, ph: Math.random() * 6 });
+    }
+    return { dots, width, height };
+  })();
+
+  function spell() {
+    const now = performance.now();
+    if (now - name.last > 8000) { name.born = now; name.last = now; wake(); }
+  }
+
+  // Readings to point out, such as [{label: "Living room", value: "74°"}].
+  function points(list) { readings = list.slice(0, 12); }
+
+  function callout(g, o, r, now) {
+    if (!readings.length) return;
+    if (!shown.born || now - shown.born > 7000) {
+      shown = { i: (shown.i + 1) % readings.length, born: now, side: -shown.side };
+    }
+    const item = readings[shown.i], age = (now - shown.born) / 1000;
+    if (!item) return;
+    const fade = Math.min(1, age / .3) * Math.max(0, Math.min(1, (6.4 - age) / .6));
+    const a = shown.side > 0 ? -.55 : Math.PI + .55, start = r * 1.25;
+    const x0 = o.x + Math.cos(a) * start, y0 = o.y + Math.sin(a) * start;
+    const x1 = o.x + Math.cos(a) * r * 2.35, y1 = o.y + Math.sin(a) * r * 2.35;
+    const x2 = x1 + shown.side * 110;
+    const grow = Math.min(1, age / .7);  // the line draws itself, then the label appears
+    g.globalAlpha = .8 * fade; g.strokeStyle = color.main; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x0, y0);
+    const first = Math.min(1, grow * 2), second = Math.max(0, grow * 2 - 1);
+    g.lineTo(x0 + (x1 - x0) * first, y0 + (y1 - y0) * first);
+    if (second) g.lineTo(x1 + (x2 - x1) * second, y1);
+    g.stroke();
+    g.fillStyle = color.main; g.fillRect(x0 - 2, y0 - 2, 4, 4);
+    if (grow < 1) { g.globalAlpha = 1; return; }
+    const label = item.label.toUpperCase(), value = item.value;
+    g.font = "600 12px ui-monospace, Consolas, monospace";
+    const width = Math.max(150, g.measureText(label).width + g.measureText(value).width + 44);
+    const bx = shown.side > 0 ? x2 : x2 - width, by = y1 - 14, show = Math.min(1, (age - .7) / .35) * fade;
+    g.globalAlpha = .85 * show; g.fillStyle = "rgba(0,10,22,.85)"; g.fillRect(bx, by, width, 28);
+    g.strokeStyle = color.main; g.strokeRect(bx + .5, by + .5, width - 1, 27);
+    g.fillStyle = color.text; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(label, bx + 10, by + 14);
+    g.fillStyle = color.main; g.textAlign = "right"; g.fillText(value, bx + width - 10, by + 14);
+    g.globalAlpha = 1; g.textBaseline = "alphabetic";
+  }
   let color = {}, dust = [], threads = [], systems = [], pulses = [], waves = [], flashes = {};
   let placed = [];
   let ear = null, earKind = "", heard = null, talking = 0, voice = [], sayTimer = 0, outdoor = null;
@@ -95,7 +170,7 @@ const deck = (() => {
     ear = node;
     earKind = node ? kind : "";
     heard = null;
-    if (node) { talking = 1; state(kind === "listening" ? "listen" : "speak"); }
+    if (node) { talking = 1; state(kind === "listening" ? "listen" : "speak"); if (kind !== "listening") spell(); }
     else { talking = 0; state(speed > 1 ? "think" : "watch"); }
     wake();
   }
@@ -212,6 +287,9 @@ const deck = (() => {
 
     // the brain of light
     const lit = tint ? Math.max(0, 1 - (now - tint.born) / tint.hold) : 0;
+    // While BRAM's name forms, the threads and core dim so the name can be read.
+    const nameAge = name.born ? (now - name.born) / 1000 : 99;
+    const hush = nameAge < 4.2 ? Math.min(1, nameAge / .8) * Math.min(1, (4.2 - nameAge) / 1.1) : 0;
     if (tint && !lit) tint = null;
     g.globalCompositeOperation = "lighter";
     const energy = .45 + talking * .55;
@@ -222,15 +300,15 @@ const deck = (() => {
       const cx = o.x + Math.cos(a + th.bend + sway) * L * .55, cy = o.y + Math.sin(a + th.bend + sway) * L * .5;
       // A share of the threads take the color of what just happened, more at first.
       const tinted = lit > 0 && (th.ph % 1) < lit * .85;
-      g.globalAlpha = .22 * energy + .1 + (tinted ? lit * .35 : 0);
+      g.globalAlpha = (.22 * energy + .1 + (tinted ? lit * .35 : 0)) * (1 - .75 * hush);
       g.strokeStyle = tinted ? tint.color : mood === "ok" ? th.color : base; g.lineWidth = th.width + (tinted ? lit : 0);
       g.beginPath(); g.moveTo(o.x, o.y); g.quadraticCurveTo(cx, cy, ex, ey); g.stroke();
-      g.globalAlpha = .7 * energy; g.fillStyle = g.strokeStyle;
+      g.globalAlpha = .7 * energy * (1 - .75 * hush); g.fillStyle = g.strokeStyle;
       g.beginPath(); g.arc(ex, ey, th.width + .6, 0, TAU); g.fill();
     }
     const core = g.createRadialGradient(o.x, o.y, 0, o.x, o.y, r * 1.1);
     core.addColorStop(0, "rgba(255,255,255,.95)"); core.addColorStop(.25, "rgba(150,240,255,.6)"); core.addColorStop(.6, "rgba(90,110,255,.18)"); core.addColorStop(1, "rgba(47,230,255,0)");
-    g.globalAlpha = .7 + .2 * Math.sin(t * 2) + talking * .2; g.fillStyle = core;
+    g.globalAlpha = (.7 + .2 * Math.sin(t * 2) + talking * .2) * (1 - .85 * hush); g.fillStyle = core;
     g.beginPath(); g.arc(o.x, o.y, r * 1.1, 0, TAU); g.fill();
     if (lit > 0) {  // the core blooms in that color, then fades back
       const bloom = g.createRadialGradient(o.x, o.y, 0, o.x, o.y, r * (1.3 + (1 - lit) * .8));
@@ -240,22 +318,73 @@ const deck = (() => {
     }
     g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
 
-    // the voice ring
-    let levels = null;
+    // the voice: rings of glowing dots that wave with it, drifting apart and back together
+    let heardNow = 0;
     if (ear) {
       heard ??= new Uint8Array(ear.frequencyBinCount);
       ear.getByteFrequencyData(heard);
-      levels = Array.from({ length: 72 }, (_, i) => heard[Math.floor((Math.abs(i - 36) / 36) * heard.length * .5)] / 255);
+      let sum = 0;
+      for (let i = 0; i < heard.length / 2; i += 1) sum += heard[i];
+      heardNow = Math.min(1, sum / (heard.length / 2) / 110);
+    } else if (talking) {
+      heardNow = voice.reduce((a, b) => a + b, 0) / Math.max(voice.length, 1);
     }
-    for (let i = 0; i < 72; i += 1) {
-      const a = i / 72 * TAU - Math.PI / 2;
-      const level = levels ? levels[i] : talking ? (voice[i] || 0) : .06 + .05 * Math.sin(t * 3 + i * .5);
-      const r1 = r * 1.18, r2 = r1 + r * .55 * level + 2;
-      g.strokeStyle = earKind === "listening" ? color.sky : talking ? "#ffffff" : base;
-      g.globalAlpha = .45 + level * .55; g.lineWidth = 2;
-      g.beginPath(); g.moveTo(o.x + Math.cos(a) * r1, o.y + Math.sin(a) * r1); g.lineTo(o.x + Math.cos(a) * r2, o.y + Math.sin(a) * r2); g.stroke();
+    level += ((talking || ear ? heardNow : 0) - level) * .18;
+    const ringColor = earKind === "listening" ? color.sky : talking ? color.main : base;
+    g.globalCompositeOperation = "lighter";
+    for (let layer = 0; layer < 4; layer += 1) {
+      const dots = 200, wave = r * (.025 + level * .26) * (1 - layer * .12);
+      const spread = r * (1.32 + layer * (.05 + level * .07));
+      g.fillStyle = ringColor;
+      for (let i = 0; i < dots; i += 1) {
+        const a = i / dots * TAU;
+        const bend = Math.sin(a * 3 + t * 1.7 + layer * 1.3) * .55 + Math.sin(a * 5 - t * 2.3 + layer) * .3
+          + Math.sin(a * 9 + t * 3.1 + layer * 2.1) * .15;
+        const rr = spread + bend * wave;
+        g.globalAlpha = (.32 + level * .5) * (1 - layer * .18) * (.6 + .4 * Math.sin(a * 7 + t * 2));
+        g.fillRect(o.x + Math.cos(a) * rr, o.y + Math.sin(a) * rr, 1.6, 1.6);
+      }
+    }
+    g.globalCompositeOperation = "source-over";
+    g.globalAlpha = 1;
+
+    // the core: a turning geodesic sphere, brighter while BRAM speaks
+    const spinY = t * .35, tiltX = .45 + Math.sin(t * .2) * .15;
+    const cy = Math.cos(spinY), sy = Math.sin(spinY), cx = Math.cos(tiltX), sx = Math.sin(tiltX);
+    const flat = GEO.points.map(([x, y, z]) => {
+      const x1 = x * cy + z * sy, z1 = -x * sy + z * cy;
+      const y1 = y * cx - z1 * sx, z2 = y * sx + z1 * cx;
+      return [o.x + x1 * r * .62, o.y + y1 * r * .62, z2];
+    });
+    g.lineWidth = .8; g.strokeStyle = talking || ear ? color.main : "#7ad7ff";
+    for (const [i, j] of GEO.edges) {
+      const depth = (flat[i][2] + flat[j][2] + 2) / 4;
+      g.globalAlpha = (.08 + depth * .22) * (1 + level * 1.6);
+      g.beginPath(); g.moveTo(flat[i][0], flat[i][1]); g.lineTo(flat[j][0], flat[j][1]); g.stroke();
     }
     g.globalAlpha = 1;
+
+    // BRAM's name, forming from dots when it starts to speak, then scattering again
+    if (name.born) {
+      const age = (now - name.born) / 1000;
+      if (age > 4.2) name.born = 0;
+      else {
+        const gather = Math.min(1, age / 1.1), ease = 1 - Math.pow(1 - gather, 3);
+        const leave = Math.max(0, (age - 3.1) / 1.1);
+        g.globalCompositeOperation = "lighter"; g.fillStyle = color.main;
+        const scale = r * 2.1 / NAME.width;
+        for (const d of NAME.dots) {
+          const tx = o.x + (d.x - NAME.width / 2) * scale, ty = o.y + (d.y - NAME.height / 2) * scale;
+          const x = d.fx * w + (tx - d.fx * w) * ease + d.dx * leave * r, y = d.fy * h + (ty - d.fy * h) * ease + d.dy * leave * r;
+          g.globalAlpha = (.35 + .6 * ease) * (1 - leave) * (.7 + .3 * Math.sin(now / 90 + d.ph));
+          g.fillRect(x, y, 1.8, 1.8);
+        }
+        g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
+      }
+    }
+
+    // callouts: a line draws out from the brain to a labeled reading, like POWER LEVEL 45.4%
+    callout(g, o, r, now);
 
     // pulses running in, and the wave when one arrives
     pulses = pulses.filter((p) => now - p.born < 1400);
@@ -353,5 +482,5 @@ const deck = (() => {
     wake();
   }
 
-  return { at, start, update, orbit, pulse, alert, say, think, listen, house, weather, state, colors, draw: () => { draw(); wake(); } };
+  return { at, start, update, orbit, pulse, alert, points, spell, say, think, listen, house, weather, state, colors, draw: () => { draw(); wake(); } };
 })();

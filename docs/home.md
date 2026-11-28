@@ -24,6 +24,8 @@ A finding's window has the same **Story**, **Stop these**, **Less often**, and *
 
 While something needs you, rings keep going out from the brain: red and often for safety and the most important findings, amber now and then for the rest. While BRAM is thinking about a chat answer, arcs sweep around the brain.
 
+Inside the brain a geodesic sphere turns, and around it rings of glowing dots ripple; when BRAM speaks they wave with its voice. When it answers you, its name forms in the middle from dots, then scatters. Every few seconds a line draws out from the brain to one of your room readings, such as **LIVING ROOM 74°**. Moving between pages, the panels fold into a line and the new ones unfold one after another; with reduced motion set on your device, they simply appear.
+
 Under the brain is what BRAM is saying, written out as it says it, and what it is doing now: **Watching**, **Listening**, **Thinking**, or **Speaking**. The ring around the brain moves with its voice. With [voice](voice.md) on, the ring follows the real sound, both when BRAM speaks and while you hold to talk.
 
 Screens down both sides each have a tab. Point at one, or tab into it, and it lights up.

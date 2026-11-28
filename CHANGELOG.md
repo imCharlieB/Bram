@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.52.0
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- The brain on Home: a turning geodesic sphere inside rings of glowing dots that wave with BRAM's voice. When it answers you, BRAM's name forms in the middle from dots, then scatters.
+- Lines draw out from the brain to your room readings in turn, such as LIVING ROOM 74°.
+- Moving between pages, panels fold into a line and the new ones unfold one after another, with a brief flicker. Off when your device asks for reduced motion.
+
 ## 0.51.0
 
 Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).

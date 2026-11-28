@@ -299,9 +299,10 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 |---|---|
 | Command bar, alert windows, and cards drawn like holographic screens | ✅ 0.50 |
 | The brain takes the color of what happens | ✅ 0.50 |
-| Speaking: a ring of glowing dots that waves with the voice, around a geodesic core; BRAM's name forming in particles | ⬜ |
-| Callouts: lines that draw out from the brain to labeled readouts, such as Living room 74° | ⬜ |
-| Pages that fold away and unfold in, panel by panel, with a hologram flicker | ⬜ |
+| Speaking: rings of glowing dots that wave with the voice, around a geodesic core; BRAM's name forming in particles | ✅ 0.52 |
+| Callouts: lines that draw out from the brain to labeled readouts, such as Living room 74° | ✅ 0.52 |
+| Pages that fold away and unfold in, panel by panel, with a hologram flicker | ✅ 0.52 |
+| The brain itself as a shape of thousands of glowing particles, with the systems as nodes joined by lines of light over a wide glowing field | ⬜ |
 
 ## 10. Speakers
 

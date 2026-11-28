@@ -395,3 +395,17 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 /* A card is never narrower than its room's name on the tab. */
 #hud-events .event { min-width: 230px; }
 #hud-events .event small { max-width: calc(100% - 14px); }
+
+/* Pages fold away into a glowing line, and the next page's panels unfold one by one. */
+.command .unfolding { animation: unfold .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 70ms); transform-origin: center; }
+.command .folding { animation: fold .2s ease-in both; transform-origin: center; }
+@keyframes unfold {
+  0% { opacity: 0; transform: scaleX(.3) scaleY(.015); filter: brightness(3); }
+  30% { opacity: 1; transform: scaleX(1) scaleY(.015); }
+  55% { opacity: .5; transform: scaleY(1); }
+  62% { opacity: 1; }
+  70% { opacity: .75; filter: brightness(1.6); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+@keyframes fold { to { opacity: 0; transform: scaleY(.015); filter: brightness(2.5); } }
+@media (prefers-reduced-motion: reduce) { .command .unfolding, .command .folding { animation: none; } }

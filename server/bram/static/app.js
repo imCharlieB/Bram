@@ -860,6 +860,10 @@ const ORDER = ["Safety", "Locks and doors", "People", "Motion", "Climate", "Ligh
 
 function arrange() {
   deck.update(world.groups.filter((group) => group.title !== "People"));
+  // Readings the brain points out in turn, such as LIVING ROOM 74°.
+  const readings = (world.devicesNow || []).filter((d) => ["temperature", "humidity"].includes(d.kind) && typeof d.values?.now === "number")
+    .map((d) => ({ label: d.area || d.name, value: d.kind === "humidity" ? `${Math.round(d.values.now)}%` : `${Math.round(d.values.now)}°` }));
+  deck.points(readings);
 }
 
 const PRINTER = { printing: "Printing", paused: "Paused", finished: "Finished", failed: "Failed", stopped: "Stopped", idle: "Idle", off: "Off", unknown: "Unknown", failing: "Integration failing" };
@@ -1678,13 +1682,42 @@ function showTabs(page, wanted) {
   for (const [place] of tabs) $(`at-${place}`).hidden = place !== chosen;
 }
 
+// Like a command center's screens: panels fold into a line and go, then the next page's
+// panels unfold one after another, with a moment of hologram flicker.
+const calm = matchMedia("(prefers-reduced-motion: reduce)");
+let shownPage = "";
+
+async function foldAway(page) {
+  if (calm.matches || !shownPage || shownPage === page || !document.body.classList.contains("command")) return;
+  const going = [...document.querySelectorAll("#pages [data-page]:not([hidden]) .card, #pages [data-page]:not([hidden]) > h1")];
+  for (const panel of going) panel.classList.add("folding");
+  if (going.length) await new Promise((done) => setTimeout(done, 200));
+  for (const panel of going) panel.classList.remove("folding");
+}
+
+function unfold(page) {
+  const changed = shownPage !== page;
+  shownPage = page;
+  if (calm.matches || !changed || page === "overview") return;
+  const coming = [...document.querySelectorAll(`#pages [data-page="${page}"]:not([hidden]) > h1, #pages [data-page="${page}"]:not([hidden]) .card:not([hidden])`)];
+  coming.forEach((panel, i) => {
+    panel.style.setProperty("--i", String(Math.min(i, 8)));
+    panel.classList.remove("unfolding");
+    void panel.offsetWidth;  // start the animation again
+    panel.classList.add("unfolding");
+    panel.addEventListener("animationend", () => panel.classList.remove("unfolding"), { once: true });
+  });
+}
+
 async function openPage() {
   if (!signedIn) return;
   const wanted = location.hash.slice(1), target = wanted.startsWith("finding=") ? safeDecode(wanted.slice(8)) : null;
   const page = target !== null ? "findings" : PLACES[wanted] || (PAGES.includes(wanted) ? wanted : "overview");
   if (wanted === "messages") PLACES.messages = "messages";
+  await foldAway(page);
   for (const section of document.querySelectorAll("[data-page]")) section.hidden = section.dataset.page !== page;
   showTabs(page, wanted);
+  unfold(page);
   for (const link of document.querySelectorAll("nav a:not(.brand)")) {
     if (link.hash === "#" + page) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
@@ -1773,6 +1806,7 @@ onSubmit("chat-form", "chat-send", "chat-message", async () => {
   try {
     const reply = await api("chat", { text, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
     bubble("assistant", reply.text, reply.facts);
+    deck.spell();  // BRAM's name forms as it answers you
     deck.say(reply.text);
     $("thought-facts").textContent = (reply.facts || []).slice(0, 3).join(" · ");
     if ($("aloud").checked && !$("aloud-box").hidden) speak(reply.text).catch((error) => say("chat-message", error.message, "bad"));
