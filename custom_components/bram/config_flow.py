@@ -300,12 +300,17 @@ class BramOptionsFlow(OptionsFlowWithReload):
             if "checks" in user_input:
                 options["checks"] = [c for c in options.get("checks", [])
                                      if c["entity_id"] in user_input["checks"]]
+            if "away_on" in user_input:
+                options["away_on"] = list(user_input["away_on"])
             return self.async_create_entry(data={**options, CONF_LEARN: user_input[CONF_LEARN]})
         fields = {vol.Required(CONF_LEARN, default=options.get(CONF_LEARN, False)): bool}
         if checks := options.get("checks", []):
             labels = {c["entity_id"]: f"{name_of(self.hass, c['entity_id'])} at "
                       f"{spoken_hour(c['hour'])}" for c in checks}
             fields[vol.Optional("checks", default=list(labels))] = cv.multi_select(labels)
+        if away_on := options.get("away_on", []):
+            told = {e: name_of(self.hass, e) for e in away_on}
+            fields[vol.Optional("away_on", default=list(told))] = cv.multi_select(told)
         if learner.data["undo"]:
             fields[vol.Required("undo", default=False)] = bool
         fields[vol.Required("forget", default=False)] = bool

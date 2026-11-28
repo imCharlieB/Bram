@@ -53,6 +53,12 @@ The review page then asks, for example: **Check Garage door at 11 PM?** "On 19 o
 
 It skips anything one of your rules already covers, such as **Open at night** or **Unlocked at night** at that hour. **Never suggest this** stops it for that device. Remove an approved check by unchecking it under **Nightly checks you approved** on BRAM's **Learning** page in Home Assistant. Code finds every pattern; no model is involved.
 
+## Left on while everyone is away
+
+BRAM also looks at the lights, switches, and fans you share. From the last 28 days of history, every 15 minutes while everyone you share was known to be away, it notes which were on for ten minutes or more. One that was on like that on at least 5 days is suggested on the review page: **Tell you when Kitchen light is left on while everyone is away?**
+
+Approve, and when everyone is away and it has been on for ten minutes, your phone gets "Kitchen light is on, and everyone I track is away." Several at once are one message. BRAM never turns anything off. Remove it under **Told when left on while everyone is away** on BRAM's **Learning** page in Home Assistant.
+
 ## Undo or start over
 
 On the same **Learning** page in Home Assistant:

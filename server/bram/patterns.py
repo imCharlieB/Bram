@@ -51,3 +51,43 @@ def evening_checks(changes: Iterable[tuple[str, str, str, float, str]], zone: Zo
             found.append({"entity_id": entity_id, "name": name[:60], "kind": kind,
                           "hour": best[0], "times": best[1], "of": best[2]})
     return sorted(found, key=lambda f: -f["times"])[:10]
+
+
+LEFT_ON = ("light", "switch", "fan")
+SAMPLE = 900  # look every 15 minutes
+MIN_DAYS = 5
+
+
+def left_on_away(changes: Iterable[tuple[str, str, str, float, str]], zone: ZoneInfo,
+                 now: float) -> list[dict]:
+    """Lights, switches, and fans that were on while everyone was away, on enough days.
+    Everyone is away only when every person is known to be away (B2)."""
+    timelines: dict[str, list[tuple[float, str]]] = {}
+    names: dict[str, tuple[str, str]] = {}
+    for entity_id, name, kind, at, state in changes:
+        timelines.setdefault(entity_id, []).append((at, state))
+        names[entity_id] = (name, kind)
+    people = [e for e, (_, kind) in names.items() if kind == "person"]
+    things = [e for e, (_, kind) in names.items() if kind in LEFT_ON]
+    if not people or not things:
+        return []
+
+    def state_at(entity_id: str, moment: float) -> str | None:
+        return next((s for at, s in reversed(timelines[entity_id]) if at <= moment), None)
+
+    start = now - DAYS * 86400
+    days: dict[str, set[str]] = {e: set() for e in things}
+    looked: set[str] = set()
+    moment = start - start % SAMPLE + SAMPLE
+    while moment < now:
+        if all(state_at(p, moment) == "no" for p in people):  # everyone away, known
+            day = datetime.datetime.fromtimestamp(moment, zone).date().isoformat()
+            looked.add(day)
+            for e in things:
+                if state_at(e, moment) == "yes" and state_at(e, moment - 600) == "yes":
+                    days[e].add(day)  # on for ten minutes while everyone was away
+        moment += SAMPLE
+    found = [{"entity_id": e, "name": names[e][0][:60], "kind": names[e][1], "hour": -1,
+              "times": len(days[e]), "of": len(looked)}
+             for e in things if len(days[e]) >= MIN_DAYS]
+    return sorted(found, key=lambda f: -f["times"])[:10]

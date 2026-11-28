@@ -36,3 +36,20 @@ def test_unknown_never_counts_and_rare_is_not_a_pattern():
     changes += [("lock.back", "Back door", "lock", night(2, 21), "yes"),
                 ("lock.back", "Back door", "lock", night(2, 23), "no")]
     assert evening_checks(sorted(changes, key=lambda c: c[3]), ZONE, NOW) == []
+
+
+def test_a_light_left_on_while_everyone_is_away():
+    from bram.patterns import left_on_away
+    changes = []
+    for back in range(1, 29):
+        changes += [("person.al", "Al", "person", night(back, 8), "no"),
+                    ("person.al", "Al", "person", night(back, 17), "yes")]
+        if back % 2:  # every other day the kitchen light stays on after Al leaves
+            changes += [("light.kitchen", "Kitchen light", "light", night(back, 7), "yes"),
+                        ("light.kitchen", "Kitchen light", "light", night(back, 18), "no")]
+        changes += [("light.porch", "Porch light", "light", night(back, 7, 55), "yes"),
+                    ("light.porch", "Porch light", "light", night(back, 8, 5), "no")]
+    changes.sort(key=lambda c: (c[0], c[3]))
+    (found,) = left_on_away(changes, ZONE, NOW)
+    assert found["entity_id"] == "light.kitchen" and found["hour"] == -1
+    assert found["times"] == 14  # the porch light went off within ten minutes: not counted

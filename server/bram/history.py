@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 from .nights import KEEP_DAYS, summarize
 from .nights import KINDS as LEARN_KINDS
 from .patterns import DAYS as CHECK_DAYS
-from .patterns import evening_checks
+from .patterns import evening_checks, left_on_away
 from .world import MEANING, UNUSABLE, Event, World
 
 SLOT, HOUR = 300, 3600
@@ -428,9 +428,10 @@ class History:
         changes = [(r[0], r[1], r[2], r[3], r[4]) for r in self._db.execute(
             "SELECT device.entity_id, device.name, device.kind, change.at, change.state "
             "FROM change JOIN device ON device.id = change.device WHERE device.house_id = ? "
-            "AND device.kind IN ('opening', 'lock') AND change.at >= ? "
-            "ORDER BY change.device, change.at", (house_id, since))]
-        found = evening_checks(changes, zone, self._clock())
+            "AND device.kind IN ('opening', 'lock', 'person', 'light', 'switch', 'fan') "
+            "AND change.at >= ? ORDER BY change.device, change.at", (house_id, since))]
+        found = (evening_checks(changes, zone, self._clock())
+                 + left_on_away(changes, zone, self._clock()))
         self._checks[house_id] = ((hour, str(zone)), found)
         return found
 

@@ -88,3 +88,39 @@ async def test_an_approved_check_tells_at_its_hour(hass):
         stop()
     assert [c.data["message"] for c in calls] == [
         "Garage door is still open. Your nightly check at 11 PM."]
+
+
+async def test_left_on_while_away(hass, entry):
+    calls = async_mock_service(hass, "notify", "mobile_app_phone")
+    checks = Checks(hass, entry)
+    await checks.start()
+    light = {"entity_id": "light.kitchen", "name": "Kitchen light", "kind": "light",
+             "hour": -1, "times": 9, "of": 20}
+    hass.config_entries.async_update_entry(entry, options={
+        **entry.options, "entities": [*entry.options["entities"], "light.kitchen"]})
+    hass.states.async_set("light.kitchen", "off", {"friendly_name": "Kitchen light"})
+    assert checks.received([light, {**light, "hour": True}]) == 1
+    (item,) = checks.review()
+    assert item["title"] == "Tell you when Kitchen light is left on while everyone is away?"
+    with patch.object(hass.config_entries, "async_schedule_reload"):
+        assert checks.answer(item["id"], "approve", "Owner")
+    assert entry.options["away_on"] == ["light.kitchen"]
+    await hass.async_block_till_done()
+    calls.clear()
+    now = [dt_util.utcnow()]
+    hass.states.async_set("person.al", "not_home")
+    hass.states.async_set("light.kitchen", "on", {"friendly_name": "Kitchen light"})
+    options = {**entry.options, "entities": ["person.al", "light.kitchen"],
+               "phones": ["mobile_app_phone"]}
+    with patch("homeassistant.util.dt.utcnow", side_effect=lambda: now[0]):
+        rules = HouseRules(hass, MockConfigEntry(domain="bram", options=options))
+        stop = await rules.start()
+        await rules.run()
+        assert calls == []  # not ten minutes yet
+        for _ in range(23):
+            now[0] += datetime.timedelta(seconds=30)
+            await rules.run()
+        await hass.async_block_till_done()
+        stop()
+    assert [c.data["message"] for c in calls] == [
+        "Kitchen light is on, and everyone I track is away."]

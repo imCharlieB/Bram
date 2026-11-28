@@ -23,6 +23,8 @@ from .shared import shared
 
 REVIEW = "/bram-review"
 HOURS = (20, 21, 22, 23, 0, 1)
+AWAY = -1  # not an hour: while everyone is away
+LEFT_ON = ("light", "switch", "fan")
 KEYS = {"entity_id", "name", "kind", "hour", "times", "of"}
 EXPIRES = 30 * 86400
 ANNOUNCE_EVERY = 86400
@@ -37,8 +39,11 @@ def spoken_hour(hour: int) -> str:
 def item(raw: object) -> dict[str, Any] | None:
     if not isinstance(raw, dict) or raw.keys() != KEYS:
         return None
-    if (not isinstance(raw["entity_id"], str) or raw["kind"] not in ("opening", "lock")
-            or raw["hour"] not in HOURS
+    if isinstance(raw["hour"], bool) or not isinstance(raw["hour"], int):
+        return None
+    evening = raw["kind"] in ("opening", "lock") and raw["hour"] in HOURS
+    away = raw["kind"] in LEFT_ON and raw["hour"] == AWAY
+    if (not isinstance(raw["entity_id"], str) or not (evening or away)
             or not all(isinstance(raw[k], int) and not isinstance(raw[k], bool) and
                        0 < raw[k] <= 60 for k in ("times", "of"))
             or raw["times"] > raw["of"]):
@@ -61,6 +66,8 @@ class Checks:
         options = self._entry.options
         if any(c["entity_id"] == found["entity_id"] for c in options.get(CHECKS, [])):
             return True
+        if found["hour"] == AWAY:
+            return found["entity_id"] in options.get("away_on", [])
         night = (options.get("night_from", DEFAULT_NIGHT_FROM),
                  options.get("night_to", DEFAULT_NIGHT_TO))
         at_night = within(night, datetime.time(found["hour"], 1))
@@ -106,7 +113,21 @@ class Checks:
         for w in self.data["waiting"]:
             if now - w["at"] >= EXPIRES or self._covered(w):
                 continue
-            name, at = name_of(self._hass, w["entity_id"]), spoken_hour(w["hour"])
+            name = name_of(self._hass, w["entity_id"])
+            if w["hour"] == AWAY:
+                shown.append({
+                    "id": f"check:{w['entity_id']}",
+                    "title": f"Tell you when {name} is left on while everyone is away?",
+                    "text": f"On {w['times']} of the last {w['of']} days everyone was away, "
+                            f"{name} was on for ten minutes or more. BRAM can tell you when it "
+                            "is left on after everyone leaves. It never turns anything off.",
+                    "changes": [{"name": "Left on while away", "now": "Not told",
+                                 "new": f"Told about {name}"}],
+                    "expires": w["at"] + EXPIRES,
+                    "note": "Nothing changes unless you approve. Remove it later under BRAM, "
+                            "Configure, Learning."})
+                continue
+            at = spoken_hour(w["hour"])
             state = "unlocked" if w["kind"] == "lock" else "open"
             shown.append({
                 "id": f"check:{w['entity_id']}", "title": f"Check {name} at {at}?",
@@ -134,7 +155,12 @@ class Checks:
         if word == "never":
             self.data["never"] = [*self.data["never"], found["entity_id"]][-200:]
         self._save()
-        if word == "approve":
+        if word == "approve" and found["hour"] == AWAY:
+            options = dict(self._entry.options)
+            options["away_on"] = sorted({*options.get("away_on", []), found["entity_id"]})
+            self._hass.config_entries.async_update_entry(self._entry, options=options)
+            self._hass.config_entries.async_schedule_reload(self._entry.entry_id)
+        elif word == "approve":
             options = dict(self._entry.options)
             checks = [c for c in options.get(CHECKS, [])
                       if c["entity_id"] != found["entity_id"]]

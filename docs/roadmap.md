@@ -268,7 +268,8 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 | Climate trends: run time against outside temperature and setting, a system working harder than it used to, what each setting costs in run time, suggested settings | ⬜ |
 | Usual arrivals, lockup, and routines | ⬜ |
 | Suggests nightly checks from history, such as "Check Garage door at 11 PM?" after it was still open on 19 of 28 nights; code finds the pattern; on only after approval | ✅ 0.51, [Learning](learning.md#nightly-checks) |
-| More kinds of suggested rules: things left on while away, a door unlocked at the same time each day | ⬜ |
+| Suggested: lights, switches, and fans often left on while everyone is away | ✅ 0.54, [Learning](learning.md#left-on-while-everyone-is-away) |
+| More kinds of suggested rules: a door unlocked at the same time each day | ⬜ |
 | Describe an automation; BRAM drafts it, checks every device exists, shows it, and installs it only after approval | ⬜ |
 | Switch a suggested rule off, back on, or repair it | ⬜ |
 

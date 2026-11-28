@@ -161,13 +161,15 @@
           "learn": "Learning is on",
           "undo": "Undo the last change I approved",
           "forget": "Erase what BRAM has learned",
-          "checks": "Nightly checks you approved"
+          "checks": "Nightly checks you approved",
+          "away_on": "Told when left on while everyone is away"
         },
         "data_description": {
           "learn": "Checked: BRAM suggests better hours from its history. Unchecked: no suggestions.",
           "undo": "Puts back the hours you had before you approved the last suggestion.",
           "forget": "Your current hours stay as they are. Only nights from today on count, and BRAM forgets any waiting suggestion and your Never answers. History itself is kept.",
-          "checks": "Uncheck one to stop it."
+          "checks": "Uncheck one to stop it.",
+          "away_on": "Uncheck one to stop it."
         }
       },
       "watch": {

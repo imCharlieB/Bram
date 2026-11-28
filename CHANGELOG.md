@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.54.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Learning suggests telling you about lights, switches, and fans often left on while everyone is away, from the last 28 days of history. Approve one, and you are told when it has been on for ten minutes after everyone leaves. BRAM never turns anything off. See [Left on while everyone is away](docs/learning.md#left-on-while-everyone-is-away).
+
 ## 0.53.0
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.

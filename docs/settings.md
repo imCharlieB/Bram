@@ -48,6 +48,7 @@
 | Learning | Learning is on | Off |
 | | Undo the last change I approved, erase what BRAM has learned | |
 | | Nightly checks you approved, each to keep or remove | None |
+| | Told when left on while everyone is away, each to keep or remove | None |
 
 Quiet hours here affect only Home Assistant's messages.
 

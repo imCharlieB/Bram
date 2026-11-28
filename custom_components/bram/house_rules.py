@@ -41,10 +41,11 @@ DAY = 86400
 MUTE = "BRAM_QUIET_"
 UNKNOWN = ("unavailable", "unknown", "")
 RULES = ("night", "away", "left_open", "offline", "open_night", "open_climate", "motion_away",
-         "too_hot", "too_cold", "freezing", "humid", "check")
+         "too_hot", "too_cold", "freezing", "humid", "check", "left_on")
 # These matter at night, so they do not wait for quiet hours to end.
 URGENT = ("night", "away", "open_night", "motion_away", "freezing", "check")
 CHECK_FOR = 45  # minutes after its hour that a nightly check still tells
+LEFT_ON_FOR = 600  # seconds on while everyone is away before it is told
 COMFORT_WAIT = 1800  # a room must stay too hot or too cold this long
 FREEZE_WAIT = 900
 RUNNING = ("heating", "cooling")
@@ -65,6 +66,7 @@ TOGETHER = {
     "left_open": "These have been open for {minutes} minutes: {names}.",
     "offline": "I can't see these. They are offline: {names}.",
     "motion_away": "Motion while everyone I track is away: {names}.",
+    "left_on": "Everyone I track is away, and these are on: {names}.",
 }
 
 
@@ -94,6 +96,10 @@ class HouseRules:
             "checks", []) if isinstance(c, dict) and isinstance(c.get("hour"), int)}
         if self._checks:
             self._on.add("check")
+        # Lights and switches the owner approved telling about when left on while away.
+        self._left_on: list[str] = list(options.get("away_on", []))
+        if self._left_on:
+            self._on.add("left_on")
         self._unit = hass.config.units.temperature_unit
         self._limits = limits(self._unit, dict(options))
         self._skip: set[str] = set(options.get("comfort_skip", []))
@@ -239,6 +245,12 @@ class HouseRules:
                 at = datetime.time(hour).strftime("%I %p").lstrip("0")
                 yield "check", entity_id, 0, (f"{self._name(entity_id)} is still {said}. "
                                               f"Your nightly check at {at}.")
+        if away:
+            for entity_id in self._left_on:
+                state = self._hass.states.get(entity_id)
+                if state is not None and state.state == "on":
+                    yield "left_on", entity_id, LEFT_ON_FOR, (
+                        f"{self._name(entity_id)} is on, and everyone I track is away.")
         for entity_id in self._entities:
             state = self._hass.states.get(entity_id)
             kind = self._kind(entity_id, state)
@@ -390,7 +402,8 @@ class HouseRules:
                  "open_night": "open at night", "open_climate": "open while heating or cooling",
                  "motion_away": "moved while everyone is away", "too_hot": "too hot",
                  "too_cold": "too cold", "freezing": "near freezing", "humid": "humid",
-                 "check": "still open at its nightly check"}
+                 "check": "still open at its nightly check",
+                 "left_on": "on while everyone is away"}
         for key, (rule, wait, _text) in facts.items():
             if key in self._muted:
                 continue
