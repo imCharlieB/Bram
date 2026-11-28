@@ -167,12 +167,13 @@ async def test_probe_device():
 async def test_what_bram_relies_on_is_watched_automatically(env):
     assert env.monitors.all() == []
     env.settings.update({"model_url": "http://127.0.0.1:11434", "model": "m"})
-    env.settings.update_channel("speech", {"hear": "127.0.0.1:10300", "speak": "127.0.0.2:10200"})
+    env.settings.update_channel("speech", {"hear": "127.0.0.2:10300", "speak": "127.0.0.3:10200"})
     names = [(m["name"], m["automatic"]) for m in env.monitors.all()]
     assert names == [("Ollama", True), ("Whisper", True), ("Piper", True)]
     env.monitors.remove("auto-hear")  # cannot be removed; it follows the voice settings
     assert len(env.monitors.all()) == 3
-    await env.monitors.add("device", "My Whisper", "127.0.0.1:10300")
+    # The same machine on another port is the same thing: not doubled.
+    await env.monitors.add("device", "My Whisper", "127.0.0.2:8080")
     assert [m["name"] for m in env.monitors.all()] == ["My Whisper", "Ollama", "Piper"]
     env.settings.update_channel("speech", {"hear": "", "speak": ""})
     assert [m["name"] for m in env.monitors.all()] == ["My Whisper", "Ollama"]

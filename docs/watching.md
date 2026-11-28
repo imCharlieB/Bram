@@ -342,7 +342,7 @@ Pictures, spotting failed prints by camera, power used, and pausing with a tap a
 
 ## Monitors
 
-BRAM watches what it relies on without being asked: your model (Ollama), and Whisper and Piper once [voice](chat.md#voice) is set up. They are listed as watched automatically, follow your settings, and cannot be removed here. One you already watch at the same address is not doubled.
+BRAM watches what it relies on without being asked: your model (Ollama), and Whisper and Piper once [voice](chat.md#voice) is set up. They are listed as watched automatically, follow your settings, and cannot be removed here. If you already watch the same machine (the same address, on any port), it is not doubled.
 
 Monitors watch things outside Home Assistant, on your own network, and message you through Telegram or ntfy. Add them on BRAM's **Messages** page.
 
@@ -448,7 +448,7 @@ Account names and token ids never leave Home Assistant. Findings can name device
 
 ## Learning
 
-BRAM can suggest better night hours and a better left-open time. Off by default, and it uses no model.
+BRAM can suggest better night hours and a better left-open time, [nightly checks](#nightly-checks) for what is often left open, and things to tell you about when they are [left on while everyone is away](#left-on-while-everyone-is-away). Off by default, and it uses no model.
 
 ### Turn it on
 

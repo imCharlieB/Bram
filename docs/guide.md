@@ -54,7 +54,7 @@ Leak, smoke, CO, gas, and heat alerts are always on for the safety sensors you s
 | **Cameras** | A person while everyone is away, at an open or unlocked door, or at night; a person Frigate does not know; packages; cars that stay in your driveway. See [Cameras](#cameras) below |
 | **3D printers** | Prints finishing, failing, or pausing, and heaters left on. See [3D printers](watching.md#3d-printers) |
 
-<!-- screenshot needed: the Configure > Watching menu in Home Assistant, with its five pages and Back -->
+![The Watching menu in Home Assistant, with its five pages and Back](images/watching-menu.png)
 
 The locks and doors page, titled **Locks, doors, windows, and motion**, is in four groups:
 

@@ -36,7 +36,9 @@ body.command { --cyan: var(--hud); --violet: var(--hud); --night: rgb(0 4 10 / .
 .command input, .command select, .command textarea { border-radius: 0; border-color: var(--hud-line); color: var(--hud-text); background: rgb(0 0 0 / .5); }
 .command input, .command textarea, .command pre, .command code { font-family: ui-monospace, Consolas, monospace; }
 .command input:focus, .command select:focus, .command textarea:focus { border-color: var(--hud); box-shadow: 0 0 12px color-mix(in srgb, var(--hud) 40%, transparent); outline: none; }
-.command option { color: #111; background: #fff; }
+.command select { color-scheme: dark; appearance: none; padding-right: 36px; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--hud) 50%), linear-gradient(135deg, var(--hud) 50%, transparent 50%); background-position: calc(100% - 20px) 55%, calc(100% - 15px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+.command option { color: var(--hud-text); background: var(--hud-bg); }
+.command option:checked { color: var(--hud-bg); background: var(--hud); }
 .command button { border-radius: 0; color: #02131a; background: var(--hud); font-weight: 600; letter-spacing: .04em; }
 .command button:hover { box-shadow: 0 0 16px color-mix(in srgb, var(--hud) 55%, transparent); }
 .command button.quiet { color: var(--hud); background: var(--hud-fill); border: 1px solid var(--hud-line); }

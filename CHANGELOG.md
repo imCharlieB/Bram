@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.55.2
+
+Update BRAM in HACS, then restart Home Assistant. Update the BRAM Server (pull the new image).
+
+- Dropdowns on BRAM's page are dark, with the page's own color, instead of a white list.
+- A monitor you add for a machine also covers BRAM's automatic one on the same address, whatever the port, so the same machine is not listed twice.
+- The System count says how many are still on their first check, instead of counting them as not linked.
+- The Configure menus in Home Assistant now say everything Watching, Cameras, and Learning cover.
+- Docs: a screenshot of the Watching menu.
+
 ## 0.55.1
 
 Update the BRAM Server (pull the new image).

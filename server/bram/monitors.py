@@ -96,7 +96,8 @@ class Monitors:
 
     def automatic(self) -> list[dict]:
         """What BRAM itself relies on, watched without being asked: the model, and Whisper and
-        Piper once voice is set up. Not when the owner already watches the same address."""
+        Piper once voice is set up. Not when the owner already watches the same machine: the
+        same host is the same thing, whatever the port."""
         settings, speech = self._settings.all(), self._settings.channel("speech")
         found = []
         if settings.get("model_url"):
@@ -105,9 +106,9 @@ class Monitors:
             if address := speech.get(key):
                 url = address if "://" in address else f"http://{address}"
                 found.append((f"auto-{key}", kind, name, url))
-        taken = {_where(m["url"]) for m in self.mine()}
+        taken = {_where(m["url"])[0] for m in self.mine()}
         return [{"id": i, "kind": k, "name": n, "url": u, "automatic": True}
-                for i, k, n, u in found if _where(u) not in taken]
+                for i, k, n, u in found if _where(u)[0] not in taken]
 
     def all(self) -> list[dict]:
         return [*self.mine(), *self.automatic()]

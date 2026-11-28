@@ -1357,8 +1357,8 @@ function showClimate(brain) {
 function showSystems(brain) {
   const devices = world.devicesNow || [], printers = world.printersNow || [];
   const links = [...world.houses.map((house) => [house.name, house.connected]), ...world.monitors.map((item) => [item.name, item.up])];
-  const up = links.filter(([, good]) => good).length;
-  $("links-count").textContent = links.length ? `${up} of ${links.length} linked` : "";
+  const up = links.filter(([, good]) => good).length, checking = links.filter(([, good]) => good === null).length;
+  $("links-count").textContent = links.length ? `${up} of ${links.length} linked${checking ? `, ${checking} checking` : ""}` : "";
   $("hud-systems").replaceChildren(...links.map(([name, good]) => {
     const tag = element("span");
     tag.append(element("i", undefined, good === null ? "dot checking" : good ? "dot" : "dot down"), name);

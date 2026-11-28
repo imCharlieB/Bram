@@ -78,9 +78,9 @@
           "basic": "Your phone and the main switches, on one page. Start here.",
           "devices": "What BRAM can see: suggestions, by type and room, or one by one.",
           "alerts": "Which phones get messages, quiet hours, and the daily summary.",
-          "watching": "Home Assistant problems, locks, doors, and windows, 3D printers, and security.",
+          "watching": "Home Assistant problems and security, locks, doors, and windows, temperature, cameras, and 3D printers.",
           "chat": "What the BRAM Server may read beyond live state: history, errors, security.",
-          "learn": "Let BRAM suggest better night hours from how your home is used."
+          "learn": "Let BRAM suggest night hours, nightly checks, and things to watch while you are away, from how your home is used."
         }
       },
       "basic": {
@@ -284,12 +284,12 @@
           "cameras": "Cameras"
         },
         "menu_option_descriptions": {
-          "watch_ha": "Failed integrations, errors, batteries, offline devices, backups, and new admins or tokens.",
+          "watch_ha": "Failed integrations, errors, batteries, offline devices, backups, and the security check: new devices, admins, and tokens.",
           "watch": "Unlocked at night, open while away, left open, open at night, open while heating or cooling, motion while away, and offline, with your night hours.",
           "printers": "Prints finishing, failing, or pausing, and heaters left on, for each printer you choose.",
           "comfort": "Too hot, too cold, near freezing, and humid, for the rooms BRAM can see.",
           "init": "To BRAM's main settings.",
-          "cameras": "A person while everyone is away or at night, someone Frigate does not know, and packages."
+          "cameras": "A person while everyone is away, at a door, at night, or not known to Frigate; packages; and cars that stay."
         }
       },
       "watch_ha": {
