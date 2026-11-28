@@ -336,6 +336,12 @@ class Feed:
                         self.camera_history[n].insert(0, e)
                 self._notify()
                 return
+        if (isinstance(data, dict) and data.keys() == {"type", "names"}
+                and data["type"] == "camera_judged" and self.camera_watch is not None):
+            found = cameras.names(data["names"])
+            if found is not None:
+                self.camera_watch.judged = set(found)
+                return
         if (isinstance(data, dict) and data.keys() == {"type", "patterns"}
                 and data["type"] == "camera_quiet" and self.camera_watch is not None):
             found = cameras.patterns(data["patterns"])

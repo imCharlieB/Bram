@@ -32,6 +32,7 @@ DEFAULT_REPEAT = 30  # minutes before the same thing on the same camera is news 
 ACROSS = 120  # seconds: one person walking past several cameras is one message
 TOO_OLD = 600  # an event this old when BRAM first hears of it is not news
 STAY = 30  # seconds a car must stay: one driving past is gone sooner
+JUDGE_WAIT = 45  # seconds a routine message waits for the model's words, at most
 DAILY = 30
 DAY = 86400
 MUTE = "BRAM_CAMERA_"
@@ -75,6 +76,10 @@ class CameraWatch:
         self._setup: dict[str, dict] = dict(options.get("camera_setup", {}))
         # Said on BRAM's page to be not news: (camera, kind of thing, zones).
         self.quiet: list[tuple[str, str, tuple[str, ...]]] = []
+        # Cameras whose routine messages wait for the owner's model to say whether they
+        # match what the owner said doesn't matter (C6). Never the urgent ones.
+        self.judged: set[str] = set()
+        self._judging: set[str] = set()
         self._repeat = int(options.get("camera_repeat", DEFAULT_REPEAT)) * 60
         self._phones: list[str] = options.get(CONF_PHONES, [])
         self._quiet = (options.get(CONF_QUIET_FROM), options.get(CONF_QUIET_TO))
@@ -172,8 +177,21 @@ class CameraWatch:
                 if event["end"] is None:  # still there: look again once it has stayed
                     self._later(camera, event["id"], STAY - lasted)
                 return  # gone already: it drove past
-        self._seen[event["id"]] = now
         rule, text = found
+        if rule not in URGENT and camera in self.judged and not event.get("description"):
+            if event["id"] not in self._judging:  # wait for its words, but not for long
+                self._judging.add(event["id"])
+                self._later(camera, event["id"], JUDGE_WAIT)
+                return
+            if now - event["start"] < JUDGE_WAIT:
+                return
+        self._judging.discard(event["id"])
+        self._seen[event["id"]] = now
+        what_key = f"{camera}:{'person' if event['label'] == 'person' else event['label']}"
+        if rule not in URGENT and event.get("not_news"):
+            self._note(f"cameras:{what_key}", "held", "Your model says this matches what you "
+                       f"said doesn't matter: {event['description']}", "cameras", "low")
+            return
         what = "person" if event["label"] == "person" else event["label"]
         key, across = f"{camera}:{what}", f"*:{what}"
         if key in self._muted or not self._phones:
@@ -192,7 +210,7 @@ class CameraWatch:
             return
         if event["zones"]:
             text += f" In {', '.join(z.replace('_', ' ') for z in event['zones'])}."
-        if event.get("description"):  # the model's words, if ready; it never holds this (C6)
+        if event.get("description"):  # the model's words; urgent ones never wait (C6)
             text += f" {event['description']}"
         actions = [{"action": MUTE + key, "title": "Stop these"},
                    *([] if rule in URGENT else self._teller.actions(f"camera:{key}"))]

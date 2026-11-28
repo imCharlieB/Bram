@@ -2,7 +2,7 @@
 import pytest
 from aiohttp import web
 
-from bram.cameras import Cameras, Frigate, FrigateError, describe, event_from
+from bram.cameras import Cameras, Frigate, FrigateError, describe, event_from, for_home
 from bram.settings import Settings
 
 JPEG = b"\xff\xd8 a picture"
@@ -381,3 +381,34 @@ async def test_teaching_a_camera(env):
     assert await env.cameras.live("yard") is None  # not watched
     env.cameras.forget(0)
     assert env.cameras.learned() == []
+
+
+@pytest.mark.rule("C6")
+async def test_the_model_may_say_a_routine_event_does_not_matter(env):
+    import asyncio
+    verdict = []
+
+    async def describer(picture, camera, context):
+        return ("The neighbor walks to his car.", True) if verdict else (
+            "The neighbor walks to his car.")
+
+    env.cameras.describer = describer
+    await env.cameras.connect(env.url)
+    env.cameras.choose("front_door", True)
+    env.cameras.set_describe("front_door", True)
+    assert env.cameras.judged() == []  # nothing taught yet: nothing is ever held
+    env.now = 1010.0
+    await env.cameras.tick()
+    await asyncio.sleep(0.05)
+    env.cameras.learn("front_door", "1.1-a", False, "neighbor at his car")
+    assert env.cameras.judged() == ["front_door"]
+    verdict.append(True)
+    env.frigate.events[0]["id"] = "1.4-d"
+    await env.cameras.tick()
+    await asyncio.sleep(0.05)
+    assert "1.4-d" in env.cameras.not_news
+    (door, _) = env.cameras.view()["cameras"]
+    assert door["last"]["quiet"] == "not told: your model says it doesn't matter"
+    told = for_home(env.cameras.last("front_door"), "words", True)
+    assert told["not_news"] is True and for_home(env.cameras.last("front_door"))  # older HA
+    assert "not_news" not in for_home(env.cameras.last("front_door"), "words")

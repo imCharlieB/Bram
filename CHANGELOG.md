@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.58.0
+
+Update BRAM in HACS, then restart Home Assistant. Update the BRAM Server (pull the new image).
+
+- Cameras tell you less from what you taught: once you said something on a camera doesn't matter, routine messages there (a stranger, a package, a car that stays) wait up to 45 seconds for your model, and are not sent if it is sure the picture is only that, such as your own car. Each one held is listed with why. A person while everyone is away, at a door, or at night is never held, and a slow or unsure model never holds anything.
+
 ## 0.57.0
 
 Update BRAM in HACS, then restart Home Assistant. Update the BRAM Server (pull the new image).

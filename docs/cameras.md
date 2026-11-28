@@ -21,7 +21,7 @@ Frigate sees a person, car, animal, or package
   → Told to your phone with the picture, unless it is the same as one told recently
 ```
 
-The decision is code, not the model. The model's words only describe; they never decide whether you are told, and a slow model never holds a message back (rule C6).
+The decision is code, not the model. The one exception is what you teach: once you have said something on a camera doesn't matter, your model may hold back a routine message that matches it (see [Teach BRAM a camera](#teach-bram-a-camera)). A person while everyone is away, at a door, or at night is never held, and a slow model never holds anything back for long (rule C6).
 
 ## What it tells you
 
@@ -86,7 +86,13 @@ Your model learns your home from you, two ways. Both need **Describe** on for th
 
 Both go to your model with every picture from that camera, so its descriptions use your words, such as "The neighbor walks to his car in his own driveway." Your answers are listed under **Settings > Cameras > What you taught BRAM**, each with **Forget**.
 
-For now this teaches the model only: an answer never holds a message back. Rule C6 now allows holding back routine camera messages that match what you said does not matter; that is being built next.
+**Then BRAM tells you less.** Once you have said something on a camera doesn't matter, and **Describe** is on for it, its routine messages (a person Frigate does not know, a package, a car that stays) wait up to 45 seconds for your model. The model says what it sees, and whether it is only something you said doesn't matter, such as your own car in its usual place. If it is sure, the message is not sent:
+
+- It is written in the camera's story under **Findings**, with the model's words, and the event shows "not told: your model says it doesn't matter" under **Settings > Cameras**, with its picture.
+- If the model is unsure, slow, or down, you are told as usual.
+- A person while everyone is away, at an open or unlocked door, or at night is never held, whatever the model says.
+- **Forget** an answer under **What you taught BRAM** to stop it. With no "doesn't matter" answers left, nothing waits.
+- Needs Home Assistant's BRAM and the server both on 0.58.0 or later.
 
 ## Descriptions from your model
 
@@ -97,7 +103,7 @@ Your own model can describe each event in a sentence or two, such as "A delivery
 
 Only the event's picture goes to the model, and only for those cameras. The model must be on your own network; no picture goes to a cloud model. One picture is described at a time, and only for events from the last 5 minutes.
 
-The words appear in the event's window on Home and under **Settings > Cameras**. A phone message includes them only if they are ready when the message goes out: a slow model never holds a message back, and the words never decide whether you are told. Turning **Watch** off for a camera also turns off **Describe** and drops its words.
+The words appear in the event's window on Home and under **Settings > Cameras**. An urgent message goes out at once and includes them only if they are ready. A routine one waits for them only on a camera where you said something doesn't matter, as above. Turning **Watch** off for a camera also turns off **Describe** and drops its words.
 
 ## On BRAM's page
 

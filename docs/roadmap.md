@@ -238,7 +238,7 @@ Optional, for the installation and per person.
 | Ask what a camera sees, in chat and in scheduled checks | ✅ 0.43 |
 | Not news: the owner says what an event is; BRAM stays quiet about the same and tells the model | ✅ 0.44 |
 | Teach a camera: what it sees in your words, and Does it matter? on each event, given to the model with every picture | ✅ 0.47 |
-| Tell you less from what it learned: needs the owner's approval to change rule C6 | ⬜ |
+| Tell you less from what it learned: routine camera messages your model says match what you said doesn't matter are held back (rule C6, changed with owner approval) | ✅ 0.58, [Cameras](cameras.md#teach-bram-a-camera) |
 | Person while away, at night, or not known to Frigate; packages | ✅ 0.40, [Cameras](cameras.md) |
 | Person at an open or unlocked door; a car that stays in a zone; zones and messages for each camera | ✅ 0.41 |
 | Motion with no camera activity | ⬜ |

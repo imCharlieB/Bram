@@ -202,3 +202,32 @@ async def test_does_it_matter_from_a_phone(env):
     env.now += datetime.timedelta(hours=1)
     await env.see("porch", event(2, "package", zones=["steps"], at=env.now))
     assert len(env.calls) == 2  # it teaches the model; it holds nothing back
+
+
+@pytest.mark.rule("C6")
+async def test_the_model_may_hold_back_only_routine_camera_messages(env):
+    await env.start(camera_package=True, camera_away=True)
+    env.watch.judged = {"porch"}
+    await env.see("porch", event(1, "package"))  # routine: waits for the model's words
+    assert env.calls == [] and len(env.watch._waiting) == 1
+    await env.see("porch", {**event(1, "package"), "description": "Our recycling bin.",
+                            "not_news": True})
+    assert env.calls == []  # the model says it is what the owner said doesn't matter
+    assert "doesn't matter: Our recycling bin." in env.notes[-1][2]
+    env.away = True
+    await env.see("porch", {**event(2), "description": "The neighbor.", "not_news": True})
+    # A person while away never waits and is never held, whatever the model says.
+    assert env.texts() == ["Someone at porch, and everyone I track is away. The neighbor."]
+    env.watch.stop()
+
+
+@pytest.mark.rule("C6")
+async def test_a_slow_model_never_holds_a_routine_message_for_long(env):
+    await env.start(camera_package=True)
+    env.watch.judged = {"porch"}
+    await env.see("porch", event(1, "package"))
+    assert env.calls == []
+    env.watch.stop()
+    env.now += datetime.timedelta(seconds=50)
+    await env.see("porch", event(1, "package"))  # no words came: told anyway
+    assert env.texts() == ["A package at porch."]

@@ -287,13 +287,18 @@ async def _local(text: str) -> str:
         raise FrigateError(str(err).replace("HOST:11434", "HOST:5000")) from None
 
 
-def for_home(event: dict[str, Any], description: str | None = None) -> dict[str, Any]:
+def for_home(event: dict[str, Any], description: str | None = None,
+             not_news: bool | None = None) -> dict[str, Any]:
     """What Home Assistant is told about an event. Checked again there. The model's words
-    go only to a Home Assistant that knows them (0.42 or later)."""
+    go only to a Home Assistant that knows them (0.42 or later), and its not news only to one
+    that waits for it (0.58 or later)."""
     told = {"id": event["id"], "label": event["label"], "who": event["who"],
             "zones": event["zones"], "start": event["start"], "end": event["end"],
             "picture": event["picture"], "summary": describe(event)}
-    return told if description is None else {**told, "description": description}
+    if description is None:
+        return told
+    return {**told, "description": description,
+            **({"not_news": not_news} if not_news is not None else {})}
 
 
 class Cameras:
@@ -316,6 +321,7 @@ class Cameras:
         # The owner's own model describes events, only for cameras chosen for it (E2).
         self.describer: Callable[[bytes, str], Any] | None = None
         self.descriptions: dict[str, str] = {}  # event id: the model's words
+        self.not_news: set[str] = set()  # event ids the model matched to "doesn't matter"
         self.told: dict[str, None] = {}  # event ids Home Assistant told the owner about
         self.model_problem = ""
         self._describing: set[str] = set()
@@ -359,6 +365,12 @@ class Cameras:
 
     def description(self, event: dict[str, Any] | None) -> str | None:
         return self.descriptions.get(event["id"]) if event else None
+
+    def judged(self) -> list[str]:
+        """Cameras whose routine messages may be held back by the model: described, and the
+        owner said something on them doesn't matter (C6)."""
+        return [c for c in self.described()
+                if any(x["camera"] == c and not x["matters"] for x in self.learned())]
 
     # --- told, and not news ---
 
@@ -613,9 +625,11 @@ class Cameras:
         if event is None:
             return None
         words, quiet = self.description(event), self.quiet_for(event)
+        held = event["id"] in self.not_news and event["id"] not in self.told
         return {**event, **({"description": words} if words else {}),
                 "told": event["id"] in self.told and quiet is None,
-                "quiet": quiet["note"] or "not news" if quiet else ""}
+                "quiet": quiet["note"] or "not news" if quiet else
+                "not told: your model says it doesn't matter" if held else ""}
 
     def _describe_later(self, event: dict[str, Any], picture: bytes) -> None:
         """On the side: a slow model never holds anything back (C6). One at a time."""
@@ -631,11 +645,12 @@ class Cameras:
     async def _describe(self, event: dict[str, Any], picture: bytes) -> None:
         try:
             async with self._model_lock, asyncio.timeout(90):
-                words = await self.describer(picture, place(event["camera"]),
+                found = await self.describer(picture, place(event["camera"]),
                                              self.context(event["camera"]))
+            words, not_news = found if isinstance(found, tuple) else (found, False)
             self.model_problem = ""
         except (ModelError, TimeoutError) as err:
-            words = None
+            words, not_news = None, False
             self.model_problem = (f"Your model could not describe a picture: {err}"
                                   if str(err) else "Your model took too long to describe a "
                                   "picture")
@@ -644,7 +659,10 @@ class Cameras:
         if not words or event["camera"] not in self.described():
             return
         self.descriptions[event["id"]] = words
+        if not_news and event["camera"] in self.judged():
+            self.not_news.add(event["id"])
         while len(self.descriptions) > 200:
+            self.not_news.discard(next(iter(self.descriptions)))
             self.descriptions.pop(next(iter(self.descriptions)))
         latest = next((e for e in self.events.get(event["camera"], [])
                        if e["id"] == event["id"]), event)
