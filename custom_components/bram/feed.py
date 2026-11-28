@@ -123,6 +123,7 @@ class Feed:
         self.printers: Any = None
         self.teller: Any = None
         self.camera_watch: Any = None
+        self.checks: Any = None
         self._queue: asyncio.Queue[dict] | None = None
         self._queries: set[asyncio.Task] = set()
         self._asked: dict[str, asyncio.Future[str]] = {}
@@ -310,6 +311,11 @@ class Feed:
                 and data["type"] == "suggest" and self.suggestions is not None):
             # Only a suggestion; nothing changes until an admin answers it (F4).
             self.suggestions.received(data["key"], data["why"])
+            return
+        if (isinstance(data, dict) and data.keys() == {"type", "items"}
+                and data["type"] == "patterns" and self.checks is not None):
+            # Patterns from history; each becomes a suggestion an admin answers (F4).
+            self.checks.received(data["items"])
             return
         if (isinstance(data, dict) and data.keys() == {"type", "nights", "opens"}
                 and data["type"] == "learned" and self.learner is not None):

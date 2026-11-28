@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.51.0
+
+Update both: BRAM in HACS (then restart Home Assistant) and the BRAM Server (pull the new image).
+
+- Learning suggests nightly checks. From the last 28 nights of history, BRAM finds a door, window, or lock that is often still open or unlocked late, and asks on the review page, for example "Check Garage door at 11 PM?". Approve, and each night at that hour it tells you if it is still open. Needs Learning and Keep history on. Remove a check under **Configure > Learning**. See [Nightly checks](docs/learning.md#nightly-checks).
+
 ## 0.50.2
 
 Update the BRAM Server (pull the new image).

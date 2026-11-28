@@ -12,6 +12,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import section
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -19,6 +20,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from . import printers
 from .camera_watch import DEFAULT_REPEAT, place
 from .camera_watch import RULES as CAMERA_RULES
+from .checks import spoken_hour
 from .client import CannotConnect, InvalidCode, pair
 from .const import (
     CONF_CODE,
@@ -295,8 +297,15 @@ class BramOptionsFlow(OptionsFlowWithReload):
                 options = learner.undone(options)
             if user_input["forget"]:
                 await learner.forget()
+            if "checks" in user_input:
+                options["checks"] = [c for c in options.get("checks", [])
+                                     if c["entity_id"] in user_input["checks"]]
             return self.async_create_entry(data={**options, CONF_LEARN: user_input[CONF_LEARN]})
         fields = {vol.Required(CONF_LEARN, default=options.get(CONF_LEARN, False)): bool}
+        if checks := options.get("checks", []):
+            labels = {c["entity_id"]: f"{name_of(self.hass, c['entity_id'])} at "
+                      f"{spoken_hour(c['hour'])}" for c in checks}
+            fields[vol.Optional("checks", default=list(labels))] = cv.multi_select(labels)
         if learner.data["undo"]:
             fields[vol.Required("undo", default=False)] = bool
         fields[vol.Required("forget", default=False)] = bool

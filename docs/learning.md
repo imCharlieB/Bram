@@ -45,6 +45,14 @@ The same review page also asks about fewer messages, when you keep hiding someth
 
 If the server is down, your alerts and night hours keep working in Home Assistant. Those nights are not recorded, so a suggestion comes a little later.
 
+## Nightly checks
+
+BRAM also looks for doors, windows, garage doors, and locks you share that are often still open or unlocked late. From the last 28 nights of history, at 8 PM, 9 PM, 10 PM, 11 PM, midnight, and 1 AM, it counts the nights each was open or unlocked; unknown never counts. If it was on at least 8 nights, and at least 4 of every 10 nights it could see, it picks the **latest** of those hours, so a check does not nag while the door is still in use.
+
+The review page then asks, for example: **Check Garage door at 11 PM?** "On 19 of the last 28 nights, Garage door was still open at 11 PM." Approve, and each night at 11 PM BRAM looks; if it is still open or unlocked, your phone gets "Garage door is still open. Your nightly check at 11 PM." It does not wait for quiet hours. Nothing is closed or locked for you; BRAM still controls nothing.
+
+It skips anything one of your rules already covers, such as **Open at night** or **Unlocked at night** at that hour. **Never suggest this** stops it for that device. Remove an approved check by unchecking it under **Nightly checks you approved** on BRAM's **Learning** page in Home Assistant. Code finds every pattern; no model is involved.
+
 ## Undo or start over
 
 On the same **Learning** page in Home Assistant:

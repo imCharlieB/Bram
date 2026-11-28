@@ -290,6 +290,7 @@ async def _keep(app: web.Application) -> None:
     """Once a minute, note the readings. Now and then, bring in what is already known."""
     tries: dict[int, float] = {}
     told: dict[str, tuple] = {}
+    checked: dict[str, tuple] = {}
     while True:
         await asyncio.sleep(60)
         try:
@@ -299,6 +300,7 @@ async def _keep(app: web.Application) -> None:
                 await bring_past(app, house_id, tries)
                 await tell_learning(app, house_id, told)
                 await tell_habits(app, house_id)
+                await tell_checks(app, house_id, checked)
         except Exception as err:  # noqa: BLE001 - history must never stop the server
             print(f"History could not be kept: {type(err).__name__}", file=sys.stderr)
 
@@ -332,6 +334,27 @@ async def tell_learning(app: web.Application, house_id: str, told: dict[str, tup
         return
     try:
         await ws.send_json({"type": "learned", **found})
+    except ConnectionError:
+        return
+    told[house_id] = mark
+
+
+async def tell_checks(app: web.Application, house_id: str, told: dict[str, tuple]) -> None:
+    """Doors and locks often still open late: patterns Home Assistant may suggest as checks.
+    Only a suggestion; an admin approves each there (F4)."""
+    ws, house = app[SOCKETS].get(house_id), app[HOUSES].get(house_id)
+    if ws is None or house is None or _older(house[0].version, (0, 51)) or SETTINGS not in app:
+        return
+    history = app[HISTORY]
+    if not history.on:
+        return
+    zone = ZoneInfo(app[SETTINGS].all()["timezone"] or "UTC")
+    found = history.checks(house_id, zone)
+    mark = (id(ws), int(time.time() // 3600), json.dumps(found, sort_keys=True))
+    if told.get(house_id) == mark:
+        return
+    try:
+        await ws.send_json({"type": "patterns", "items": found})
     except ConnectionError:
         return
     told[house_id] = mark

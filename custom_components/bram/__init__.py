@@ -11,6 +11,7 @@ from homeassistant.loader import async_get_integration
 
 from . import blueprints, review
 from .camera_watch import CameraWatch
+from .checks import Checks
 from .const import CONF_ENTITIES, DOMAIN
 from .digest import Digest
 from .feed import Feed
@@ -64,6 +65,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                  feed.teller)
     entry.async_on_unload(await feed.printers.start())
     feed.learner = Learner(hass, entry, feed)
+    feed.checks = Checks(hass, entry, feed.note)
+    await feed.checks.start()
     feed.suggestions = Suggestions(hass, entry, feed.outbox.known, feed.act, feed.note)
     await feed.suggestions.start()
     entry.async_on_unload(await feed.learner.start())

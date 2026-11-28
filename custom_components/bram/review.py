@@ -28,7 +28,8 @@ def _learners(hass: HomeAssistant) -> list[Any]:
     for entry in hass.config_entries.async_entries(DOMAIN):
         feed = getattr(entry, "runtime_data", None)
         found += [part for part in (getattr(feed, "learner", None),
-                                    getattr(feed, "suggestions", None)) if part is not None]
+                                    getattr(feed, "suggestions", None),
+                                    getattr(feed, "checks", None)) if part is not None]
     return found
 
 

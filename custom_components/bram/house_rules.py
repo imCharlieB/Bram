@@ -41,9 +41,10 @@ DAY = 86400
 MUTE = "BRAM_QUIET_"
 UNKNOWN = ("unavailable", "unknown", "")
 RULES = ("night", "away", "left_open", "offline", "open_night", "open_climate", "motion_away",
-         "too_hot", "too_cold", "freezing", "humid")
+         "too_hot", "too_cold", "freezing", "humid", "check")
 # These matter at night, so they do not wait for quiet hours to end.
-URGENT = ("night", "away", "open_night", "motion_away", "freezing")
+URGENT = ("night", "away", "open_night", "motion_away", "freezing", "check")
+CHECK_FOR = 45  # minutes after its hour that a nightly check still tells
 COMFORT_WAIT = 1800  # a room must stay too hot or too cold this long
 FREEZE_WAIT = 900
 RUNNING = ("heating", "cooling")
@@ -88,6 +89,11 @@ class HouseRules:
         self._hass = hass
         options = entry.options
         self._on = {r for r in RULES if options.get(r)}
+        # Nightly checks the owner approved from what BRAM learned.
+        self._checks: dict[str, int] = {c["entity_id"]: c["hour"] for c in options.get(
+            "checks", []) if isinstance(c, dict) and isinstance(c.get("hour"), int)}
+        if self._checks:
+            self._on.add("check")
         self._unit = hass.config.units.temperature_unit
         self._limits = limits(self._unit, dict(options))
         self._skip: set[str] = set(options.get("comfort_skip", []))
@@ -224,6 +230,15 @@ class HouseRules:
         if not away:
             self._moved.clear()
         unit = "\u00b0F" if self._unit == UnitOfTemperature.FAHRENHEIT else "\u00b0C"
+        clock = dt_util.now()
+        for entity_id, hour in self._checks.items():
+            state = self._hass.states.get(entity_id)
+            if (state is not None and clock.hour == hour and clock.minute < CHECK_FOR
+                    and state.state in ("on", "open", "unlocked")):
+                said = "unlocked" if state.state == "unlocked" else "open"
+                at = datetime.time(hour).strftime("%I %p").lstrip("0")
+                yield "check", entity_id, 0, (f"{self._name(entity_id)} is still {said}. "
+                                              f"Your nightly check at {at}.")
         for entity_id in self._entities:
             state = self._hass.states.get(entity_id)
             kind = self._kind(entity_id, state)
@@ -374,7 +389,8 @@ class HouseRules:
                  "away": "open while everyone is away", "offline": "offline",
                  "open_night": "open at night", "open_climate": "open while heating or cooling",
                  "motion_away": "moved while everyone is away", "too_hot": "too hot",
-                 "too_cold": "too cold", "freezing": "near freezing", "humid": "humid"}
+                 "too_cold": "too cold", "freezing": "near freezing", "humid": "humid",
+                 "check": "still open at its nightly check"}
         for key, (rule, wait, _text) in facts.items():
             if key in self._muted:
                 continue

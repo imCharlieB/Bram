@@ -267,7 +267,8 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 | Thermostat against room sensor over time: drift, a room that lags, and which one to trust | ⬜ |
 | Climate trends: run time against outside temperature and setting, a system working harder than it used to, what each setting costs in run time, suggested settings | ⬜ |
 | Usual arrivals, lockup, and routines | ⬜ |
-| Suggests new rules from what it sees, such as "the garage is open most nights after 11 PM": code finds the pattern, the model only words it, previewed against past days, and on only after approval | ⬜ |
+| Suggests nightly checks from history, such as "Check Garage door at 11 PM?" after it was still open on 19 of 28 nights; code finds the pattern; on only after approval | ✅ 0.51, [Learning](learning.md#nightly-checks) |
+| More kinds of suggested rules: things left on while away, a door unlocked at the same time each day | ⬜ |
 | Describe an automation; BRAM drafts it, checks every device exists, shows it, and installs it only after approval | ⬜ |
 | Switch a suggested rule off, back on, or repair it | ⬜ |
 
@@ -291,6 +292,16 @@ Blueprints keep these in Home Assistant, where you can see and change them:
 | Web search and other tools through MCP; off by default | ⬜ |
 | BRAM's own health: model, database, rules, last check | 🟡 connection and versions |
 | Trainer, with approved examples only | ⬜ |
+
+## The JARVIS look
+
+| Feature | Status |
+|---|---|
+| Command bar, alert windows, and cards drawn like holographic screens | ✅ 0.50 |
+| The brain takes the color of what happens | ✅ 0.50 |
+| Speaking: a ring of glowing dots that waves with the voice, around a geodesic core; BRAM's name forming in particles | ⬜ |
+| Callouts: lines that draw out from the brain to labeled readouts, such as Living room 74° | ⬜ |
+| Pages that fold away and unfold in, panel by panel, with a hologram flicker | ⬜ |
 
 ## 10. Speakers
 

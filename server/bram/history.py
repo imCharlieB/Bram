@@ -14,6 +14,8 @@ from zoneinfo import ZoneInfo
 
 from .nights import KEEP_DAYS, summarize
 from .nights import KINDS as LEARN_KINDS
+from .patterns import DAYS as CHECK_DAYS
+from .patterns import evening_checks
 from .world import MEANING, UNUSABLE, Event, World
 
 SLOT, HOUR = 300, 3600
@@ -85,6 +87,7 @@ class History:
         self._ids: dict[tuple[str, str, str], tuple[int, tuple]] = {}
         self._slots: dict[tuple[int, int], list[float]] = {}
         self._learning: dict[str, tuple[tuple[int, str], dict]] = {}
+        self._checks: dict[str, tuple] = {}
         self._last: dict[int, str] = {}
         self._rolled = 0
         alive = self._db.execute("SELECT value FROM meta WHERE key = 'alive'").fetchone()
@@ -415,6 +418,22 @@ class History:
         self._learning[house_id] = ((hour, str(zone)), found)
         return found
 
+    def checks(self, house_id: str, zone: ZoneInfo) -> list[dict]:
+        """Doors, windows, and locks often still open late, for suggested checks. Hourly."""
+        hour = int(self._clock() // HOUR)
+        cached = self._checks.get(house_id)
+        if cached is not None and cached[0] == (hour, str(zone)):
+            return cached[1]
+        since = self._clock() - (CHECK_DAYS + 2) * 86400
+        changes = [(r[0], r[1], r[2], r[3], r[4]) for r in self._db.execute(
+            "SELECT device.entity_id, device.name, device.kind, change.at, change.state "
+            "FROM change JOIN device ON device.id = change.device WHERE device.house_id = ? "
+            "AND device.kind IN ('opening', 'lock') AND change.at >= ? "
+            "ORDER BY change.device, change.at", (house_id, since))]
+        found = evening_checks(changes, zone, self._clock())
+        self._checks[house_id] = ((hour, str(zone)), found)
+        return found
+
     # --- forgetting ---
 
     def forget(self, house_id: str | None = None) -> None:
@@ -427,6 +446,7 @@ class History:
             self._db.execute(f"DELETE FROM device {where}", values)  # noqa: S608
             self._db.execute(f"DELETE FROM seen {where}", values)  # noqa: S608
         self._learning.clear()
+        self._checks.clear()
         self._ids.clear()
         self.reload()
         self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
