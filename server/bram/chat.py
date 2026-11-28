@@ -49,10 +49,18 @@ MAX_FACTS = 6
 IDLE = 1800
 MAX_CONVERSATIONS = 20
 # Asked in plain words; handled here, never by the model.
-REMEMBER = re.compile(r"^\s*(?:please\s+)?(?:remember|note|keep in mind)(?:\s+that)?[:,]?\s+"
-                      r"(.+?)\s*$", re.I | re.S)
-FORGET = re.compile(r"^\s*(?:please\s+)?forget(?:\s+(?:that|about|what i said about))?\s+"
+# Said many ways: "Bram, remember...", "Can you please remember...", "Don't forget that...".
+_LEAD = (r"^\s*(?:(?:hey|ok|okay|so|and|also)\s*,?\s+)*(?:bram\s*[,:]?\s+)?"
+         r"(?:(?:can|could|would|will)\s+you\s+|i\s+(?:want|need)\s+you\s+to\s+)?"
+         r"(?:please\s+)?")
+REMEMBER = re.compile(_LEAD + r"(?:remember|note|keep\s+in\s+mind|don'?t\s+forget|"
+                      r"do\s+not\s+forget|save)(?:\s+(?:this|that))?\s*[:,]?\s+(.+?)\s*$",
+                      re.I | re.S)
+FORGET = re.compile(_LEAD + r"forget(?:\s+(?:that|about|what\s+i\s+said\s+about))?\s+"
                     r"(.+?)\s*[.!]?\s*$", re.I | re.S)
+# A model that says it will remember, when nothing was kept, is corrected under its answer.
+CLAIMS = re.compile(r"\b(?:i'?ll|i\s+will|i'?ve|i\s+have|got\s+it.{0,20})\s*(?:remember|noted|"
+                    r"make\s+a\s+note|keep\s+that\s+in\s+mind)", re.I)
 RECALL = re.compile(r"^\s*what\s+do\s+you\s+remember(?:\s+about\s+(.+?))?\s*[?.!]?\s*$",
                     re.I)
 OFF = ("Memory is off, so I can't remember things between conversations. The owner can turn it "
@@ -171,10 +179,12 @@ class Chat:
             lines = [m["text"] for m in found[:10]]
             return Reply("I remember: " + "; ".join(lines) + ".",
                          ["Everything remembered is under Settings, Memory on BRAM's page"])
-        if (said := REMEMBER.match(text)) is not None and not text.rstrip().endswith("?"):
+        if (said := REMEMBER.match(text)) is not None and not (
+                text.rstrip().endswith("?") and not re.match(r"\s*(?:can|could|would|will)\s",
+                                                             text, re.I)):
             if memory is None or not memory.on:
                 return Reply(OFF, [])
-            kept = memory.add(person, said.group(1).rstrip(" ."), "said in chat")
+            kept = memory.add(person, said.group(1).rstrip(" .?!"), "said in chat")
             if kept is None:
                 return Reply("I couldn't keep that.", [])
             return Reply(f"I'll remember that: {kept['text']}.",
@@ -256,7 +266,11 @@ class Chat:
             while len(self._conversations) > MAX_CONVERSATIONS:
                 oldest = min(self._conversations, key=lambda k: self._conversations[k].used)
                 del self._conversations[oldest]
-            return Reply(answer, past or self._facts(f"{text} {answer}", states))
+            facts = past or self._facts(f"{text} {answer}", states)
+            if CLAIMS.search(answer):  # only BRAM keeps memories, never the model
+                facts = [*facts, "Not saved to memory. To keep something, say \"Remember "
+                         "that...\"" + ("" if remembering else ", with memory on")]
+            return Reply(answer, facts)
 
     # --- what BRAM knows ---
 

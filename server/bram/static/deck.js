@@ -39,13 +39,14 @@ const deck = (() => {
 
   // The dots that spell BRAM, read once from the letters drawn off screen.
   const NAME = (() => {
-    const c = document.createElement("canvas"), width = 360, height = 110;
+    const c = document.createElement("canvas"), width = 420, height = 120;
     c.width = width; c.height = height;
     const g = c.getContext("2d");
-    g.fillStyle = "#fff"; g.font = "800 96px ui-monospace, Consolas, monospace"; g.textBaseline = "middle"; g.textAlign = "center";
+    g.fillStyle = "#fff"; g.font = "700 92px system-ui, Segoe UI, sans-serif"; g.textBaseline = "middle"; g.textAlign = "center";
+    if ("letterSpacing" in g) g.letterSpacing = "18px";
     g.fillText("BRAM", width / 2, height / 2);
     const pixels = g.getImageData(0, 0, width, height).data, dots = [];
-    for (let y = 0; y < height; y += 3) for (let x = 0; x < width; x += 3) {
+    for (let y = 0; y < height; y += 2) for (let x = 0; x < width; x += 2) {
       if (pixels[(y * width + x) * 4 + 3] > 128) dots.push({ x, y, fx: Math.random(), fy: Math.random(), dx: Math.random() - .5, dy: Math.random() - .5, ph: Math.random() * 6 });
     }
     return { dots, width, height };
@@ -294,8 +295,7 @@ const deck = (() => {
     const lit = tint ? Math.max(0, 1 - (now - tint.born) / tint.hold) : 0;
     // While BRAM's name forms, the threads and core dim so the name can be read.
     const nameAge = name.born ? (now - name.born) / 1000 : 99;
-    const hush = Math.max(nameAge < 4.2 ? Math.min(1, nameAge / .8) * Math.min(1, (4.2 - nameAge) / 1.1) : 0,
-                          Math.min(.7, level * .9));
+    const hush = Math.max(name.born ? Math.min(1, nameAge / .8) : 0, Math.min(.7, level * .9));
     if (tint && !lit) tint = null;
     g.globalCompositeOperation = "lighter";
     const energy = .45 + talking * .55;
@@ -386,18 +386,25 @@ const deck = (() => {
 
     // BRAM's name, forming from dots when it starts to speak, then scattering again
     if (name.born) {
-      const age = (now - name.born) / 1000;
-      if (age > 4.2) name.born = 0;
+      // Held while BRAM speaks, at least four seconds; then it drifts apart and fades.
+      if (talking || ear) name.hold = now;
+      const age = (now - name.born) / 1000, after = Math.max(0, (now - Math.max(name.hold || 0, name.born + 4000)) / 1000);
+      if (after > 1.4) name.born = 0;
       else {
-        const gather = Math.min(1, age / 1.1), ease = 1 - Math.pow(1 - gather, 3);
-        const leave = Math.max(0, (age - 3.1) / 1.1);
-        g.globalCompositeOperation = "lighter"; g.fillStyle = color.main;
-        const scale = r * 2.1 / NAME.width;
-        for (const d of NAME.dots) {
-          const tx = o.x + (d.x - NAME.width / 2) * scale, ty = o.y + (d.y - NAME.height / 2) * scale;
-          const x = d.fx * w + (tx - d.fx * w) * ease + d.dx * leave * r, y = d.fy * h + (ty - d.fy * h) * ease + d.dy * leave * r;
-          g.globalAlpha = (.35 + .6 * ease) * (1 - leave) * (.7 + .3 * Math.sin(now / 90 + d.ph));
-          g.fillRect(x, y, 1.8, 1.8);
+        const gather = Math.min(1, age / 1.3), ease = 1 - Math.pow(1 - gather, 3), leave = after / 1.4;
+        const scale = r * 1.7 / NAME.width;
+        g.globalCompositeOperation = "lighter";
+        for (const pass of [0, 1]) {  // a soft glow, then the sharp dots on top
+          g.fillStyle = pass ? "#e8fdff" : color.main;
+          for (const d of NAME.dots) {
+            const drift = Math.sin(now / 700 + d.ph) * 1.2;
+            const tx = o.x + (d.x - NAME.width / 2) * scale + drift, ty = o.y + (d.y - NAME.height / 2) * scale + Math.cos(now / 900 + d.ph) * 1.2;
+            const x = d.fx * w + (tx - d.fx * w) * ease + d.dx * leave * r * 1.5, y = d.fy * h + (ty - d.fy * h) * ease + d.dy * leave * r * 1.5;
+            const shimmer = .75 + .25 * Math.sin(now / 260 + d.ph * 3);
+            g.globalAlpha = (pass ? .55 : .12) * ease * (1 - leave) * shimmer;
+            const size = pass ? 1.3 : 4;
+            g.fillRect(x - size / 2, y - size / 2, size, size);
+          }
         }
         g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
       }

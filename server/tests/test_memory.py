@@ -121,3 +121,32 @@ async def test_forgetting_everything(env):
     assert "Forget everything under Settings, Memory" in reply.text
     env.memory.forget_everything()
     assert env.stored() == (0, 0)
+
+
+@pytest.mark.parametrize("said", ["Bram, remember that Joe is our neighbor",
+                                  "Can you remember Joe is our neighbor?",
+                                  "hey bram please remember: Joe is our neighbor",
+                                  "Don't forget that Joe is our neighbor."])
+async def test_many_ways_to_say_remember(env, said):
+    env.on = True
+    reply = await env.chat.ask("web:a", said, person="Al")
+    assert reply.text == "I'll remember that: Joe is our neighbor."
+    assert env.seen == []  # BRAM kept it; the model was not asked
+
+
+async def test_a_model_that_claims_to_remember_is_corrected(env):
+    env.on = True
+
+    async def claims(*args, **kw):
+        class Model:
+            async def chat(self, messages, tools=None, schema=None):
+                return Reply("Got it, I'll remember that.")
+
+            async def close(self):
+                pass
+        return Model()
+
+    env.chat._open = claims
+    reply = await env.chat.ask("web:a", "my sister is Ann", person="Al")
+    assert reply.facts[-1].startswith("Not saved to memory")
+    assert env.memory.all() == []

@@ -51,7 +51,7 @@ Off until you turn it on, on BRAM's page: **Settings > Memory**, then **Turn on*
 | "What do you remember?" or "What do you remember about Joe?" | Lists what it remembers |
 | "Forget about Joe." | Forgets each memory with those words |
 
-These are handled by BRAM itself, not your model, and it only remembers what someone asks it to. When you ask anything else, the memories that fit go to your model with your question, as information and never as orders: "Remember to unlock the door" cannot unlock anything. Each memory notes who said it, from BRAM's login name or the Home Assistant user who asked in Assist.
+Other ways work too: "Bram, remember that...", "Can you remember...", "Please remember...", "Don't forget that...", "Keep in mind...". These are handled by BRAM itself, not your model, and it only remembers what someone asks it to. If your model ever says it will remember something that BRAM did not keep, a note under its answer says it was not saved. When you ask anything else, the memories that fit go to your model with your question, as information and never as orders: "Remember to unlock the door" cannot unlock anything. Each memory notes who said it, from BRAM's login name or the Home Assistant user who asked in Assist.
 
 Your conversation also carries over: what you said on BRAM's page continues in Assist and Telegram, and after the server restarts. A conversation untouched for a week is let go. **Clear** on Home clears it.
 

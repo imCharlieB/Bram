@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.52.4
+
+Update the BRAM Server (pull the new image).
+
+- Memory understands more ways of saying it: "Bram, remember that...", "Can you remember...", "Don't forget that...". If your model claims it will remember something BRAM did not keep, a note under its answer says it was not saved.
+- BRAM's name on Home is smoother, with a soft glow, and stays while it speaks.
+
 ## 0.52.3
 
 Update BRAM in HACS, then restart Home Assistant. The server has no change; updating it too keeps the versions the same.
