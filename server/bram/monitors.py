@@ -5,6 +5,7 @@ import asyncio
 import logging
 import secrets
 from collections.abc import Callable
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -54,6 +55,15 @@ async def diagnose(kind: str, url: str, transport: httpx.AsyncBaseTransport | No
     return reason
 
 
+def _where(url: str) -> tuple[str, int | None]:
+    """Host and port, to tell whether two addresses are the same thing."""
+    try:
+        parts = urlsplit(url if "://" in url else f"http://{url}")
+        return (parts.hostname or "", parts.port)
+    except ValueError:
+        return ("", None)
+
+
 async def probe(kind: str, url: str, transport: httpx.AsyncBaseTransport | None = None) -> bool:
     return not await diagnose(kind, url, transport)
 
@@ -80,8 +90,27 @@ class Monitors:
         self.status: dict[str, bool] = {}
         self.reasons: dict[str, str] = {}
 
-    def all(self) -> list[dict]:
+    def mine(self) -> list[dict]:
+        """The monitors the owner added."""
         return self._settings.channel("monitors").get("list", [])
+
+    def automatic(self) -> list[dict]:
+        """What BRAM itself relies on, watched without being asked: the model, and Whisper and
+        Piper once voice is set up. Not when the owner already watches the same address."""
+        settings, speech = self._settings.all(), self._settings.channel("speech")
+        found = []
+        if settings.get("model_url"):
+            found.append(("auto-model", "ollama", "Ollama", settings["model_url"]))
+        for key, kind, name in (("hear", "device", "Whisper"), ("speak", "device", "Piper")):
+            if address := speech.get(key):
+                url = address if "://" in address else f"http://{address}"
+                found.append((f"auto-{key}", kind, name, url))
+        taken = {_where(m["url"]) for m in self.mine()}
+        return [{"id": i, "kind": k, "name": n, "url": u, "automatic": True}
+                for i, k, n, u in found if _where(u) not in taken]
+
+    def all(self) -> list[dict]:
+        return [*self.mine(), *self.automatic()]
 
     def _save(self, items: list[dict]) -> None:
         self._settings.update_channel("monitors", {"list": items})
@@ -92,16 +121,16 @@ class Monitors:
         name = " ".join("".join(c if c.isprintable() else " " for c in name).split())
         if not 1 <= len(name) <= 60:
             raise ValueError("Enter a name of up to 60 characters")
-        if len(self.all()) >= LIMIT:
+        if len(self.mine()) >= LIMIT:
             raise ValueError(f"At most {LIMIT} monitors")
         text = url.strip() if "://" in url else f"http://{url.strip()}"
         clean = await check_local(text, KINDS[kind])
         monitor = {"id": secrets.token_hex(6), "kind": kind, "name": name, "url": clean}
-        self._save([*self.all(), monitor])
+        self._save([*self.mine(), monitor])
         await self._one(monitor)  # show a result now, not at the next pass
 
     def remove(self, monitor_id: object) -> None:
-        self._save([m for m in self.all() if m["id"] != monitor_id])
+        self._save([m for m in self.mine() if m["id"] != monitor_id])
         self._failures.pop(str(monitor_id), None)
         self.status.pop(str(monitor_id), None)
         self.reasons.pop(str(monitor_id), None)

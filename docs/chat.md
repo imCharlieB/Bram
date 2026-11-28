@@ -55,6 +55,8 @@ Other ways work too: "Bram, remember that...", "Can you remember...", "Please re
 
 Your conversation also carries over: what you said on BRAM's page continues in Assist and Telegram, and after the server restarts. A conversation untouched for a week is let go. **Clear** on Home clears it.
 
+**Each person decides for themselves.** Saying "Don't remember me" turns memory off for whoever says it, and forgets what BRAM kept from them; "You can remember me" turns it back on. **Settings > Memory** lists everyone memory holds something for, each with **Remember** to turn on or off. When you correct BRAM, such as "No, my sister is Ann", it reminds you that "Remember that..." keeps it; it does not keep it by itself.
+
 Everything remembered is listed under **Settings > Memory**, each with **Change** and **Delete**. You can add one there too. **Forget everything** deletes all of it. Turning memory off asks whether to forget everything too; if you keep it, it stays unused until memory is on again. Camera lessons are kept separately, under **Settings > Cameras**.
 
 ## In Telegram

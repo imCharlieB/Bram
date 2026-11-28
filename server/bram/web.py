@@ -166,6 +166,7 @@ class ConfigPage:
             web.get("/api/memory", self._private(self._get_memory)),
             web.post("/api/memory-on", self._confirmed(self._memory_on)),
             web.post("/api/memory-add", self._private(self._memory_add)),
+            web.post("/api/memory-person", self._private(self._memory_person)),
             web.post("/api/memory-edit", self._private(self._memory_edit)),
             web.post("/api/memory-delete", self._private(self._memory_delete)),
             web.post("/api/memory-forget-all", self._confirmed(self._memory_forget_all)),
@@ -918,7 +919,11 @@ class ConfigPage:
     # --- memory: optional, off by default, seen and deleted here (E7, E10) ---
 
     def _memory_view(self) -> dict:
-        return {"on": self.memory.on, "items": [
+        people = sorted({*self.memory.people(), self._owner(), *self.chat._off_for()},
+                        key=str.casefold)
+        return {"on": self.memory.on, "people": [
+            {"name": p, "on": self.chat.remembers(p) or not self.memory.on} for p in people],
+            "items": [
             {"id": m["id"], "text": m["text"], "person": m["person"], "source": m["source"],
              "at": m["at"]} for m in self.memory.all()]}
 
@@ -936,6 +941,16 @@ class ConfigPage:
         self._audit.record("server", "config page", "memory on" if on else "memory off",
                            "and forgotten" if body.get("forget") is True else "by owner", "ok",
                            approver="owner")
+        return _json(self._memory_view())
+
+    async def _memory_person(self, request: web.Request) -> web.Response:
+        body = await _body(request)
+        person, on = body.get("person"), body.get("on")
+        if not isinstance(person, str) or not person.strip() or not isinstance(on, bool):
+            return _json({"error": "Choose a person"}, 400)
+        self.chat.set_person(person.strip()[:64], on)
+        self._audit.record("server", "config page", "memory on" if on else "memory off",
+                           "for one person", "ok", approver="owner")
         return _json(self._memory_view())
 
     async def _memory_add(self, request: web.Request) -> web.Response:

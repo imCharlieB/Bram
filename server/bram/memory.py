@@ -153,6 +153,18 @@ class Memory:
             else:
                 self._db.execute("DELETE FROM talk WHERE person = ?", (person,))
 
+    def people(self) -> list[str]:
+        """Everyone memory holds something for."""
+        rows = self._db.execute("SELECT person FROM memory UNION SELECT person FROM talk")
+        return sorted({r[0] for r in rows}, key=str.casefold)
+
+    def forget_person(self, person: str) -> int:
+        """Everything kept for one person, when they opt out (E10)."""
+        with self._db:
+            gone = self._db.execute("DELETE FROM memory WHERE person = ?", (person,)).rowcount
+            self._db.execute("DELETE FROM talk WHERE person = ?", (person,))
+        return gone
+
     def forget_everything(self) -> None:
         with self._db:
             self._db.execute("DELETE FROM memory")

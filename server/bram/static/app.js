@@ -271,6 +271,7 @@ async function loadMonitors() {
   dots("home-monitors", monitors.map((item) => [item.name, item.up, item.up === null ? "Checking" : item.up ? "Answering" : "Not answering"]));
   $("monitor-list").replaceChildren(...(monitors.length ? monitors.map((item) => {
     const row = element("li"), side = element("span"), remove = element("button", "Remove", "quiet small");
+    remove.hidden = Boolean(item.automatic);  // watched because BRAM relies on it
     remove.addEventListener("click", () => busy(remove, "monitors-message", async () => {
       await api("monitor-remove", { id: item.id });
       await loadMonitors();
@@ -279,7 +280,7 @@ async function loadMonitors() {
     const [text, kind] = item.up === null ? ["Checking", "note"] : item.up ? ["Answering", "good"] : ["Not answering", "bad"];
     side.append(element("span", text, kind), remove);
     const left = element("span", item.name), type = { ollama: "Ollama", frigate: "Frigate", device: "Device" }[item.kind];
-    left.append(element("span", `${type} at ${item.url}${item.reason ? `: ${item.reason}` : ""}`, "note sub"));
+    left.append(element("span", `${item.automatic ? "Watched automatically · " : ""}${type} at ${item.url}${item.reason ? `: ${item.reason}` : ""}`, "note sub"));
     row.append(left, side);
     return row;
   }) : [element("li", "None yet")]));
@@ -481,6 +482,23 @@ function showMemory(view) {
   $("memory-state").className = view.on ? "good" : "note";
   $("memory-toggle").textContent = view.on ? "Turn off" : "Turn on";
   $("memory-forget").hidden = !view.items.length;
+  $("memory-people-box").hidden = !view.on || !view.people.length;
+  $("memory-people").replaceChildren(...view.people.map((person) => {
+    const row = element("li"), box = element("label", undefined, "check"), input = element("input");
+    input.type = "checkbox";
+    input.checked = person.on;
+    input.addEventListener("change", () => busy(input, "memory-message", async () => {
+      if (!input.checked && !window.confirm(`Turn memory off for ${person.name}, and forget what was theirs?`)) {
+        input.checked = true;
+        return "";
+      }
+      showMemory(await api("memory-person", { person: person.name, on: input.checked }));
+      return input.checked ? `On for ${person.name}` : `Off for ${person.name}`;
+    }));
+    box.append(input, " Remember");
+    row.append(element("span", person.name), box);
+    return row;
+  }));
   $("memory-card").hidden = !view.on && !view.items.length;
   $("memory-list").replaceChildren(...(view.items.length ? view.items.map((item) => {
     const row = element("li"), left = element("span", item.text);
@@ -1744,6 +1762,8 @@ async function openPage() {
   const wanted = location.hash.slice(1), target = wanted.startsWith("finding=") ? safeDecode(wanted.slice(8)) : null;
   const page = target !== null ? "findings" : PLACES[wanted] || (PAGES.includes(wanted) ? wanted : "overview");
   if (wanted === "messages") PLACES.messages = "messages";
+  // Cleared before the panels fold away, so nothing that arrives meanwhile is wiped.
+  for (const node of document.querySelectorAll("#pages .message")) say(node.id, "");
   await foldAway(page);
   for (const section of document.querySelectorAll("[data-page]")) section.hidden = section.dataset.page !== page;
   showTabs(page, wanted);
@@ -1761,7 +1781,6 @@ async function openPage() {
   $("change-form").reset();
   $("factor-codes").hidden = true;
   $("factor-recovery").textContent = "";
-  for (const node of document.querySelectorAll("#pages .message")) say(node.id, "");
   scrollTo(0, 0);
   try {
     await LOADERS[page]();

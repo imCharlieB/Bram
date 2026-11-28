@@ -150,3 +150,26 @@ async def test_a_model_that_claims_to_remember_is_corrected(env):
     reply = await env.chat.ask("web:a", "my sister is Ann", person="Al")
     assert reply.facts[-1].startswith("Not saved to memory")
     assert env.memory.all() == []
+
+
+@pytest.mark.rule("E10")
+async def test_each_person_can_opt_out(env):
+    env.on = True
+    await env.chat.ask("web:a", "Remember that Joe is our neighbor", person="Al")
+    await env.chat.ask("ha:x", "Remember that I like it cool", person="Bea")
+    reply = await env.chat.ask("ha:x", "Bram, don't remember me", person="Bea")
+    assert reply.text.startswith("I won't remember anything from you, Bea")
+    assert [m["person"] for m in env.memory.all()] == ["Al"]  # only Bea's were forgotten
+    said = await env.chat.ask("ha:x", "Remember that I like it warm", person="bea")
+    assert said.text.startswith("Memory is off for you") and len(env.memory.all()) == 1
+    await env.chat.ask("ha:x", "Is the door locked?", person="Bea")
+    assert env.memory.load("Bea") == []  # no conversation kept for her either
+    await env.chat.ask("ha:x", "You can remember me again", person="Bea")
+    assert env.chat.remembers("Bea")
+
+
+async def test_a_correction_offers_to_be_remembered(env):
+    env.on = True
+    reply = await env.chat.ask("web:a", "No, my sister is Ann", person="Al")
+    assert reply.facts[-1] == 'To keep this, say "Remember that..."'
+    assert env.memory.all() == []  # only what someone asks for is kept

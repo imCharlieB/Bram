@@ -80,6 +80,7 @@ PRIVATE = [("GET", "status"), ("GET", "log"), ("GET", "settings"), ("POST", "set
            ("GET", "camera-live"), ("GET", "router"), ("POST", "router"), ("POST", "router-off"),
            ("GET", "memory"), ("POST", "memory-on"), ("POST", "memory-add"),
            ("POST", "memory-edit"), ("POST", "memory-delete"), ("POST", "memory-forget-all"),
+           ("POST", "memory-person"),
            ("GET", "messages"), ("GET", "ntfy-qr"), ("POST", "ntfy"), ("POST", "telegram"),
            ("POST", "telegram-link"), ("POST", "quiet"), ("POST", "test-message"),
            ("POST", "unmute"), ("GET", "profile"), ("POST", "factor-start"),
@@ -674,7 +675,7 @@ async def test_memory_page(page):
     page.settings.create_login("Owner", PASSWORD)
     await page.login()
     view = await (await page.get("/api/memory")).json()
-    assert view == {"on": False, "items": []}  # off out of the box
+    assert view["on"] is False and view["items"] == []  # off out of the box
     assert (await page.post("memory-add", {"text": "x"})).status == 400
     assert (await page.post("memory-on", {"on": True, "confirm": "wrong"})).status != 200
     assert (await page.post("memory-on", {"on": True, "confirm": PASSWORD})).status == 200
@@ -687,4 +688,4 @@ async def test_memory_page(page):
     # Off, and forget: turning it off offers to delete what exists.
     view = await (await page.post("memory-on", {"on": False, "forget": True,
                                                 "confirm": PASSWORD})).json()
-    assert view == {"on": False, "items": []}
+    assert view["on"] is False and view["items"] == []

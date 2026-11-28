@@ -1,5 +1,7 @@
 # Monitors
 
+BRAM watches what it relies on without being asked: your model (Ollama), and Whisper and Piper once [voice](voice.md) is set up. They are listed as watched automatically, follow your settings, and cannot be removed here. One you already watch at the same address is not doubled.
+
 Monitors watch things outside Home Assistant, on your own network, and message you through Telegram or ntfy. Add them on BRAM's **Messages** page.
 
 | Type | Address | Up when | Down when |

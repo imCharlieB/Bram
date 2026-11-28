@@ -58,6 +58,14 @@ REMEMBER = re.compile(_LEAD + r"(?:remember|note|keep\s+in\s+mind|don'?t\s+forge
                       re.I | re.S)
 FORGET = re.compile(_LEAD + r"forget(?:\s+(?:that|about|what\s+i\s+said\s+about))?\s+"
                     r"(.+?)\s*[.!]?\s*$", re.I | re.S)
+# Each person may turn memory off for themselves (E10).
+OPT_OUT = re.compile(_LEAD + r"(?:don'?t|do\s+not|stop)\s+(?:remember(?:ing)?\s+me|keeping\s+"
+                     r"(?:anything|what\s+i\s+say))\b", re.I)
+OPT_IN = re.compile(_LEAD + r"(?:you\s+can\s+|start\s+)?remember(?:ing)?\s+me(?:\s+again)?\s*"
+                    r"[.!]?\s*$", re.I)
+# A correction, such as "No, it's Ann", is worth keeping if the person says so.
+CORRECTS = re.compile(r"^\s*(?:no[,.!]?\s+|nope[,.!]?\s+|actually[,]?\s+|that'?s\s+(?:wrong|not\s+"
+                      r"right)[,.!]?\s*)", re.I)
 # A model that says it will remember, when nothing was kept, is corrected under its answer.
 CLAIMS = re.compile(r"\b(?:i'?ll|i\s+will|i'?ve|i\s+have|got\s+it.{0,20})\s*(?:remember|noted|"
                     r"make\s+a\s+note|keep\s+that\s+in\s+mind)", re.I)
@@ -163,9 +171,34 @@ class Chat:
             self._conversations.pop(f"person:{person}", None)
             self._memory.clear_talk(person)
 
+    def _off_for(self) -> list[str]:
+        return list(self._settings.channel("memory").get("off_for", []))
+
+    def remembers(self, person: str) -> bool:
+        return (self._memory is not None and self._memory.on
+                and person.casefold() not in {p.casefold() for p in self._off_for()})
+
+    def set_person(self, person: str, on: bool) -> None:
+        """A person turns memory on or off for themselves; off forgets what was theirs."""
+        rest = [p for p in self._off_for() if p.casefold() != person.casefold()]
+        self._settings.update_channel("memory", {"off_for": rest if on else [*rest, person]})
+        if not on and self._memory is not None:
+            self._memory.forget_person(person)
+            self._conversations.pop(f"person:{person}", None)
+
     def _remembering(self, text: str, person: str) -> Reply | None:
         """Remember, forget, or say what is remembered. Plain words; no model involved."""
         memory = self._memory
+        if OPT_OUT.match(text) and memory is not None and memory.on:
+            self.set_person(person, False)
+            return Reply(f"I won't remember anything from you, {person}, and I've forgotten what "
+                         "I kept. Say \"You can remember me\" to turn it back on.", [])
+        if OPT_IN.match(text) and memory is not None and memory.on:
+            self.set_person(person, True)
+            return Reply("I'll remember what you ask me to again.", [])
+        if (memory is not None and memory.on and not self.remembers(person)
+                and (REMEMBER.match(text) or RECALL.match(text))):
+            return Reply("Memory is off for you. Say \"You can remember me\" to turn it on.", [])
         if (said := RECALL.match(text)) is not None:
             if memory is None or not memory.on:
                 return Reply(OFF, [])
@@ -215,7 +248,7 @@ class Chat:
         person = clean(person, 64) or "owner"
         if (handled := self._remembering(text, person)) is not None:
             return handled
-        remembering = self._memory is not None and self._memory.on
+        remembering = self.remembers(person)
         if remembering:
             key = f"person:{person}"  # the same conversation from the page, Assist, or Telegram
         saved = self._settings.all()
@@ -267,6 +300,8 @@ class Chat:
                 oldest = min(self._conversations, key=lambda k: self._conversations[k].used)
                 del self._conversations[oldest]
             facts = past or self._facts(f"{text} {answer}", states)
+            if remembering and CORRECTS.match(text):
+                facts = [*facts, "To keep this, say \"Remember that...\""]
             if CLAIMS.search(answer):  # only BRAM keeps memories, never the model
                 facts = [*facts, "Not saved to memory. To keep something, say \"Remember "
                          "that...\"" + ("" if remembering else ", with memory on")]

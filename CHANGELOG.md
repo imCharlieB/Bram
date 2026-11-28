@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.53.0
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- BRAM watches what it relies on without being asked: your model, and Whisper and Piper once voice is set up. They show under Monitors and around the brain, and you are told if one goes down.
+- Memory for each person: saying "Don't remember me" turns memory off for whoever says it and forgets what was theirs; "You can remember me" turns it back on. **Settings > Memory** lists each person with **Remember**. When you correct BRAM, it reminds you that "Remember that..." keeps it.
+
 ## 0.52.4
 
 Update the BRAM Server (pull the new image).
