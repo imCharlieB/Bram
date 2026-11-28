@@ -72,7 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(await feed.learner.start())
     entry.async_on_unload(await SecurityWatch(
         hass, entry, feed.note, feed.rules.everyone_away,
-        lambda: (feed.network, feed.router)).start())
+        lambda: (feed.network, feed.router), feed.teller).start())
     for entity_id in missing(hass, entry.options):
         feed.note(f"missing:{entity_id}", "open", f"{entity_id} no longer exists in Home "
                   "Assistant. Remove it under What BRAM can see", "problems", "low")

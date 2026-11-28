@@ -287,4 +287,4 @@ Coordinates are never shared. If a room is not known, BRAM says only home or awa
 | Button | Does |
 |---|---|
 | Send test message | Sends to your chosen phones |
-| Allow stopped messages | Undoes every **Stop these** |
+| Allow stopped messages | Undoes every **Stop these** and **Less often**, and what BRAM learned by itself about telling you less |

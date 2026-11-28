@@ -86,7 +86,7 @@ Your model learns your home from you, two ways. Both need **Describe** on for th
 
 Both go to your model with every picture from that camera, so its descriptions use your words, such as "The neighbor walks to his car in his own driveway." Your answers are listed under **Settings > Cameras > What you taught BRAM**, each with **Forget**.
 
-For now this teaches the model only: an answer never holds a message back (rule C6). Later, BRAM may use what it learned to tell you less, with your approval of a change to that rule.
+For now this teaches the model only: an answer never holds a message back. Rule C6 now allows holding back routine camera messages that match what you said does not matter; that is being built next.
 
 ## Descriptions from your model
 

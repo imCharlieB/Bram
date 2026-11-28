@@ -1,8 +1,10 @@
 """How often a routine message may reach a phone. Plain rules, no model.
 
 Never used for safety alerts, or for locks and doors at night or while everyone is away:
-those always go out (C3). Nothing becomes quieter unless its words say it is a reminder, or the
-owner asks for less.
+those always go out (C3). Something becomes quieter when its words say it is a reminder, when the
+owner asks for less, or when BRAM learns it by itself from what happened (F4): something that
+usually fixes itself within an hour waits an hour, and something that keeps coming back is told
+at most once a week. Each is written down with why, and Allow stopped messages undoes it.
 """
 from __future__ import annotations
 
@@ -25,6 +27,10 @@ WEEK = 7 * DAY
 OFFER_LESS = 3  # from the third time in a week, the owner may ask for it less often
 KEEP = 35 * DAY
 LESS = "BRAM_LESS_"
+LEARN_DAYS = 14 * DAY
+FIXES_ITSELF = 3600  # back to normal within an hour, by itself
+OFTEN = 6  # times in two weeks
+NEVER_LEARNED = ("silent:",)  # silent safety sensors are always told
 
 # Looking after things, rather than something wrong.
 MAINTENANCE = re.compile(
@@ -53,16 +59,23 @@ class Teller:
         self._told: dict[str, dict[str, Any]] = {}
         self._less: list[str] = []
         self._held: set[str] = set()
+        self._seen: dict[str, list[list[float]]] = {}  # [start, end or 0] for two weeks
 
     async def start(self) -> Callable[[], None]:
         saved = await self._store.async_load() or {}
         self._told, self._less = saved.get("told", {}), saved.get("less", [])
+        self._seen = saved.get("seen", {})
         return self._hass.bus.async_listen("mobile_app_notification_action", self.answered)
 
     def allow(self, key: str, text: str, usual: str = UNTIL_FIXED, *,
-              finding: str | None = None, source: str = "message") -> bool:
-        """Whether to send it now, and if not, why is written down once."""
+              finding: str | None = None, source: str = "message",
+              asks_again: bool = False) -> bool:
+        """Whether to send it now, and if not, why is written down once. asks_again: the caller
+        asks again while it lasts, so it may be held to see whether it fixes itself."""
+        self._started(key)
         reason = self._decide(key, text, usual)
+        if reason is None and grade(text, usual) != EACH_TIME:  # its own rule's events
+            reason = self._learned(key, asks_again)
         if reason is None:
             self._held.discard(key)
             return True
@@ -92,6 +105,32 @@ class Teller:
             return "Came back within a day: the same problem"
         return None
 
+    def _started(self, key: str) -> None:
+        spans = self._seen.setdefault(key, [])
+        if not spans or spans[-1][1]:
+            spans.append([dt_util.utcnow().timestamp(), 0])
+            self._save()
+
+    def _learned(self, key: str, asks_again: bool) -> str | None:
+        """Learned from what happened, with no answers needed. Routine messages only (F4)."""
+        if key.startswith(NEVER_LEARNED):
+            return None
+        now = dt_util.utcnow().timestamp()
+        spans = [s for s in self._seen.get(key, []) if now - s[0] < LEARN_DAYS]
+        done = [s for s in spans if s[1]]
+        quick = sum(1 for s in done if s[1] - s[0] <= FIXES_ITSELF)
+        if asks_again and len(done) >= 3 and quick * 3 >= len(done) * 2:
+            if now - spans[-1][0] < FIXES_ITSELF:
+                return (f"It fixed itself within an hour {quick} of {len(done)} times in two "
+                        "weeks. Waiting an hour to see")
+        # Coming back within a day is the same event (a flicker), not another time.
+        times = sum(1 for i, s in enumerate(spans)
+                    if i == 0 or not spans[i - 1][1] or s[0] - spans[i - 1][1] >= FIXED_FOR)
+        before = self._told.get(key)
+        if times >= OFTEN and before and now - before["last"] < WEEK:
+            return f"It came up {times} times in two weeks: told at most once a week"
+        return None
+
     def actions(self, key: str) -> list[dict[str, str]]:
         """A Less often button, once something has been told a few times this week."""
         now = dt_util.utcnow().timestamp()
@@ -112,8 +151,13 @@ class Teller:
 
     @callback
     def ended(self, key: str) -> None:
+        now = dt_util.utcnow().timestamp()
+        if (spans := self._seen.get(key)) and not spans[-1][1]:
+            spans[-1][1] = now
+            self._held.discard(key)
+            self._save()
         if (before := self._told.get(key)) is not None and before["ended"] is None:
-            before["ended"] = dt_util.utcnow().timestamp()
+            before["ended"] = now
             self._save()
 
     @callback
@@ -130,13 +174,15 @@ class Teller:
 
     @callback
     def allow_all(self) -> None:
-        """Undo every Less often."""
-        self._less = []
+        """Undo every Less often, and everything BRAM learned by itself."""
+        self._less, self._seen = [], {}
         self._save()
 
     @callback
     def _save(self) -> None:
         now = dt_util.utcnow().timestamp()
-        self._store.async_delay_save(lambda: {"less": self._less, "told": {
+        self._store.async_delay_save(lambda: {"less": self._less, "seen": {
+            k: [s for s in v if now - s[0] < LEARN_DAYS] for k, v in self._seen.items()
+            if any(now - s[0] < LEARN_DAYS for s in v)}, "told": {
             k: v for k, v in self._told.items()
             if v["ended"] is None or now - v["ended"] < KEEP}}, 5)

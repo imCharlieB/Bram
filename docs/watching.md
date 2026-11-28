@@ -206,7 +206,7 @@ Buttons can acknowledge, snooze, or stop a routine message. Safety alerts can on
 
 ## How often BRAM tells you
 
-BRAM tells your phone about what matters, without repeating what you already know. These rules are in code, the same for every kind of message, and no model decides them.
+BRAM tells your phone about what matters, without repeating what you already know. These rules are in code, the same for every kind of message, and no model decides them. BRAM also learns by itself what to tell you less, from what happens.
 
 ### Four grades
 
@@ -221,7 +221,8 @@ BRAM tells your phone about what matters, without repeating what you already kno
 
 1. **What kind of thing it is.** Safety alerts are always urgent. A door left open, or a print finishing, happens each time. A failure or something offline is once until fixed.
 2. **What the words say.** Words about looking after something, such as *lubricate*, *clean*, *replace*, *filter*, *firmware*, *update available*, *refill*, *due*, or *service*, make it a reminder, whatever sent it. This is how a printer's "Threaded rods need lubrication" is told once and then left on the page.
-3. **What you chose.** Nothing becomes quieter on its own. You decide with the buttons below.
+3. **What BRAM learned.** See [Learned by itself](#learned-by-itself) below.
+4. **What you chose**, with the buttons below.
 
 ### Same thing, or something new
 
@@ -242,7 +243,22 @@ The phone shows the buttons when you expand the message: drag it down on Android
 
 **Stop these** and **Less often** also appear on BRAM's page, under **Needs you** on Home and beside the finding under **Findings**, for as long as the message is open. They are the same buttons the phone was given, and Home Assistant only accepts a button it offered for that message, once. **Acknowledge** is only on the phone, so nothing on BRAM's page or server can quiet a safety alert. Needs Home Assistant's BRAM and the server both on 0.33.0 or later.
 
-BRAM never decides by itself that something told often is unimportant. A door left open every night may be exactly what you want to know.
+Something that happens each time, such as a door left open every night, is never quieted by what BRAM learns: it may be exactly what you want to know.
+
+### Learned by itself
+
+BRAM watches what happens to each routine message over two weeks and changes how often it is told, with nothing for you to answer:
+
+| It learns | Then | Such as |
+|---|---|---|
+| It fixed itself within an hour, at least 2 of every 3 times, at least 3 times | Waits an hour. If it is still there, you are told; if it fixed itself, you are not | A car that goes offline when it sleeps |
+| It came up 6 times or more | Told at most once a week | The same error over and over |
+
+- Only routine messages: Home Assistant problems, the security check (not high-risk findings), 3D printers, and camera messages that are not urgent. Waiting an hour is only for Home Assistant problems and the security check, which look again every few minutes.
+- Never safety alerts, silent safety sensors, anything urgent, or something that happens each time, such as a door left open.
+- Each one held back is written in its finding's story under **Findings**, with why, such as "It fixed itself within an hour 3 of 4 times in two weeks. Waiting an hour to see".
+- **Allow stopped messages** on BRAM's device page in Home Assistant undoes everything BRAM learned, and starts over.
+- Needs Home Assistant's BRAM on 0.57.0 or later.
 
 ### Suggestions from what you do
 

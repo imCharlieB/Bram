@@ -25,8 +25,10 @@ class SecurityWatch:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry,
                  note: Callable[..., None] = lambda *a: None,
                  away: Callable[[], bool] = lambda: False,
-                 router: Callable[[], tuple] = lambda: (None, {})) -> None:
-        self._away, self._router = away, router
+                 router: Callable[[], tuple] = lambda: (None, {}),
+                 teller: Any = None) -> None:
+        self._away, self._router, self._teller = away, router, teller
+        self._current: set[str] = set()
         self._note = note
         self._hass = hass
         self._on: bool = entry.options.get(CONF_SECURITY_WATCH, False)
@@ -55,6 +57,16 @@ class SecurityWatch:
             self._note(f"security:{item['key']}", "open", item["text"], "security", item["level"])
         for key in self._told - current:
             self._note(f"security:{key}", "closed", "Over", "security", "low")
+        if self._teller is not None:
+            for key in self._current - current:
+                self._teller.ended(f"security:{key}")
+        self._current = current
+        # What BRAM learned by itself may hold a routine one back for now (F4); never high.
+        held = set() if first or self._teller is None else {
+            f["key"] for f in new if f["level"] != "high" and not self._teller.allow(
+                f"security:{f['key']}", f["text"], finding=f"security:{f['key']}",
+                source="security", asks_again=True)}
+        new = [f for f in new if f["key"] not in held]
         high = any(f["level"] == "high" for f in new)
         # What was there at the start is listed when asked, not announced.
         if new and not first:
@@ -70,7 +82,7 @@ class SecurityWatch:
                            "security", item["level"])
         if "Accounts and tokens" in result["not_checked"] and first:
             return  # learning from an empty list would call every account new
-        self._told = current
+        self._told = current - held
         # A kind that could not be looked at this time is not learned from an empty list.
         self._known = {kind: sorted(set(ids) | set((self._known or {}).get(kind, [])))
                        for kind, ids in result["ids"].items()

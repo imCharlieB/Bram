@@ -48,7 +48,7 @@ A rule is hard only if code enforces it and an automated test proves it. Prompt 
 | C3 | No model output, memory, habit, quiet hour, cap, or "stop telling me" can cancel, delay, or downgrade a safety alert. Only the owner, in settings. | Separate delivery path | Each suppressor attempted |
 | C4 | Safety alerts repeat and escalate until acknowledged, within configured limits. | Delivery engine | Unacknowledged alert escalates and then stops at its limit |
 | C5 | BRAM never claims to have called emergency services and is not a substitute for certified alarms. | No such tool; disclosure in setup | Setup and text review |
-| C6 | A model description may add detail after an alert. It cannot hold the alert back. | Alert sent before the model call | Slow and failing model tests |
+| C6 | A model description may hold back a routine camera message that matches what the owner said doesn't matter, and the held-back event is listed with its picture. It can never hold back a safety alert, or a person while everyone is away, at a door, or at night. | Urgent camera messages sent before the model call; only routine ones wait for it | Slow and failing model tests; urgent camera messages never held |
 
 ## D. Untrusted content
 
@@ -81,7 +81,7 @@ A rule is hard only if code enforces it and an automated test proves it. Prompt 
 | F1 | If anything is uncertain, actions stop and safety alerts continue. | Gate and safety engine defaults | Fault tests |
 | F2 | Action requests expire and are never replayed after a reconnect or restart. | Request IDs and expiry | Reconnect test |
 | F3 | Every decision is logged: trigger, reason, approver, result. | Audit log | Every action has a complete record |
-| F4 | Learned habits are proposals with evidence and expiry. They take effect after owner approval and never change permissions or safety alerts. | Proposal state machine | Unapproved habit has no effect |
+| F4 | Learned habits may change how often routine messages reach the owner, without asking. Each change is listed with its reason and can be undone. Anything else learned is a proposal with evidence and expiry, and takes effect after owner approval. Nothing learned ever changes permissions or safety alerts. | Proposal state machine; routine-only quieting | Unapproved habit has no effect; learned quieting never touches safety |
 | F5 | Safe out of the box: log-only, nothing controllable, no cloud, no cameras. | Defaults | Fresh-install test |
 | F6 | Capabilities advance one stage at a time, with owner approval: log-only, messages, Tier 1, Tier 3. | Stage setting in the integration | Stages cannot be skipped |
 | F7 | A model must pass BRAM's test set on this installation before it can request actions. A changed model, prompt, or quantization must pass again. | Model digest + prompt version check | Swapped model loses action rights |

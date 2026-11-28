@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.57.0
+
+Update BRAM in HACS, then restart Home Assistant. Update the BRAM Server (pull the new image).
+
+- BRAM learns by itself what to tell your phone less, with nothing to answer: something that usually fixes itself within an hour, such as a car that goes offline when it sleeps, waits an hour first; something that keeps coming back is told at most once a week. Never safety, silent sensors, anything urgent, or a door left open. Each one held back is in its finding's story with why, and **Allow stopped messages** undoes it all.
+- Hard rules F4 and C6 changed, with the owner's approval, to allow this for routine messages only.
+
 ## 0.56.0
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.
