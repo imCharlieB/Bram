@@ -2,7 +2,7 @@
 
 Home is your look into what BRAM sees and what it is doing. It is not a dashboard of every device: Home Assistant has those.
 
-In the middle is BRAM's brain, a knot of light threads. When something happens, it takes on that system's color for a few seconds: green for people, warm yellow for lights, amber for doors and locks, red for safety, sky blue for climate, violet for printers. Your home's systems orbit it: Home Assistant, people, security, safety, climate, lights, printers, messages, and learning, each with a short reading. When something happens in one of them, it flashes and a pulse runs into the brain. A card saying what happened, with its room on a tab (not for motion ending), appears in one of four places around the brain, stays a few seconds, and goes.
+In the middle is BRAM's brain, a knot of light threads. When something happens, it takes on that system's color for a few seconds: green for people, warm yellow for lights, amber for doors and locks, red for safety, sky blue for climate, violet for printers. Everything BRAM watches orbits it: Home Assistant, people, security, safety, climate, lights, printers, your monitors, your router, cameras, your model, messages, and learning, each with a short reading. One that is down turns red. When something happens in one of them, it flashes and a pulse runs into the brain. A card saying what happened, with its room on a tab (not for motion ending), appears in one of four places around the brain, stays a few seconds, and goes.
 
 The version also shows next to BRAM's name at the top of every page. The title on Home shows what is running: the BRAM Server's version, and BRAM's in each connected Home Assistant. It turns amber when they differ in features, such as 0.40 and 0.41; update both. A fix on one side only, such as 0.40.3 and 0.40.4, is fine.
 
@@ -14,7 +14,7 @@ When something needs you, a window opens over the brain, like a screen in a comm
 
 | Window | When | Closes |
 |---|---|---|
-| Red | A safety alarm, a safety alert, or a finding that matters most | Only when you close it with **×**, or when it is over |
+| Red | A safety alarm, a safety alert, a finding that matters most, or Home Assistant not connected | Only when you close it with **×**, or when it is over |
 | Amber | Another alert or finding that needs you, or a person on a camera | After 30 seconds |
 | Cyan | Another camera event, or a monitor answering again | After 15 seconds |
 

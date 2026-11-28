@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.52.1
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- BRAM's voice on Home moves as it speaks: the dot rings follow the words sound by sound, opening on each syllable and pausing at commas and full stops, for as long as the answer takes, and the rest of the brain steps back. When quiet, the rings still breathe.
+- Everything BRAM watches orbits the brain: your monitors, router, cameras, and model join Home Assistant and the rooms. One that is down turns red.
+- When Home Assistant drops, a red window says so over the brain, the rings go red, and BRAM says Home Assistant isn't answering and since when, instead of telling you to set it up. When it is back, a window says so.
+
 ## 0.52.0
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.

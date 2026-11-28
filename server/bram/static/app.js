@@ -123,6 +123,17 @@ async function loadStatus() {
   $("hud-version").title = apart ? "The two halves of BRAM are on different versions. Update both." : "What is running";
   paired = houses.length > 0;
   loadSteps();
+  for (const house of houses) {
+    const was = world.houses.find((h) => h.id === house.id);
+    if (!house.connected && (!was || was.connected)) {
+      seen.downSince = { ...(seen.downSince || {}), [house.id]: Date.now() };
+      popUp(`house:${house.id}`, "bad", "Connection", `${houses.length > 1 ? house.name : "Home Assistant"} isn't connected`,
+        "BRAM can't see your home or send its messages until it's back. Usually Home Assistant is restarting.");
+    } else if (house.connected && was && !was.connected) {
+      closePop(`house:${house.id}`);
+      popUp(`house-back:${house.id}:${Date.now()}`, "good", "Connection", `${houses.length > 1 ? house.name : "Home Assistant"} is back`);
+    }
+  }
   world.houses = houses;
   const odd = houses.find((house) => house.connected && release(house.version) !== release(version));
   $("outdated").hidden = !odd;
@@ -506,6 +517,7 @@ async function loadMemory() {
 }
 
 function showRouter(view) {
+  world.router = view;
   $("router-url").value = view.url;
   $("router-secret").value = "";
   $("router-secret").placeholder = view.url ? "Saved; leave empty to keep it" : "";
@@ -535,7 +547,8 @@ async function loadRouter() {
 }
 
 async function loadCameras() {
-  showCameras(await api("cameras"));
+  world.cameraView = await api("cameras");
+  showCameras(world.cameraView);
 }
 
 function hourSelect(value, label) {
@@ -1263,7 +1276,8 @@ function showNeeds(brain) {
   }
   seen.needs = new Set(keys.keys());
   const down = (world.monitors || []).some((m) => m.up === false);
-  deck.alert(urgent.length || alerts.some((a) => a.safety) || brain.needs.some((n) => n.severity === "high") ? "bad"
+  const lost = world.houses.some((h) => !h.connected);
+  deck.alert(lost || urgent.length || alerts.some((a) => a.safety) || brain.needs.some((n) => n.severity === "high") ? "bad"
     : alerts.length || brain.needs.length || down ? "warn" : "");
   $("needs-count").textContent = String((world.urgentNow || []).length + (world.alertsNow || []).length + brain.needs.length);
   $("hud-needs").replaceChildren(...rows.flat());
@@ -1357,6 +1371,18 @@ function showSystems(brain) {
     const printing = printers.filter((p) => p.state === "printing"), failing = printers.some((p) => p.state === "failing" || p.problem);
     list.push({ name: "Printers", value: printing.length ? `${printing[0].progress ?? "--"}%` : PRINTER[printers[0].state] || "idle", hot: failing ? "warn" : "" });
   }
+  if (world.monitors.length) {
+    const upNow = world.monitors.filter((m) => m.up).length, down = world.monitors.filter((m) => m.up === false);
+    list.push({ name: "Monitors", value: down.length ? `${down[0].name} down` : `${upNow} of ${world.monitors.length} up`, hot: down.length ? "bad" : "" });
+  }
+  const router = world.router;
+  if (router?.url) list.push({ name: "Router", value: router.connected ? `${router.devices} devices` : "not answering", hot: router.connected ? (router.update ? "warn" : "") : "bad" });
+  const cams = (world.cameraView?.cameras || []).filter((c) => c.on);
+  if (cams.length) {
+    const blind = cams.filter((c) => c.offline);
+    list.push({ name: "Cameras", value: blind.length ? `${cameraName(blind[0].name)}: no picture` : `${cams.length} watching`, hot: blind.length ? "warn" : "" });
+  }
+  list.push({ name: "Model", value: brain.model ? brain.model.split(":")[0].slice(0, 16) : "none", hot: brain.model ? "" : "warn" });
   list.push({ name: "Messages", value: `${brain.sent_today} today`, hot: "" });
   list.push({ name: "Learning", value: `${Math.min(brain.nights, 14)} of 14 nights`, hot: "" });
   deck.orbit(list);
@@ -1377,14 +1403,18 @@ async function loadBrain() {
 async function loadHome() {
   let problem = "";
   try {
-    await Promise.all([loadStatus(), loadMonitors(), loadSettings(), loadLatest(), loadHouse(), loadCameras()]);
+    await Promise.all([loadStatus(), loadMonitors(), loadSettings(), loadLatest(), loadHouse(), loadCameras(), loadRouter()]);
     await loadBrain();
   } catch (error) {
     problem = error.message;
   }
   headline(problem);
   // BRAM says it when it changes, not every few seconds.
-  const words = `${$("headline").textContent}. ${problem || world.urgent ? $("detail").textContent : world.devices ? `Watching ${world.devices} things.` : "Nothing is shared yet. In Home Assistant: BRAM, Configure, Recommended setup."}`;
+  const offline = world.houses.filter((h) => !h.connected);
+  const since = offline.length && seen.downSince?.[offline[0].id] ? ` since ${new Date(seen.downSince[offline[0].id]).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "";
+  const words = offline.length && !problem && !world.urgent
+    ? `${offline.length === 1 && world.houses.length === 1 ? "Home Assistant" : offline.map((h) => h.name).join(", ")} isn't answering${since}. I can't see your home until it's back.`
+    : `${$("headline").textContent}. ${problem || world.urgent ? $("detail").textContent : world.devices ? `Watching ${world.devices} things.` : "Nothing is shared yet. In Home Assistant: BRAM, Configure, Recommended setup."}`;
   if (words !== seen.said && !document.body.classList.contains("thinking")) {
     seen.said = words;
     $("thought-facts").textContent = "";

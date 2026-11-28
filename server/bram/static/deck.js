@@ -13,7 +13,7 @@ const deck = (() => {
   const TAU = Math.PI * 2;
   let w = 0, h = 0, spin = 0, last = 0, speed = 1, frame = 0, mood = "ok", alarm = "", lastAlarm = 0;
   // When something happens, the brain takes that system's color for a few seconds.
-  const HUES = { People: "#5dff9d", Lights: "#ffe066", Security: "#ffb84d", Safety: "#ff4d63", Climate: "#7ad7ff", Printers: "#b88cff", Messages: "#ff7ad9", Learning: "#b88cff", "Home Assistant": "#2fe6ff" };
+  const HUES = { People: "#5dff9d", Lights: "#ffe066", Security: "#ffb84d", Safety: "#ff4d63", Climate: "#7ad7ff", Printers: "#b88cff", Messages: "#ff7ad9", Learning: "#b88cff", "Home Assistant": "#2fe6ff", Router: "#64b5ff", Cameras: "#ff9d5c", Model: "#c9a0ff", Monitors: "#2fe6ff" };
   let tint = null;
   let level = 0;  // how loud the voice is now, smoothed
   const name = { born: 0, last: -1e9 };
@@ -93,6 +93,8 @@ const deck = (() => {
   let color = {}, dust = [], threads = [], systems = [], pulses = [], waves = [], flashes = {};
   let placed = [];
   let ear = null, earKind = "", heard = null, talking = 0, voice = [], sayTimer = 0, outdoor = null;
+  let talkUntil = 0;  // without real audio, BRAM "speaks" for as long as the answer would take
+  let spoken = "", talkFrom = 0, ringPhase = 0;
 
   function colors() {
     const style = getComputedStyle(document.body);
@@ -141,6 +143,9 @@ const deck = (() => {
     let i = 0;
     out.textContent = "";
     talking = 1;
+    talkFrom = performance.now();
+    talkUntil = talkFrom + Math.min(20000, Math.max(2500, text.length * 65));
+    spoken = text;
     state("speak");
     sayTimer = setInterval(() => {
       const ch = text[i] || " ";
@@ -153,7 +158,7 @@ const deck = (() => {
       if (i >= text.length) {
         out.textContent = text;
         clearInterval(sayTimer);
-        setTimeout(() => { if (!ear) { talking = 0; state(speed > 1 ? "think" : "watch"); } }, 400);
+        // The words are all shown; the voice goes on for as long as they would take to say.
       }
     }, 40);
     wake();
@@ -289,7 +294,8 @@ const deck = (() => {
     const lit = tint ? Math.max(0, 1 - (now - tint.born) / tint.hold) : 0;
     // While BRAM's name forms, the threads and core dim so the name can be read.
     const nameAge = name.born ? (now - name.born) / 1000 : 99;
-    const hush = nameAge < 4.2 ? Math.min(1, nameAge / .8) * Math.min(1, (4.2 - nameAge) / 1.1) : 0;
+    const hush = Math.max(nameAge < 4.2 ? Math.min(1, nameAge / .8) * Math.min(1, (4.2 - nameAge) / 1.1) : 0,
+                          Math.min(.7, level * .9));
     if (tint && !lit) tint = null;
     g.globalCompositeOperation = "lighter";
     const energy = .45 + talking * .55;
@@ -325,24 +331,38 @@ const deck = (() => {
       ear.getByteFrequencyData(heard);
       let sum = 0;
       for (let i = 0; i < heard.length / 2; i += 1) sum += heard[i];
-      heardNow = Math.min(1, sum / (heard.length / 2) / 110);
+      heardNow = Math.min(1, sum / (heard.length / 2) / 55);
     } else if (talking) {
-      heardNow = voice.reduce((a, b) => a + b, 0) / Math.max(voice.length, 1);
+      if (now > talkUntil) { talking = 0; state(speed > 1 ? "think" : "watch"); }
+      // No audio: follow the words, sound by sound, for as long as they take to say.
+      const at = Math.min(spoken.length - 1, Math.floor((now - talkFrom) / (talkUntil - talkFrom) * spoken.length));
+      const ch = spoken[Math.max(0, at)] || " ";
+      const sound = /[aeiouy]/i.test(ch) ? 1 : /[a-z0-9]/i.test(ch) ? .62 : /[,;:]/.test(ch) ? .02 : /[.!?]/.test(ch) ? 0 : .18;
+      heardNow = sound * (.75 + .25 * Math.sin(now / 23) * Math.sin(now / 61));
     }
-    level += ((talking || ear ? heardNow : 0) - level) * .18;
+    const target = talking || ear ? heardNow : 0;
+    level += (target - level) * (target > level ? .35 : .08);  // quick to rise, slow to fall
     const ringColor = earKind === "listening" ? color.sky : talking ? color.main : base;
     g.globalCompositeOperation = "lighter";
-    for (let layer = 0; layer < 4; layer += 1) {
-      const dots = 200, wave = r * (.025 + level * .26) * (1 - layer * .12);
-      const spread = r * (1.32 + layer * (.05 + level * .07));
+    const speak = Math.min(1, level), fast = now / 1000;
+    ringPhase += dt * (.8 + speak * 7);
+    const breath = 1 + .025 * Math.sin(fast * 1.3), open = r * .22 * speak;
+    const drift = fast * .7 % TAU;
+    for (let layer = 0; layer < 7; layer += 1) {
+      const dots = 340, wave = r * (.05 + speak * .55) * (1 - layer * .07);
+      const spread = r * (1.3 + layer * (.035 + speak * .1)) * breath + open * (1 - layer * .1);
       g.fillStyle = ringColor;
       for (let i = 0; i < dots; i += 1) {
         const a = i / dots * TAU;
-        const bend = Math.sin(a * 3 + t * 1.7 + layer * 1.3) * .55 + Math.sin(a * 5 - t * 2.3 + layer) * .3
-          + Math.sin(a * 9 + t * 3.1 + layer * 2.1) * .15;
+        let away = Math.abs(a - drift); away = Math.min(away, TAU - away);
+        const bend = Math.sin(a * 3 + ringPhase + layer * 1.3) * .5
+          + Math.sin(a * 5 - ringPhase * 1.4 + layer) * .3
+          + Math.sin(a * 11 + ringPhase * 2.2 + layer * 2.1) * .25 * speak
+          + Math.exp(-away * away / .08) * (.9 - speak * .5);
         const rr = spread + bend * wave;
-        g.globalAlpha = (.32 + level * .5) * (1 - layer * .18) * (.6 + .4 * Math.sin(a * 7 + t * 2));
-        g.fillRect(o.x + Math.cos(a) * rr, o.y + Math.sin(a) * rr, 1.6, 1.6);
+        g.globalAlpha = (.22 + speak * .7) * (1 - layer * .1) * (.55 + .45 * Math.sin(a * 7 + fast * 3 + layer));
+        const size = 1.3 + speak * 1.2;
+        g.fillRect(o.x + Math.cos(a) * rr, o.y + Math.sin(a) * rr, size, size);
       }
     }
     g.globalCompositeOperation = "source-over";
