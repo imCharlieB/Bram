@@ -12,6 +12,7 @@ class FakeOPNsense:
 
     def __init__(self):
         self.asked, self.leases_allowed, self.status = [], True, "none"
+        self.moved_to = ""
         self.arp = [
             {"mac": "AA:BB:CC:00:00:01", "ip": "10.0.10.5", "hostname": "",
              "manufacturer": "Apple", "intf_description": "LAN"},
@@ -22,6 +23,8 @@ class FakeOPNsense:
     def app(self):
         async def handle(request):
             self.asked.append(request.path)
+            if request.path.startswith("/old/"):  # an address that moved
+                raise web.HTTPMovedPermanently(location=self.moved_to + request.path[4:])
             if request.headers.get("Authorization") != "Basic a2V5OnNlY3JldA==":  # key:secret
                 return web.Response(status=401)
             if request.method != "GET":
@@ -72,7 +75,8 @@ async def env(tmp_path):
 async def test_every_device_on_every_network(env):
     with pytest.raises(RouterError, match="did not accept"):
         await env.router.connect(env.url, "key", "wrong")
-    await env.router.connect(env.url.removeprefix("https://"), "key", "secret")  # https assumed
+    # https assumed; lines pasted from OPNsense's file keep their key= and secret=
+    await env.router.connect(env.url.removeprefix("https://"), " key=key", 'secret="secret"')
     view = env.router.view()
     assert view["connected"] and view["devices"] == 2 and view["version"] == "25.7.3"
     assert "secret" not in str(view) and "key" not in view
@@ -118,3 +122,32 @@ async def test_disconnect_forgets_the_key(env):
     await env.router.connect(env.url, "key", "secret")
     await env.router.disconnect()
     assert env.settings.channel("router")["secret"] == "" and env.router.view()["devices"] == 0
+
+
+async def test_following_the_router_to_its_own_https_port(env, tmp_path):
+    other = FakeOPNsense()
+    other.moved_to = env.url  # http on one port sends BRAM to https on another
+    runner, port = await serve(other.app())
+    from bram import router as module
+    real = module.OPNsense._get
+
+    async def moved_once(self, path, optional=False):
+        if self.url.startswith("http://"):
+            raise module.Moved(module._base(env.url, self.url))
+        return await real(self, path, optional)
+
+    module.OPNsense._get = moved_once
+    try:
+        await env.router.connect(f"http://127.0.0.1:{port}", "key", "secret")
+    finally:
+        module.OPNsense._get = real
+        await runner.cleanup()
+    assert env.settings.channel("router")["url"] == env.url
+    assert env.settings.channel("router")["pin"] == env.fingerprint
+
+
+def test_a_redirect_elsewhere_is_refused():
+    from bram.router import RouterError, _base
+    assert _base("https://10.0.0.1:8443/ui", "http://10.0.0.1") == "https://10.0.0.1:8443"
+    with pytest.raises(RouterError):
+        _base("https://evil.example/", "http://10.0.0.1")

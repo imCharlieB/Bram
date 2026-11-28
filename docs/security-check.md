@@ -57,6 +57,16 @@ BRAM reads your router; it never changes it.
 2. On that user, under **API keys**, select **+** to create a key. OPNsense downloads a file with the key and secret.
 3. On BRAM's page, **Settings > Router**: enter the router's address, such as `https://192.168.1.1`, the key, and the secret, and select **Connect**. Enter your BRAM password.
 
+Use the address of OPNsense's web page, with its port if it is not 443, such as `https://192.168.1.1:8443`. If the router sends BRAM from one of its addresses to another, such as from http to https, BRAM follows it once and keeps the new one. You can paste the key and secret as they are in OPNsense's file, with or without `key=` and `secret=`.
+
+If it does not connect, the message says why:
+
+| Message | Try |
+|---|---|
+| Did not accept that API key and secret | Check them; make a new key if unsure |
+| The key's user may not read this, or would not give its ARP table | Give BRAM's user the **Diagnostics: ARP Table** privilege, and **Status: DHCP leases** for names |
+| Could not be reached | The address or port, and that the BRAM server may reach OPNsense's web page through your firewall |
+
 BRAM trusts the router's certificate the first time and refuses to connect if it changes, so the key only goes to your router. It looks every 5 minutes. **Settings > Router** shows how many devices it sees, grouped by network, and whether a firmware update is waiting. **Disconnect** forgets the address and key. Only an address on your own network is accepted.
 
 ## What it does not check

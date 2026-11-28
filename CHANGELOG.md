@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.52.2
+
+Update the BRAM Server (pull the new image).
+
+- Connecting the router: BRAM follows the router when it sends BRAM to its own other address, such as from http to https or another port; works with newer OPNsense versions' names for the ARP table; takes the key and secret pasted with `key=` and `secret=`; and says which is wrong, the key or its privileges.
+
 ## 0.52.1
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.

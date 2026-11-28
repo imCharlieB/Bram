@@ -15,7 +15,7 @@ import ssl
 import time
 from collections.abc import Callable
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import aiohttp
 
@@ -29,11 +29,22 @@ EVERY = 300  # seconds between looks
 FAILURES = 3
 MAX_DEVICES = 2000
 LEASES = ("/api/dnsmasq/leases/search", "/api/kea/leases4/search",
-          "/api/dhcpv4/leases/searchLease")
+          "/api/dhcpv4/leases/searchLease", "/api/dhcpv4/leases/search_lease")
+# OPNsense has named its ARP table both ways over the years.
+ARP = ("/api/diagnostics/interface/getArp", "/api/diagnostics/interface/get_arp",
+       "/api/diagnostics/interface/search_arp", "/api/diagnostics/interface/searchArp")
 
 
 class RouterError(Exception):
     """Something to show the owner."""
+
+
+class Moved(RouterError):
+    """The router sent BRAM to another address of its own, such as its https port."""
+
+    def __init__(self, url: str) -> None:
+        super().__init__(f"The router sent BRAM to {url}. Use that address")
+        self.url = url
 
 
 def _text(value: object, limit: int = 64) -> str:
@@ -94,13 +105,14 @@ class OPNsense:
         try:
             async with self._session.get(f"{self.url}{path}", ssl=self._ssl(), auth=self._auth,
                                          allow_redirects=False) as response:
-                if response.status in (401, 403):
-                    if optional:
-                        return None
-                    raise RouterError("The router did not accept that key, or the key's user "
-                                      "may not read this. See the setup steps")
-                if response.status == 404 and optional:
-                    return None
+                if response.status in (301, 302, 307, 308):
+                    raise Moved(_base(response.headers.get("Location", ""), self.url))
+                if response.status == 401:
+                    raise RouterError("The router did not accept that API key and secret")
+                if response.status in (403, 404) and optional:
+                    return None  # not allowed for this key, or not in this version
+                if response.status == 403:
+                    raise RouterError("The key's user may not read this. See the setup steps")
                 if response.status != 200:
                     raise RouterError(f"The router replied with error {response.status}")
                 body = bytearray()
@@ -121,7 +133,15 @@ class OPNsense:
     async def devices(self) -> dict[str, dict[str, str]]:
         """Every device the router knows: its ARP table, named from DHCP leases if allowed."""
         found: dict[str, dict[str, str]] = {}
-        for row in _rows(await self._get("/api/diagnostics/interface/getArp")):
+        table = None
+        for path in ARP:
+            table = await self._get(path, optional=True)
+            if table is not None:
+                break
+        if table is None:
+            raise RouterError("The router answered, but would not give its ARP table. Give "
+                              "BRAM's user the Diagnostics: ARP Table privilege")
+        for row in _rows(table):
             mac = _mac(row.get("mac"))
             if mac and not row.get("expired"):
                 found[mac] = {"ip": _text(row.get("ip"), 45),
@@ -148,6 +168,25 @@ class OPNsense:
         if self._session is not None:
             await self._session.close()
         self._session = None
+
+
+def _plain(value: object, name: str) -> str:
+    if not isinstance(value, str) or len(value) > 300:
+        return ""
+    text = value.strip().strip('"').strip("'").strip()
+    if text.lower().startswith(f"{name}="):
+        text = text[len(name) + 1:].strip().strip('"').strip("'").strip()
+    return text
+
+
+def _base(location: str, came_from: str) -> str:
+    """Where a redirect points, as scheme, host, and port only; the same host or nothing."""
+    target, here = urlsplit(urljoin(came_from + "/", location)), urlsplit(came_from)
+    if target.hostname != here.hostname or target.scheme not in ("http", "https"):
+        raise RouterError("The router sent BRAM somewhere else. Enter the address you use "
+                          "for OPNsense's web page")
+    port = f":{target.port}" if target.port else ""
+    return f"{target.scheme}://{target.hostname}{port}"
 
 
 async def _address(url: object) -> str:
@@ -217,19 +256,27 @@ class Router:
     async def connect(self, url: object, key: object, secret: object) -> None:
         clean = await _address(url)
         saved = self.saved()
-        key = key.strip() if isinstance(key, str) and len(key) <= 200 else ""
-        secret = secret.strip() if isinstance(secret, str) and len(secret) <= 200 else ""
+        # Pasted from OPNsense's file, a line may still start with key= or secret=.
+        key = _plain(key, "key")
+        secret = _plain(secret, "secret")
         if not secret and key == saved.get("key"):
             secret = saved.get("secret", "")  # left empty: keep the saved one
         if not key or not secret:
             raise RouterError("Enter the API key and secret from OPNsense")
-        trial = self._connect(clean, key, secret, "")
-        try:
-            pin = await trial.trust()
-            devices = await trial.devices()
-            firmware = await trial.firmware()
-        finally:
-            await trial.close()
+        for _ in range(2):
+            trial = self._connect(clean, key, secret, "")
+            try:
+                pin = await trial.trust()
+                devices = await trial.devices()
+                firmware = await trial.firmware()
+                break
+            except Moved as moved:
+                clean = await _address(moved.url)  # still on the owner's own network (E1)
+            finally:
+                await trial.close()
+        else:
+            raise RouterError("The router keeps sending BRAM elsewhere. Enter the address you "
+                              "use for OPNsense's web page, with its port")
         await self.close()
         self._settings.update_channel(CHANNEL, {"url": clean, "key": key, "secret": secret,
                                                 "pin": pin})
