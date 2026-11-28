@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.55.4
+
+Update the BRAM Server (pull the new image). Home Assistant needs no update.
+
+- **Looking at** on Home no longer shows a picture; it was the same one as the window in the middle. Tap a camera there to open its window.
+
 ## 0.55.3
 
 Update the BRAM Server (pull the new image). Home Assistant needs no update.

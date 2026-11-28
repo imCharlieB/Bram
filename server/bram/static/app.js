@@ -450,17 +450,9 @@ const PEOPLE_AND_THINGS = { person: "Person", car: "Car", package: "Package", do
 
 function showLooking(view, on) {
   const pretty = cameraName;
-  const latest = on.filter((camera) => camera.last).sort((a, b) => b.last.start - a.last.start)[0];
   $("look-quiet").hidden = Boolean(on.length);
   $("look-count").textContent = on.length ? `${on.length} camera${on.length === 1 ? "" : "s"}` : "Nothing";
-  $("look-shot").hidden = !latest?.shot;
-  if (latest?.shot) {
-    const src = `/api/camera-picture?camera=${encodeURIComponent(latest.name)}&e=${encodeURIComponent(latest.last.id)}`;
-    if ($("look-img").getAttribute("src") !== src) $("look-img").src = src;
-    $("look-img").alt = `${pretty(latest.name)}: ${cameraLine(latest)[0]}`;
-    $("look-caption").textContent = `${pretty(latest.name)} · ${cameraLine(latest)[0]}${latest.last.quiet ? ` · ${latest.last.quiet}` : latest.last.description ? ` · ${latest.last.description}` : ""}`;
-  }
-  // Any camera's last event can be answered: open its window from here.
+  // No picture here: it shows in the window in the middle. Tap a camera to open its last one.
   const answerable = (target, camera) => {
     target.classList.add("answer");
     target.tabIndex = 0;
@@ -469,7 +461,6 @@ function showLooking(view, on) {
     target.onclick = () => cameraWindow(camera, camera.last);
     target.onkeydown = (key) => { if (key.key === "Enter" || key.key === " ") { key.preventDefault(); cameraWindow(camera, camera.last); } };
   };
-  if (latest?.shot) answerable($("look-shot"), latest);
   $("hud-cameras").replaceChildren(...on.flatMap((camera) => {
     const [text, good] = cameraLine(camera);
     const lines = row(pretty(camera.name), camera.offline ? "no picture" : camera.last ? camera.last.who || camera.last.label : "quiet", good === false ? "bad" : good ? "" : "off", camera.last ? text : "");

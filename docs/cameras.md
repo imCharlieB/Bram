@@ -81,7 +81,7 @@ Your model learns your home from you, two ways. Both need **Describe** on for th
 **Does it matter?** This is about one picture BRAM looked at, not where the camera points. Answer it with **It matters** or **Doesn't matter**, then say what it was, such as "my Tesla" or "the neighbor in his driveway". It is asked in three places:
 
 - **Settings > Cameras**, under each camera's last picture.
-- On Home, under **Looking at**: tap the picture, or a camera's row, to open its last event in a window.
+- On Home, under **Looking at**: tap a camera to open its last event in a window.
 - In the window that pops up on Home for an event BRAM told your phone about. Camera messages on your phone ask it too, without the box.
 
 Both go to your model with every picture from that camera, so its descriptions use your words, such as "The neighbor walks to his car in his own driveway." Your answers are listed under **Settings > Cameras > What you taught BRAM**, each with **Forget**.
@@ -97,13 +97,13 @@ Your own model can describe each event in a sentence or two, such as "A delivery
 
 Only the event's picture goes to the model, and only for those cameras. The model must be on your own network; no picture goes to a cloud model. One picture is described at a time, and only for events from the last 5 minutes.
 
-The words appear in the event's window on Home, in **Looking at**, and under **Settings > Cameras**. A phone message includes them only if they are ready when the message goes out: a slow model never holds a message back, and the words never decide whether you are told. Turning **Watch** off for a camera also turns off **Describe** and drops its words.
+The words appear in the event's window on Home and under **Settings > Cameras**. A phone message includes them only if they are ready when the message goes out: a slow model never holds a message back, and the words never decide whether you are told. Turning **Watch** off for a camera also turns off **Describe** and drops its words.
 
 ## On BRAM's page
 
 | Where | Shows |
 |---|---|
-| Home, **Looking at** | The latest picture from the cameras BRAM watches, and each camera's last event ✅ |
+| Home, **Looking at** | Each camera's last event; tap one to open its picture in a window ✅ |
 | Home, over the brain | A window with the picture and **Does it matter?**, only for an event BRAM told you about or held for quiet hours; one window for all cameras ✅ |
 | Settings > Cameras | Each camera, with its switch and last event ✅ |
 | Findings | Each camera event BRAM told you about, with its story |
@@ -153,7 +153,7 @@ On BRAM's page, **Settings > Cameras**:
 2. Select **Connect** and enter your BRAM password.
 3. Under **Which cameras BRAM watches**, turn on **Watch** for each camera.
 
-BRAM checks Frigate every 10 seconds. A camera you add in Frigate shows up within 10 minutes. Each watched camera shows its latest event under Settings and in **Looking at** on Home, with Frigate's snapshot, or its thumbnail when snapshots are off in Frigate, or else the camera's latest frame. If Frigate stops getting a picture from a camera, it says so, and never treats it as nothing there. Turning a camera off drops its events and picture from BRAM. **Disconnect** forgets the address, login, and choices.
+BRAM checks Frigate every 10 seconds. A camera you add in Frigate shows up within 10 minutes. Each watched camera shows its latest event in **Looking at** on Home, and under Settings with Frigate's snapshot, or its thumbnail when snapshots are off in Frigate, or else the camera's latest frame. If Frigate stops getting a picture from a camera, it says so, and never treats it as nothing there. Turning a camera off drops its events and picture from BRAM. **Disconnect** forgets the address, login, and choices.
 
 Only an address on your own network is accepted. If you type the address without `http://` or `https://`, BRAM tries both.
 

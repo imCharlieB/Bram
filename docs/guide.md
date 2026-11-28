@@ -198,7 +198,7 @@ When something needs you, a window opens over the brain, like a screen in a comm
 | Amber | Another alert or finding that needs you, or a person on a camera | After 30 seconds |
 | Cyan | Another camera event, or a monitor answering again | After 15 seconds |
 
-A camera window opens only for an event BRAM told your phone about, or held for quiet hours, under your [camera messages](cameras.md#what-it-tells-you). Every other event only updates **Looking at**. A camera window asks **Does it matter?**: see [Teach BRAM a camera](cameras.md#teach-bram-a-camera).
+A camera window opens only for an event BRAM told your phone about, or held for quiet hours, under your [camera messages](cameras.md#what-it-tells-you). Every other event only updates **Looking at**, where tapping a camera opens its window. A camera window asks **Does it matter?**: see [Teach BRAM a camera](cameras.md#teach-bram-a-camera).
 
 A finding's window has the same **Story**, **Stop these**, **Less often**, and **Hide** as under **Needs you**. A camera's window shows Frigate's picture. Windows open only for what is new while the page is open; what was already there is listed under **Needs you**. At most three are open at once. Cameras share one window: a new camera event replaces the last one, so several cameras at once never pile up.
 
@@ -218,7 +218,7 @@ Screens down both sides each have a tab. Point at one, or tab into it, and it li
 | **Monitors** | Each of your [monitors](watching.md#monitors-1): up, down with why, or checking. **Manage** opens them. A monitor going down opens a red window; coming back, a cyan one |
 | **3D printers** | Only while a print is running or paused: progress, time left, file, and nozzle, bed, and chamber temperatures against target. See [3D printers](watching.md#3d-printers) |
 | **Watching** | What is counting down: a door left open with the minutes until you are told, a print until it finishes, and when night starts. Each says why |
-| **Looking at** | With [cameras](cameras.md) connected, the latest picture from the cameras BRAM watches, and each camera's last event. Without them, how to connect Frigate |
+| **Looking at** | With [cameras](cameras.md) connected, each camera's last event; tap one to open its picture in a window. Without them, how to connect Frigate |
 | **Climate** | Outside temperature, from a weather entity you share with BRAM, such as Pirate Weather's, or else from temperature sensors in your yard or on your porch; the last 24 hours inside and outside; and how long each thermostat has run today. Needs [Keep history](guide.md#history-and-trends). Without a weather entity, it says to share one |
 | **Needs you** | Safety alarms, open alerts, and open [findings](guide.md#findings) that matter, each with what to do. A finding has **Story**, which opens it under Findings; **Stop these** and **Less often** when your phone was given them (see [How often BRAM tells you](watching.md#how-often-bram-tells-you)); and **Hide**, which takes it off the list until it happens again but does not change what is sent to your phone. Hidden findings are under **Findings > Show > Hidden** |
 | **I noticed** | Patterns: a room sensor that reads warmer or cooler than its thermostat over the week, how many nights are learned, and things not reporting |
